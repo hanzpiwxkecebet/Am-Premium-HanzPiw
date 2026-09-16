@@ -1,1 +1,118 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Admin Login — AM Premium Free</title>
+  <link rel="icon" type="image/svg+xml" href="/public/assets/favicon/favicon.svg"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/public/css/main.css"/>
+  <link rel="stylesheet" href="/public/css/admin.css"/>
+</head>
+<body>
+<div class="bg-animated"></div>
+<div class="particles"></div>
+<div id="toastContainer"></div>
 
+<main>
+  <div class="admin-login-page">
+    <div class="admin-login-box">
+      <div class="admin-login-logo">
+        <img src="/public/assets/logo/logo.svg" alt="AM Premium Free" style="max-width:160px;margin:0 auto 1rem"/>
+        <div class="admin-login-title">Admin Dashboard</div>
+        <p class="admin-login-sub">AM Premium Free by HanzPiw Official</p>
+      </div>
+
+      <div class="glass-card">
+        <!-- Firebase Auth Form -->
+        <form id="loginForm" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="loginEmail">Email Admin</label>
+            <input
+              class="form-input"
+              type="email"
+              id="loginEmail"
+              name="email"
+              placeholder="admin@example.com"
+              autocomplete="email"
+              required
+              aria-required="true"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="loginPass">Password</label>
+            <div style="position:relative">
+              <input
+                class="form-input"
+                type="password"
+                id="loginPass"
+                name="password"
+                placeholder="••••••••••"
+                autocomplete="current-password"
+                required
+                aria-required="true"
+                style="padding-right:3rem"
+              />
+              <button
+                type="button"
+                id="togglePass"
+                style="position:absolute;right:.875rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-3);cursor:pointer;font-size:1rem"
+                aria-label="Toggle password visibility"
+              >👁️</button>
+            </div>
+          </div>
+          <div class="form-error hidden" id="loginError" role="alert" style="margin-bottom:.75rem"></div>
+          <button type="submit" class="btn btn-primary btn-full" id="loginBtn">
+            🔐 Login Admin
+          </button>
+        </form>
+
+        <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border);text-align:center">
+          <p style="color:var(--text-3);font-size:.78rem">
+            Halaman admin hanya untuk HanzPiw Official.<br>
+            Setup Firebase Authentication sebelum login.
+          </p>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:1.25rem">
+        <a href="/" style="color:var(--text-3);font-size:.82rem">← Kembali ke Website</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script>
+// Firebase config from meta tags or environment
+// Replace with your actual Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyALsCBVdvhkiYlAjP0VrI6Ddyi9MjqYLss",
+  authDomain: "am-premium-hanzpiw.firebaseapp.com",
+  projectId: "am-premium-hanzpiw",
+  storageBucket: "am-premium-hanzpiw.firebasestorage.app",
+  messagingSenderId: "1090506746724",
+  appId: "1:1090506746724:web:be7e4c4cd2a3ac32d8e871"
+};
+try {
+  firebase.initializeApp(firebaseConfig);
+  console.log('[Firebase] Client initialized');
+} catch (e) {
+  console.warn('[Firebase] Not configured:', e.message);
+}
+</script>
+<script src="/public/js/app.js"></script>
+<script src="/public/js/admin.js"></script>
+<script>
+// Additional UI scripts
+document.getElementById('togglePass')?.addEventListener('click', function() {
+  const input = document.getElementById('loginPass');
+  if (input) {
+    input.type = input.type === 'password' ? 'text' : 'password';
+    this.textContent = input.type === 'password' ? '👁️' : '🙈';
+  }
+});
+</script>
+</body>
+</html>

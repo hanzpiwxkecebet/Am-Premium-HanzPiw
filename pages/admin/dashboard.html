@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Admin Dashboard — AM Premium Free</title>
+  <link rel="icon" type="image/svg+xml" href="/public/assets/favicon/favicon.svg"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/public/css/main.css"/>
+  <link rel="stylesheet" href="/public/css/admin.css"/>
+</head>
+<body id="adminDashboard">
+<div class="bg-animated"></div>
+<div id="toastContainer"></div>
+
+<div class="admin-layout">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-head">
+      <img src="/public/assets/logo/logo.svg" alt="Logo" class="admin-logo"/>
+    </div>
+    <nav class="admin-nav">
+      <div class="admin-nav-section">Main</div>
+      <button class="admin-nav-item active" data-section="overview">
+        <span class="admin-nav-icon">📊</span>
+        <span class="admin-nav-label">Overview</span>
+      </button>
+      <button class="admin-nav-item" data-section="history">
+        <span class="admin-nav-icon">📋</span>
+        <span class="admin-nav-label">Generator History</span>
+      </button>
+
+      <div class="admin-nav-section">Management</div>
+      <button class="admin-nav-item" data-section="config">
+        <span class="admin-nav-icon">⚙️</span>
+        <span class="admin-nav-label">API Settings</span>
+      </button>
+      <button class="admin-nav-item" data-section="maintenance">
+        <span class="admin-nav-icon">🛠️</span>
+        <span class="admin-nav-label">Maintenance</span>
+      </button>
+      <button class="admin-nav-item" data-section="broadcast">
+        <span class="admin-nav-icon">📢</span>
+        <span class="admin-nav-label">Broadcast</span>
+      </button>
+
+      <div class="admin-nav-section">System</div>
+      <button class="admin-nav-item" data-section="logs">
+        <span class="admin-nav-icon">📝</span>
+        <span class="admin-nav-label">Logs</span>
+      </button>
+    </nav>
+    <div class="admin-sidebar-footer">
+      <div class="admin-user">
+        <div class="admin-avatar" id="adminName">A</div>
+        <div class="admin-user-info">
+          <div class="admin-user-name" id="adminEmail">Admin</div>
+          <div class="admin-user-role">HanzPiw Official</div>
+        </div>
+      </div>
+      <button class="btn-logout" id="logoutBtn">🚪 Logout</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+        <span class="admin-topbar-title" id="topbarTitle">Overview</span>
+      </div>
+      <div class="admin-topbar-actions">
+        <button class="btn-theme" data-theme-toggle title="Toggle theme">☀️</button>
+        <span style="font-size:.78rem;color:var(--text-3)">AM Premium Free v1.0.0</span>
+      </div>
+    </div>
+
+    <div class="admin-content">
+
+      <!-- Overview Section -->
+      <div class="admin-section active" id="section-overview">
+        <div class="overview-grid">
+          <div class="ov-card">
+            <div class="ov-icon">⚡</div>
+            <div class="ov-label">Total Generate</div>
+            <div class="ov-value" id="ovTotal">—</div>
+          </div>
+          <div class="ov-card">
+            <div class="ov-icon">✅</div>
+            <div class="ov-label">Success</div>
+            <div class="ov-value" id="ovSuccess" style="color:#00ff88">—</div>
+          </div>
+          <div class="ov-card">
+            <div class="ov-icon">❌</div>
+            <div class="ov-label">Failed</div>
+            <div class="ov-value" id="ovFailed" style="color:var(--red)">—</div>
+          </div>
+          <div class="ov-card">
+            <div class="ov-icon">📅</div>
+            <div class="ov-label">Today</div>
+            <div class="ov-value" id="ovToday">—</div>
+          </div>
+          <div class="ov-card">
+            <div class="ov-icon">🌐</div>
+            <div class="ov-label">API Status</div>
+            <div class="ov-value" id="ovApiStatus" style="font-size:1rem">—</div>
+          </div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-title">📈 Success vs Failed</div>
+            <canvas id="donutChart" height="200"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">📊 Activity (Last 7 Days)</div>
+            <canvas id="lineChart" height="200"></canvas>
+          </div>
+        </div>
+
+        <div class="admin-table-wrap">
+          <div class="admin-table-head">
+            <span class="admin-table-title">🔴 Recent Activity</span>
+            <button class="btn btn-outline btn-sm" onclick="Admin.loadOverview()">↻ Refresh</button>
+          </div>
+          <div style="padding:1.5rem;text-align:center;color:var(--text-3);font-size:.85rem">
+            Lihat detail di tab <strong>Generator History</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- History Section -->
+      <div class="admin-section" id="section-history">
+        <div class="admin-table-wrap">
+          <div class="admin-table-head">
+            <span class="admin-table-title">📋 Generator History</span>
+            <button class="btn btn-outline btn-sm" onclick="loadSection('history')">↻ Refresh</button>
+          </div>
+          <div id="historyLoading" style="padding:1.5rem;text-align:center;color:var(--text-3);font-size:.85rem">Memuat data...</div>
+          <div style="overflow-x:auto">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Email (Masked)</th>
+                  <th>Status</th>
+                  <th>Waktu</th>
+                  <th>IP</th>
+                </tr>
+              </thead>
+              <tbody id="adminHistoryBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Config Section -->
+      <div class="admin-section" id="section-config">
+        <div class="settings-section">
+          <div class="settings-title">⚙️ API Configuration</div>
+          <div class="settings-card">
+            <div class="form-group">
+              <label class="form-label">API Base URL</label>
+              <input type="url" class="form-input" id="apiBaseUrl" placeholder="https://ellreyxml.web.id/alight-motion"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cooldown (detik)</label>
+              <input type="number" class="form-input" id="cooldownInput" value="30" min="5" max="300"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Rate Limit Max (per menit)</label>
+              <input type="number" class="form-input" id="rateLimitInput" value="10" min="1" max="100"/>
+            </div>
+            <button class="btn btn-primary" id="saveConfigBtn">💾 Simpan Konfigurasi</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-title">🌐 API Status</div>
+          <div class="settings-card" id="apiStatusSection">
+            <div class="api-status-row">
+              <div class="api-dot" id="apiDot"></div>
+              <span class="api-status-label">External API</span>
+              <span class="api-status-badge" id="apiStatusBadge">Checking...</span>
+            </div>
+            <p style="color:var(--text-3);font-size:.78rem;margin-top:.75rem">
+              Endpoint: <code style="color:var(--text-2)">https://ellreyxml.web.id/alight-motion</code>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Maintenance Section -->
+      <div class="admin-section" id="section-maintenance">
+        <div class="settings-section">
+          <div class="settings-title">🛠️ Maintenance Mode</div>
+          <div class="settings-card">
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <div class="settings-row-label">Aktifkan Maintenance Mode</div>
+                <div class="settings-row-desc">Saat aktif, user tidak dapat mengakses website. Admin tetap bisa login.</div>
+              </div>
+              <label class="toggle" aria-label="Toggle maintenance mode">
+                <input type="checkbox" id="maintenanceToggle"/>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="glass-card" style="margin-top:1rem;border-color:rgba(255,107,0,0.3)">
+            <div style="font-size:1.5rem;margin-bottom:.5rem">⚠️</div>
+            <div style="font-weight:700;margin-bottom:.5rem;color:#ff6b00">Perhatian</div>
+            <p style="color:var(--text-2);font-size:.85rem;line-height:1.6">
+              Mengaktifkan maintenance mode akan membuat seluruh halaman publik tidak dapat diakses.
+              Hanya halaman admin yang tetap dapat diakses.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Broadcast Section -->
+      <div class="admin-section" id="section-broadcast">
+        <div class="settings-section">
+          <div class="settings-title">📢 Buat Announcement</div>
+          <div class="settings-card broadcast-card">
+            <div class="form-group">
+              <label class="form-label">Judul *</label>
+              <input type="text" class="form-input" id="bcTitle" placeholder="Judul announcement..."/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Deskripsi</label>
+              <textarea class="form-input" id="bcDesc" rows="3" placeholder="Deskripsi tambahan..." style="resize:vertical"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Link (opsional)</label>
+              <input type="url" class="form-input" id="bcLink" placeholder="https://..."/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tipe</label>
+              <select class="form-input" id="bcType">
+                <option value="banner">Banner (Atas Halaman)</option>
+                <option value="popup">Popup</option>
+                <option value="notification">Notifikasi</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" id="sendBroadcastBtn">📢 Kirim Announcement</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Logs Section -->
+      <div class="admin-section" id="section-logs">
+        <div class="admin-table-wrap">
+          <div class="admin-table-head">
+            <span class="admin-table-title">📝 System Logs</span>
+            <button class="btn btn-outline btn-sm" id="refreshLogsBtn">↻ Refresh</button>
+          </div>
+          <div id="logsContainer" style="padding:1rem;max-height:500px;overflow-y:auto">
+            <div style="text-align:center;color:var(--text-3);padding:2rem">Memuat logs...</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- admin-content -->
+  </div><!-- admin-main -->
+</div><!-- admin-layout -->
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script>
+try {
+  const fc = {
+    apiKey: "AIzaSyALsCBVdvhkiYlAjP0VrI6Ddyi9MjqYLss",
+    authDomain: "am-premium-hanzpiw.firebaseapp.com",
+    projectId: "am-premium-hanzpiw"
+  };
+  firebase.initializeApp(fc);
+} catch(e) { /* not configured */ }
+</script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Chart.js dark defaults
+Chart.defaults.color = '#9090aa';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+</script>
+
+<script src="/public/js/app.js"></script>
+<script src="/public/js/admin.js"></script>
+<script>
+// Additional section switching helper
+function loadSection(s) { if (window.Admin) Admin.loadOverview(); }
+
+// Update API status in config section
+async function checkApiStatus() {
+  try {
+    const res = await fetch('/api/stats');
+    const json = await res.json();
+    const online = json.data?.apiOnline;
+    const dot = document.getElementById('apiDot');
+    const badge = document.getElementById('apiStatusBadge');
+    if (dot) dot.className = `api-dot ${online ? 'online' : 'offline'}`;
+    if (badge) { badge.textContent = online ? 'Online' : 'Offline'; badge.className = `api-status-badge ${online ? 'online' : 'offline'}`; }
+  } catch {}
+}
+document.addEventListener('DOMContentLoaded', () => { setTimeout(checkApiStatus, 1000); });
+</script>
+</body>
+</html>
