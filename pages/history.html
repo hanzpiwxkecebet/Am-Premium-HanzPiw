@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>History — AM Premium Free by HanzPiw</title>
+  <link rel="icon" type="image/svg+xml" href="/public/assets/favicon/favicon.svg"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/public/css/main.css"/>
+</head>
+<body>
+<div id="loadingScreen"><div class="loading-logo"><div class="loading-logo-icon"></div><div class="loading-title">AM PREMIUM FREE</div><div class="loading-subtitle">by HanzPiw Official</div></div><div class="loading-bar-wrap"><div class="loading-bar"></div></div></div>
+<div class="announcement-bar hidden" id="announcementBar"></div>
+<div class="bg-animated"></div><div class="particles"></div><div class="page-transition"></div><div id="toastContainer"></div>
+<nav class="navbar"><div class="nav-inner">
+  <a href="/" class="nav-logo"><img src="/public/assets/logo/logo.svg" alt="AM Premium Free" width="120" height="36"/></a>
+  <div class="nav-links">
+    <a href="/" class="nav-link">Home</a><a href="/generator" class="nav-link">Generator</a>
+    <a href="/tutorial" class="nav-link">Tutorial</a><a href="/faq" class="nav-link">FAQ</a>
+    <a href="/about" class="nav-link">About</a><a href="/contact" class="nav-link">Contact</a>
+  </div>
+  <div class="nav-actions"><button class="btn-theme" data-theme-toggle>☀️</button></div>
+  <button class="nav-hamburger" aria-label="Menu"><span></span><span></span><span></span></button>
+</div></nav>
+<div class="nav-mobile">
+  <a href="/" class="nav-link">🏠 Home</a><a href="/generator" class="nav-link">⚡ Generator</a>
+  <a href="/tutorial" class="nav-link">📖 Tutorial</a><a href="/faq" class="nav-link">❓ FAQ</a>
+  <a href="/about" class="nav-link">ℹ️ About</a><a href="/contact" class="nav-link">📬 Contact</a>
+  <div class="nav-mobile-actions"><button class="btn-theme" data-theme-toggle>☀️</button></div>
+</div>
+
+<main>
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <span class="section-tag">RIWAYAT</span>
+        <h1 class="section-title">Generate History</h1>
+        <p class="section-desc">Riwayat permintaan generator. Email ditampilkan dalam format masked untuk privasi.</p>
+      </div>
+
+      <div class="history-table-wrap">
+        <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+          <div style="font-weight:700;font-size:.9rem">📋 Recent Generations</div>
+          <div style="display:flex;gap:.5rem;align-items:center">
+            <span style="font-size:.78rem;color:var(--text-3)" id="historyLoading">Memuat data...</span>
+            <span class="stat-dot" id="apiStatusDot" style="font-size:.78rem"></span>
+          </div>
+        </div>
+
+        <div id="historyEmpty" style="display:none;text-align:center;padding:3rem;color:var(--text-3)">
+          <div style="font-size:3rem;margin-bottom:1rem">📭</div>
+          <div style="font-weight:600;margin-bottom:.5rem">Riwayat Tidak Publik</div>
+          <p style="font-size:.85rem">Data history hanya dapat diakses oleh admin melalui <a href="/admin/dashboard" style="color:var(--red)">Admin Dashboard</a>.</p>
+        </div>
+
+        <table class="history-table" id="historyTable" style="display:none">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Waktu</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+
+      <div style="text-align:center;margin-top:2rem">
+        <a href="/generator" class="btn btn-primary">⚡ Generate Sekarang</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer"><div class="container">
+  <img src="/public/assets/logo/logo.svg" alt="" class="footer-logo"/>
+  <nav class="footer-links"><a href="/">Home</a><a href="/generator">Generator</a><a href="/tutorial">Tutorial</a><a href="/faq">FAQ</a><a href="/about">About</a><a href="/contact">Contact</a></nav>
+  <div class="footer-divider"></div>
+  <p class="footer-copy">© 2024 <span>AM Premium Free</span> by HanzPiw Official</p>
+</div></footer>
+<script src="/public/js/app.js"></script>
+<script src="/public/js/history.js"></script>
+</body>
+</html>

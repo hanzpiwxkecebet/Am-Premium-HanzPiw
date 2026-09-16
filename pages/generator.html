@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Generator — AM Premium Free by HanzPiw</title>
+  <meta name="description" content="Generator Alight Motion Premium. Masukkan email kamu dan dapatkan akses premium gratis."/>
+  <link rel="icon" type="image/svg+xml" href="/public/assets/favicon/favicon.svg"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/public/css/main.css"/>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="loading-logo">
+    <div class="loading-logo-icon"></div>
+    <div class="loading-title">AM PREMIUM FREE</div>
+    <div class="loading-subtitle">by HanzPiw Official</div>
+  </div>
+  <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
+  <div class="loading-version">Version 1.0.0 Beta</div>
+</div>
+
+<div class="announcement-bar hidden" id="announcementBar"></div>
+<div class="bg-animated"></div>
+<div class="particles"></div>
+<div class="page-transition"></div>
+<div id="toastContainer"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <img src="/public/assets/logo/logo.svg" alt="AM Premium Free" width="120" height="36"/>
+    </a>
+    <div class="nav-links">
+      <a href="/"          class="nav-link">Home</a>
+      <a href="/generator" class="nav-link active">Generator</a>
+      <a href="/tutorial"  class="nav-link">Tutorial</a>
+      <a href="/faq"       class="nav-link">FAQ</a>
+      <a href="/about"     class="nav-link">About</a>
+      <a href="/contact"   class="nav-link">Contact</a>
+    </div>
+    <div class="nav-actions">
+      <button class="btn-theme" data-theme-toggle>☀️</button>
+    </div>
+    <button class="nav-hamburger" aria-label="Toggle menu"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="nav-mobile">
+  <a href="/"          class="nav-link">🏠 Home</a>
+  <a href="/generator" class="nav-link">⚡ Generator</a>
+  <a href="/tutorial"  class="nav-link">📖 Tutorial</a>
+  <a href="/faq"       class="nav-link">❓ FAQ</a>
+  <a href="/about"     class="nav-link">ℹ️ About</a>
+  <a href="/contact"   class="nav-link">📬 Contact</a>
+  <div class="nav-mobile-actions">
+    <button class="btn-theme" data-theme-toggle>☀️</button>
+  </div>
+</div>
+
+<main>
+  <div class="generator-wrap">
+    <!-- Header -->
+    <div class="generator-header">
+      <h1 class="generator-title">⚡ Alight Motion Premium</h1>
+      <p class="generator-desc">Generator premium sederhana, cepat, dan aman.</p>
+    </div>
+
+    <!-- Step Indicator -->
+    <div class="step-indicator" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="3">
+      <div class="step-dot active" id="stepDot1" aria-label="Step 1: Email">1</div>
+      <div class="step-line" id="stepLine1"></div>
+      <div class="step-dot" id="stepDot2" aria-label="Step 2: Verify">2</div>
+      <div class="step-line" id="stepLine2"></div>
+      <div class="step-dot" id="stepDot3" aria-label="Step 3: Result">3</div>
+    </div>
+
+    <!-- Step 1: Email -->
+    <div class="gen-step active" id="step1">
+      <div class="glass-card">
+        <div style="margin-bottom:1.25rem">
+          <h2 style="font-weight:700;font-size:1.05rem;margin-bottom:.35rem">📧 Masukkan Email</h2>
+          <p style="color:var(--text-2);font-size:.88rem">Gunakan email yang terdaftar di akun Alight Motion kamu.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="emailInput">Email Alight Motion</label>
+          <input
+            class="form-input"
+            type="email"
+            id="emailInput"
+            name="email"
+            placeholder="Masukkan email kamu..."
+            autocomplete="email"
+            maxlength="100"
+            aria-required="true"
+            aria-describedby="emailError"
+          />
+          <div class="form-error hidden" id="emailError" role="alert"></div>
+        </div>
+
+        <!-- Cooldown -->
+        <div class="cooldown-wrap" id="cooldownWrap">
+          <div class="cooldown-text">Tunggu <span id="cooldownSec">30</span> detik sebelum mencoba lagi</div>
+          <div class="cooldown-bar-wrap"><div class="cooldown-bar" id="cooldownBar" style="width:100%"></div></div>
+        </div>
+
+        <button class="btn btn-primary btn-full mt-2" id="sendBtn" aria-label="Kirim verifikasi">
+          📨 Send Verification
+        </button>
+
+        <p style="margin-top:1rem;text-align:center;color:var(--text-3);font-size:.78rem">
+          ⚠️ Pastikan email aktif dan dapat menerima pesan.
+        </p>
+      </div>
+    </div>
+
+    <!-- Step 2: Verify -->
+    <div class="gen-step" id="step2">
+      <div class="glass-card">
+        <div style="margin-bottom:1.25rem">
+          <h2 style="font-weight:700;font-size:1.05rem;margin-bottom:.35rem">🔐 Verify Your Email</h2>
+          <p style="color:var(--text-2);font-size:.88rem">Buka inbox email kamu dan salin link verifikasi yang dikirim.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="linkInput">Verification Link</label>
+          <input
+            class="form-input"
+            type="url"
+            id="linkInput"
+            name="link"
+            placeholder="Paste link verifikasi di sini..."
+            maxlength="2000"
+            aria-required="true"
+            aria-describedby="linkError"
+          />
+          <div class="form-error hidden" id="linkError" role="alert"></div>
+        </div>
+
+        <div style="display:flex;gap:.75rem;margin-top:.25rem">
+          <button class="btn btn-outline" id="backBtn" style="flex:0 0 auto">← Back</button>
+          <button class="btn btn-primary btn-full" id="verifyBtn" aria-label="Verifikasi premium">
+            ✅ Verify Premium
+          </button>
+        </div>
+
+        <div style="margin-top:1rem;padding:.875rem;background:var(--bg-2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+          <p style="color:var(--text-3);font-size:.78rem;margin-bottom:.35rem">💡 Cara mendapatkan link verifikasi:</p>
+          <ol style="color:var(--text-2);font-size:.78rem;padding-left:1.25rem;line-height:1.8">
+            <li>Buka inbox email kamu</li>
+            <li>Cari email dari Alight Motion</li>
+            <li>Salin seluruh link verifikasi</li>
+            <li>Paste di kolom di atas</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Result -->
+    <div class="gen-step" id="step3">
+      <div class="glass-card result-card">
+        <div class="result-header">
+          <span class="result-icon">🎉</span>
+          <div class="result-title">Verification Successful!</div>
+          <p style="color:var(--text-2);font-size:.85rem;margin-top:.4rem">Alight Motion Premium berhasil diaktifkan.</p>
+        </div>
+
+        <div class="result-content-box" id="resultBox"></div>
+
+        <div class="result-actions">
+          <button class="btn btn-primary"  id="copyBtn">📋 Copy Result</button>
+          <button class="btn btn-outline"  id="shareBtn">🔗 Share Result</button>
+          <button class="btn btn-blue"     id="dlBtn" style="display:none">📥 Download</button>
+          <button class="btn btn-outline"  id="resetBtn" style="grid-column:1/-1">⚡ Generate Again</button>
+        </div>
+
+        <p style="text-align:center;color:var(--text-3);font-size:.75rem;margin-top:1rem">
+          ⚠️ Jangan bagikan link verifikasi kepada orang lain.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <p class="footer-copy">© 2024 <span>AM Premium Free</span> by HanzPiw Official</p>
+    <p class="footer-watermark">Unlock Your Motion. Create Without Limits.</p>
+  </div>
+</footer>
+
+<script src="/public/js/app.js"></script>
+<script src="/public/js/generator.js"></script>
+</body>
+</html>
