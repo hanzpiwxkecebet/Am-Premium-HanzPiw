@@ -46,10 +46,14 @@ async function verifyPremium(email, link) {
 
 async function checkApiStatus() {
   try {
-    const response = await axios.get(BASE_URL, { timeout: 5000, headers });
+    const response = await axios.get(`${BASE_URL}/send`, {
+      params: { email: 'test@test.com' },
+      timeout: 5000,
+      headers
+    });
     return { online: true, status: response.status };
   } catch (error) {
-    return { online: false, status: error.response?.status || 0 };
+    return { online: !!error.response, status: error.response?.status || 0 };
   }
 }
 

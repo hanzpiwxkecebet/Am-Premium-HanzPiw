@@ -32,7 +32,7 @@ async function incrementStat(type) {
   const db = getDb();
   const today = new Date().toISOString().slice(0, 10);
   if (!db) {
-    memStore.stats.total = (memStore.stats.total || 0) + 1;
+    if (type === 'success' || type === 'failed') memStore.stats.total = (memStore.stats.total || 0) + 1;
     if (type === 'success') memStore.stats.success = (memStore.stats.success || 0) + 1;
     if (type === 'failed') memStore.stats.failed = (memStore.stats.failed || 0) + 1;
     return;
@@ -40,7 +40,8 @@ async function incrementStat(type) {
   try {
     const ref = db.collection('stats').doc('global');
     const FieldValue = getAdmin().firestore.FieldValue;
-    const update = { total: FieldValue.increment(1) };
+    const update = {};
+    if (type === 'success' || type === 'failed') update.total = FieldValue.increment(1);
     if (type === 'success') update.success = FieldValue.increment(1);
     if (type === 'failed') update.failed = FieldValue.increment(1);
     update[`daily.${today}`] = FieldValue.increment(1);
