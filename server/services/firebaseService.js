@@ -254,3 +254,55 @@ module.exports = {
   verifyAdminToken,
   maskEmail
 };
+
+// ─── User Daily Limit ──────────────────────────────────────────────────────
+
+async function checkAndIncrementUserLimit(uid) {
+  const db = getDb();
+  const today = new Date().toISOString().slice(0, 10);
+  const LIMIT = parseInt(process.env.DAILY_LIMIT || '10');
+
+  if (!db) return { allowed: true, remaining: LIMIT, used: 0 };
+
+  try {
+    const ref = db.collection('users').doc(uid);
+    const doc = await ref.get();
+
+    if (!doc.exists) {
+      await ref.set({ dailyCount: 1, lastDate: today, createdAt: new Date().toISOString() }, { merge: true });
+      return { allowed: true, remaining: LIMIT - 1, used: 1 };
+    }
+
+    const data = doc.data();
+
+    if (data.lastDate !== today) {
+      await ref.update({ dailyCount: 1, lastDate: today });
+      return { allowed: true, remaining: LIMIT - 1, used: 1 };
+    }
+
+    const used = data.dailyCount || 0;
+    if (used >= LIMIT) return { allowed: false, remaining: 0, used };
+
+    await ref.update({ dailyCount: getAdmin().firestore.FieldValue.increment(1) });
+    return { allowed: true, remaining: LIMIT - (used + 1), used: used + 1 };
+  } catch (e) {
+    console.error('[FB] checkLimit error:', e.message);
+    return { allowed: true, remaining: LIMIT, used: 0 };
+  }
+}
+
+async function getUserStats(uid) {
+  const db = getDb();
+  const today = new Date().toISOString().slice(0, 10);
+  const LIMIT = parseInt(process.env.DAILY_LIMIT || '10');
+  if (!db) return { used: 0, remaining: LIMIT, limit: LIMIT };
+  try {
+    const doc = await db.collection('users').doc(uid).get();
+    if (!doc.exists) return { used: 0, remaining: LIMIT, limit: LIMIT };
+    const d = doc.data();
+    const used = d.lastDate === today ? (d.dailyCount || 0) : 0;
+    return { used, remaining: LIMIT - used, limit: LIMIT };
+  } catch { return { used: 0, remaining: LIMIT, limit: LIMIT }; }
+}
+
+module.exports = Object.assign(module.exports, { checkAndIncrementUserLimit, getUserStats });
