@@ -65,6 +65,9 @@
     <div class="generator-header">
       <h1 class="generator-title">⚡ Alight Motion Premium</h1>
       <p class="generator-desc">Generator premium sederhana, cepat, dan aman.</p>
+    <div id="userLimitInfo" style="display:inline-block;margin-top:.5rem;padding:.35rem .875rem;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);border-radius:99px;font-size:.78rem;color:#00ff88">
+      💎 Memuat limit...
+    </div>
     </div>
 
     <!-- Step Indicator -->
@@ -190,7 +193,33 @@
   </div>
 </footer>
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="/public/js/app.js"></script>
+<script src="/public/js/auth.js"></script>
 <script src="/public/js/generator.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Require login
+  if (!Auth.isLoggedIn()) {
+    window.location.href = '/login?redirect=/generator';
+    return;
+  }
+  // Load user stats
+  async function loadUserStats() {
+    try {
+      const token = sessionStorage.getItem('amp_token');
+      const res = await fetch('/api/user/stats', { headers: { 'Authorization': 'Bearer ' + token } });
+      const json = await res.json();
+      if (json.success) {
+        const el = document.getElementById('userLimitInfo');
+        if (el) el.innerHTML = '💎 Sisa limit hari ini: <strong>' + json.data.remaining + '/' + json.data.limit + 'x</strong>';
+      }
+    } catch {}
+  }
+  loadUserStats();
+});
+</script>
 </body>
 </html>

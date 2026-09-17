@@ -71,6 +71,9 @@
       <a href="/contact"    class="nav-link" role="menuitem">Contact</a>
     </div>
     <div class="nav-actions">
+      <span id="navUserInfo" style="display:none;font-size:.78rem;color:var(--text-2);align-items:center;gap:.35rem"></span>
+      <a href="/login" class="btn-gen-nav" id="navLoginBtn">🔐 Login</a>
+      <button onclick="Auth?.logout()" class="btn-gen-nav" id="navLogoutBtn" style="display:none">🚪 Logout</button>
       <button class="btn-theme" data-theme-toggle aria-label="Toggle theme" title="Toggle theme">☀️</button>
       <a href="/generator" class="btn-gen-nav">⚡ Start</a>
     </div>
@@ -214,6 +217,9 @@
   </div>
 </footer>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="/public/js/app.js"></script>
+<script src="/public/js/auth.js"></script>
 </body>
 </html>

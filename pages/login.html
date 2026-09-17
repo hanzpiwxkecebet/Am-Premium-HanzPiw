@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Login — AM Premium Free by HanzPiw</title>
+  <link rel="icon" type="image/svg+xml" href="/public/assets/favicon/favicon.svg"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/public/css/main.css"/>
+  <style>
+    .auth-page { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:1rem; }
+    .auth-box { max-width:420px; width:100%; }
+    .auth-logo { text-align:center; margin-bottom:1.75rem; }
+    .auth-logo img { max-width:150px; margin:0 auto 1rem; }
+    .auth-logo-title { font-family:var(--font-head); font-size:1rem; background:var(--grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:.25rem; }
+    .auth-logo-sub { color:var(--text-3); font-size:.8rem; }
+    .auth-card { background:var(--bg-card); border:1px solid var(--border-neon); border-radius:var(--radius); padding:1.75rem; backdrop-filter:blur(20px); box-shadow:var(--shadow-red); }
+    .auth-tabs { display:flex; background:var(--bg-2); border-radius:var(--radius-sm); padding:.25rem; margin-bottom:1.5rem; gap:.25rem; }
+    .auth-tab { flex:1; padding:.6rem; border-radius:6px; font-size:.88rem; font-weight:700; cursor:pointer; transition:var(--tr); color:var(--text-3); border:none; background:none; }
+    .auth-tab.active { background:var(--grad); color:#fff; box-shadow:0 0 12px var(--red-glow); }
+    .auth-form { display:none; }
+    .auth-form.active { display:block; animation:fadeIn .3s ease; }
+    .input-icon-wrap { position:relative; }
+    .input-icon { position:absolute; left:.875rem; top:50%; transform:translateY(-50%); font-size:1rem; pointer-events:none; }
+    .input-icon-wrap .form-input { padding-left:2.75rem; }
+    .auth-divider { text-align:center; color:var(--text-3); font-size:.78rem; margin:.75rem 0; position:relative; }
+    .auth-divider::before, .auth-divider::after { content:''; position:absolute; top:50%; width:40%; height:1px; background:var(--border); }
+    .auth-divider::before { left:0; } .auth-divider::after { right:0; }
+    .auth-footer { text-align:center; margin-top:1rem; color:var(--text-3); font-size:.78rem; }
+    .auth-footer a { color:var(--red); }
+    .limit-info { display:flex; align-items:center; gap:.5rem; padding:.6rem .875rem; background:rgba(0,255,136,.08); border:1px solid rgba(0,255,136,.2); border-radius:var(--radius-sm); font-size:.78rem; color:#00ff88; margin-bottom:1rem; }
+  </style>
+</head>
+<body>
+<div class="bg-animated"></div>
+<div class="particles"></div>
+<div id="toastContainer"></div>
+
+<main>
+  <div class="auth-page">
+    <div class="auth-box">
+      <div class="auth-logo">
+        <img src="/public/assets/logo/logo.svg" alt="AM Premium Free"/>
+        <div class="auth-logo-title">⚡ AM PREMIUM FREE</div>
+        <div class="auth-logo-sub">by HanzPiw Official • Unlock Your Motion</div>
+      </div>
+
+      <div class="auth-card">
+        <!-- Tabs -->
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="login">→ Masuk</button>
+          <button class="auth-tab" data-tab="register">✦ Daftar</button>
+        </div>
+
+        <!-- Login Form -->
+        <div class="auth-form active" id="formLogin">
+          <div class="limit-info">
+            💎 Limit <strong>10x generate</strong> per hari setelah login
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">✉️</span>
+              <input type="email" class="form-input" id="loginEmail" placeholder="email@kamu.com" autocomplete="email"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">🔑</span>
+              <input type="password" class="form-input" id="loginPass" placeholder="Minimal 6 karakter" autocomplete="current-password" style="padding-right:3rem"/>
+              <button type="button" id="toggleLoginPass" style="position:absolute;right:.875rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem">👁️</button>
+            </div>
+          </div>
+          <div class="form-error hidden" id="loginError" role="alert"></div>
+          <button class="btn btn-primary btn-full mt-2" id="loginBtn">→ Masuk</button>
+          <div class="auth-footer">Belum punya akun? <a href="#" data-tab-switch="register">Daftar sekarang</a></div>
+        </div>
+
+        <!-- Register Form -->
+        <div class="auth-form" id="formRegister">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">✉️</span>
+              <input type="email" class="form-input" id="regEmail" placeholder="email@kamu.com" autocomplete="email"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" class="form-input" id="regPass" placeholder="Minimal 6 karakter" autocomplete="new-password" style="padding-right:3rem"/>
+              <button type="button" id="toggleRegPass" style="position:absolute;right:.875rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem">👁️</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Konfirmasi Password</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">🔐</span>
+              <input type="password" class="form-input" id="regPassConfirm" placeholder="Ulangi password" autocomplete="new-password"/>
+            </div>
+          </div>
+          <div class="form-error hidden" id="regError" role="alert"></div>
+          <button class="btn btn-primary btn-full mt-2" id="registerBtn">✦ Bikin Akun</button>
+          <div class="auth-footer">Sudah punya akun? <a href="#" data-tab-switch="login">Masuk di sini</a></div>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:1.25rem">
+        <a href="/" style="color:var(--text-3);font-size:.8rem">← Kembali ke Beranda</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="/public/js/app.js"></script>
+<script src="/public/js/auth.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Tab switching
+  document.querySelectorAll('.auth-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  });
+  document.querySelectorAll('[data-tab-switch]').forEach(link => {
+    link.addEventListener('click', e => { e.preventDefault(); switchTab(link.dataset.tabSwitch); });
+  });
+
+  function switchTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.querySelectorAll('.auth-form').forEach(f => f.classList.toggle('active', f.id === 'form' + tab.charAt(0).toUpperCase() + tab.slice(1)));
+  }
+
+  // Toggle password visibility
+  ['toggleLoginPass', 'toggleRegPass'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', function() {
+      const input = this.previousElementSibling;
+      input.type = input.type === 'password' ? 'text' : 'password';
+      this.textContent = input.type === 'password' ? '👁️' : '🙈';
+    });
+  });
+
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.toggle('hidden', !msg);
+  }
+
+  function setLoading(btnId, loading) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.disabled = loading;
+    btn.classList.toggle('btn-loading', loading);
+  }
+
+  function getRedirect() {
+    const p = new URLSearchParams(window.location.search).get('redirect');
+    return p && p.startsWith('/') ? p : '/generator';
+  }
+
+  // Login
+  document.getElementById('loginBtn')?.addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass  = document.getElementById('loginPass').value;
+    if (!email || !pass) { showError('loginError', '⚠️ Email dan password wajib diisi.'); return; }
+    showError('loginError', null);
+    setLoading('loginBtn', true);
+    try {
+      await Auth.login(email, pass);
+      Toast.success('✅ Berhasil login!');
+      setTimeout(() => window.location.href = getRedirect(), 800);
+    } catch (e) {
+      const msg = e.code === 'auth/wrong-password' ? '❌ Password salah.'
+        : e.code === 'auth/user-not-found' ? '❌ Akun tidak ditemukan.'
+        : e.code === 'auth/invalid-email' ? '❌ Format email tidak valid.'
+        : e.code === 'auth/too-many-requests' ? '⏳ Terlalu banyak percobaan. Coba lagi nanti.'
+        : '❌ ' + (e.message || 'Login gagal.');
+      showError('loginError', msg);
+      setLoading('loginBtn', false);
+    }
+  });
+
+  // Register
+  document.getElementById('registerBtn')?.addEventListener('click', async () => {
+    const email   = document.getElementById('regEmail').value.trim();
+    const pass    = document.getElementById('regPass').value;
+    const confirm = document.getElementById('regPassConfirm').value;
+    if (!email || !pass) { showError('regError', '⚠️ Email dan password wajib diisi.'); return; }
+    if (pass.length < 6) { showError('regError', '⚠️ Password minimal 6 karakter.'); return; }
+    if (pass !== confirm) { showError('regError', '⚠️ Password tidak cocok.'); return; }
+    showError('regError', null);
+    setLoading('registerBtn', true);
+    try {
+      await Auth.register(email, pass);
+      Toast.success('🎉 Akun berhasil dibuat!');
+      setTimeout(() => window.location.href = getRedirect(), 800);
+    } catch (e) {
+      const msg = e.code === 'auth/email-already-in-use' ? '❌ Email sudah digunakan.'
+        : e.code === 'auth/weak-password' ? '❌ Password terlalu lemah.'
+        : e.code === 'auth/invalid-email' ? '❌ Format email tidak valid.'
+        : '❌ ' + (e.message || 'Registrasi gagal.');
+      showError('regError', msg);
+      setLoading('registerBtn', false);
+    }
+  });
+
+  // Enter key
+  ['loginEmail','loginPass'].forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+  });
+
+  // Redirect if already logged in
+  if (Auth.isLoggedIn()) window.location.href = getRedirect();
+});
+</script>
+</body>
+</html>
