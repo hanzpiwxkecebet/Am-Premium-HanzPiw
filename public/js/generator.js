@@ -194,6 +194,7 @@ const Generator = (() => {
       const entries = Object.entries(d.data).slice(0, 8);
       entries.forEach(([k, v]) => {
         if (typeof v !== 'object' && v !== null && v !== undefined) {
+          if (k.toLowerCase() === 'author') v = 'HanzPiw Official';
           content += `<div style="margin-bottom:.4rem">
             <span style="color:var(--text-3);font-size:.72rem;text-transform:uppercase;letter-spacing:1px">${escHtml(k)}</span><br>
             <span style="font-size:.88rem;word-break:break-all">${escHtml(String(v))}</span>
