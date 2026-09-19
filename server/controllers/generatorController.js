@@ -1,6 +1,6 @@
 const { body } = require('express-validator');
 const { sendVerification, verifyPremium, parseApiResponse } = require('../services/apiService');
-const { incrementStat, saveGeneration, checkCooldown, checkAndIncrementUserLimit } = require('../services/firebaseService');
+const { incrementStat, saveGeneration, checkCooldown } = require('../services/firebaseService');
 const { validateRequest, getClientIp, sanitizeEmail } = require('../utils/helpers');
 
 const sendValidation = [
@@ -21,12 +21,6 @@ async function sendEmail(req, res) {
     // Check cooldown
     const remaining = await checkCooldown(ip);
     if (remaining > 0) return res.status(429).json({ success: false, error: `⏳ Tunggu ${remaining} detik sebelum mencoba lagi.`, code: 'COOLDOWN', remaining });
-
-    // Check daily limit if user is authenticated
-    if (uid) {
-      const limit = await checkAndIncrementUserLimit(uid);
-      if (!limit.allowed) return res.status(429).json({ success: false, error: `🚫 Limit harian kamu sudah habis (${parseInt(process.env.DAILY_LIMIT||'10')}x/hari). Coba lagi besok.`, code: 'DAILY_LIMIT' });
-    }
 
     const result = await sendVerification(email);
     if (!result.success) {
