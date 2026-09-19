@@ -122,11 +122,6 @@ const Generator = (() => {
         window.location.href = '/login?redirect=/generator';
         return;
       }
-      if (json.code === 'DAILY_LIMIT') {
-        window.Toast?.warning(json.error || '🚫 Limit harian habis.');
-        setLoading(e.sendBtn, false);
-        return;
-      }
       if (json.code === 'COOLDOWN') {
         startCooldown(json.remaining || 30);
         window.Toast?.warning(json.error || 'Harap tunggu sebentar.');

@@ -160,22 +160,24 @@ const App = (() => {
   function initParticles() {
     const container = document.querySelector('.particles');
     if (!container) return;
-    const colors = ['#ff003c', '#0047ff', '#7700ff', '#ff6b00'];
-    const count = window.innerWidth < 600 ? 15 : 30;
+    const colors = ['#ff0040','#0050ff','#8000ff','#ff5500','#00e5ff'];
+    const count = window.innerWidth < 600 ? 18 : 36;
     for (let i = 0; i < count; i++) {
       const p = document.createElement('div');
       p.className = 'particle';
       const color = colors[Math.floor(Math.random() * colors.length)];
-      const size = Math.random() * 2 + 1;
+      const size = Math.random() * 2.5 + 1;
+      const isLine = Math.random() > .75;
       p.style.cssText = `
-        left: ${Math.random() * 100}%;
-        width: ${size}px;
-        height: ${size}px;
-        background: ${color};
-        box-shadow: 0 0 ${size * 3}px ${color};
-        animation-duration: ${8 + Math.random() * 12}s;
-        animation-delay: ${Math.random() * 10}s;
-        opacity: ${0.3 + Math.random() * 0.5};
+        left:${Math.random()*100}%;
+        width:${isLine ? size*.5 : size}px;
+        height:${isLine ? size*6 : size}px;
+        background:${color};
+        box-shadow:0 0 ${size*4}px ${color};
+        animation-duration:${9+Math.random()*14}s;
+        animation-delay:${Math.random()*12}s;
+        opacity:${.25+Math.random()*.55};
+        border-radius:${isLine ? '1px' : '50%'};
       `;
       container.appendChild(p);
     }
@@ -313,6 +315,50 @@ const App = (() => {
   }
 
   /* ─── Init ───────────────────────────────────────────────── */
+  /* ─── Scroll Reveal ──────────────────────────────────── */
+  function initReveal() {
+    const els = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .glass-card, .step-card, .contact-card, .tut-step, .faq-item, .sosmed-card, .stat-card');
+    if (!els.length) return;
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.classList.add('visible');
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'none';
+          }, i * 80);
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    els.forEach((el, i) => {
+      if (!el.classList.contains('reveal') && !el.classList.contains('reveal-left') && !el.classList.contains('reveal-right')) {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        el.style.transition = 'opacity .6s ease, transform .6s ease';
+      }
+      obs.observe(el);
+    });
+  }
+
+  /* ─── Extra BG elements ───────────────────────────────── */
+  function initBgExtras() {
+    // Add grid
+    if (!document.querySelector('.bg-grid')) {
+      const grid = document.createElement('div');
+      grid.className = 'bg-grid';
+      document.body.appendChild(grid);
+    }
+    // Add glow orbs
+    if (!document.querySelector('.glow-orb')) {
+      [1,2,3].forEach(n => {
+        const orb = document.createElement('div');
+        orb.className = `glow-orb glow-orb-${n}`;
+        document.body.appendChild(orb);
+      });
+    }
+  }
+
   function init() {
     Toast.init();
     initTheme();
@@ -321,10 +367,12 @@ const App = (() => {
     initWelcomeModal();
     initParticles();
     initBgVideo();
+    initBgExtras();
     loadAnnouncements();
     loadStats();
     initFaq();
     initPageTransitions();
+    setTimeout(initReveal, 400);
   }
 
   document.addEventListener('DOMContentLoaded', init);
