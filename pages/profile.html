@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Profile — AM Premium Free v2.0</title>
+  <link rel="icon" type="image/svg+xml" href="/public/assets/favicon/favicon.svg"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/public/css/main.css"/>
+  <link rel="stylesheet" href="/public/css/effects.css"/>
+</head>
+<body>
+<div id="loadingScreen"><div class="loading-logo"><div class="loading-ring"><div class="loading-outer-ring"></div></div><div class="loading-title">AM PREMIUM FREE</div><div class="loading-subtitle">v2.0.0</div></div><div class="loading-bar-wrap"><div class="loading-bar"></div></div></div>
+<div class="announcement-bar hidden" id="announcementBar"></div>
+<div class="bg-animated"></div><div class="particles"></div><div id="toastContainer"></div>
+
+<nav class="navbar"><div class="nav-inner">
+  <a href="/" class="nav-logo"><img src="/public/assets/logo/logo.svg" alt="AM Premium Free" width="120" height="36"/></a>
+  <div class="nav-links">
+    <a href="/" class="nav-link">Home</a><a href="/generator" class="nav-link">Generator</a>
+    <a href="/tutorial" class="nav-link">Tutorial</a><a href="/faq" class="nav-link">FAQ</a>
+    <a href="/sosmed" class="nav-link">Sosmed</a><a href="/about" class="nav-link">About</a>
+    <a href="/contact" class="nav-link">Contact</a>
+  </div>
+  <div class="nav-actions">
+    <span id="navUserInfo" style="display:none;font-size:.78rem;color:var(--text-2);align-items:center;gap:.35rem"></span>
+    <a href="/login" class="btn-gen-nav" id="navLoginBtn">🔐 Login</a>
+    <button onclick="Auth?.logout()" class="btn-gen-nav" id="navLogoutBtn" style="display:none">🚪 Logout</button>
+    <button class="btn-theme" data-theme-toggle>☀️</button>
+  </div>
+  <button class="nav-hamburger" aria-label="Menu"><span></span><span></span><span></span></button>
+</div></nav>
+<div class="nav-mobile">
+  <a href="/" class="nav-link">🏠 Home</a><a href="/generator" class="nav-link">⚡ Generator</a>
+  <a href="/tutorial" class="nav-link">📖 Tutorial</a><a href="/faq" class="nav-link">❓ FAQ</a>
+  <a href="/sosmed" class="nav-link">🌐 Sosmed</a><a href="/about" class="nav-link">ℹ️ About</a>
+  <a href="/contact" class="nav-link">📬 Contact</a>
+  <div class="nav-mobile-actions"><button class="btn-theme" data-theme-toggle>☀️</button></div>
+</div>
+
+<main>
+<div class="profile-wrap">
+  <div class="section-head" style="margin-bottom:2rem">
+    <span class="section-tag">👤 PROFILE</span>
+    <h1 class="section-title">My Account</h1>
+  </div>
+
+  <!-- Profile Header -->
+  <div class="profile-header-card">
+    <div class="profile-avatar-row">
+      <div class="profile-avatar" id="profileAvatar">?</div>
+      <div>
+        <div class="profile-email" id="profileEmail">Loading...</div>
+        <div class="profile-joined" id="profileJoined">—</div>
+      </div>
+    </div>
+    <div class="profile-stats-grid">
+      <div class="profile-stat">
+        <div class="profile-stat-val" id="profileTotal">—</div>
+        <div class="profile-stat-label">Total Generate</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-val" id="profileToday">—</div>
+        <div class="profile-stat-label">Hari Ini</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-val" id="profileSuccess">—</div>
+        <div class="profile-stat-label">Berhasil</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="glass-card" style="margin-bottom:1.5rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem">
+      <div style="font-weight:700">📋 Riwayat Generate</div>
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">Semua</button>
+        <button class="filter-tab" data-filter="success">✅ Berhasil</button>
+        <button class="filter-tab" data-filter="failed">❌ Gagal</button>
+      </div>
+    </div>
+    <div id="profileHistoryLoading" style="text-align:center;color:var(--text-3);padding:1rem;font-size:.85rem">Memuat...</div>
+    <div style="overflow-x:auto">
+      <table class="history-table">
+        <thead><tr><th>ID</th><th>Email</th><th>Status</th><th>Waktu</th></tr></thead>
+        <tbody id="profileHistoryBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Change Password -->
+  <div class="glass-card" style="margin-bottom:1.5rem">
+    <div style="font-weight:700;margin-bottom:1rem">🔑 Ganti Password</div>
+    <div class="password-form">
+      <div class="form-group" style="margin-bottom:.75rem">
+        <label class="form-label">Password Baru</label>
+        <input type="password" class="form-input" id="newPassInput" placeholder="Minimal 6 karakter"/>
+      </div>
+      <div class="form-group" style="margin-bottom:.75rem">
+        <label class="form-label">Konfirmasi Password</label>
+        <input type="password" class="form-input" id="confirmPassInput" placeholder="Ulangi password baru"/>
+      </div>
+      <div class="form-error hidden" id="passError"></div>
+      <button class="btn btn-primary" id="changePassBtn">🔑 Simpan Password</button>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+    <a href="/generator" class="btn btn-outline">⚡ Generate Sekarang</a>
+    <button class="btn btn-outline" id="profileLogoutBtn" style="border-color:var(--red-border);color:var(--red)">🚪 Logout</button>
+  </div>
+</div>
+</main>
+
+<footer class="footer"><div class="container">
+  <img src="/public/assets/logo/logo.svg" alt="" class="footer-logo"/>
+  <nav class="footer-links">
+    <a href="/">Home</a><a href="/generator">Generator</a><a href="/sosmed">Sosmed</a><a href="/about">About</a>
+  </nav>
+  <div class="footer-divider"></div>
+  <p class="footer-copy">© 2026 <span>AM Premium Free</span> by HanzPiw Official</p>
+</div></footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="/public/js/app.js"></script>
+<script src="/public/js/auth.js"></script>
+<script src="/public/js/effects.js"></script>
+<script src="/public/js/profile.js"></script>
+</body>
+</html>

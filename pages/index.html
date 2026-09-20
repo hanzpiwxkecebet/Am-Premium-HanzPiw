@@ -15,6 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="/public/css/main.css"/>
+  <link rel="stylesheet" href="/public/css/effects.css"/>
 </head>
 <body>
 
@@ -72,7 +73,7 @@
       <a href="/contact"    class="nav-link" role="menuitem">Contact</a>
     </div>
     <div class="nav-actions">
-      <span id="navUserInfo" style="display:none;font-size:.78rem;color:var(--text-2);align-items:center;gap:.35rem"></span>
+      <a href="/profile" class="btn-gen-nav" id="navProfileBtn" style="display:none">👤 Profile</a>
       <a href="/login" class="btn-gen-nav" id="navLoginBtn">🔐 Login</a>
       <button onclick="Auth?.logout()" class="btn-gen-nav" id="navLogoutBtn" style="display:none">🚪 Logout</button>
       <button class="btn-theme" data-theme-toggle aria-label="Toggle theme" title="Toggle theme">☀️</button>
@@ -105,7 +106,7 @@
     <div class="container">
       <div class="hero-badge">⚡ VERSION 1.0.0 — LIVE NOW</div>
       <h1 class="hero-title">AM PREMIUM FREE</h1>
-      <p class="hero-subtitle">Unlock Your Motion. Create Without Limits.</p>
+      <p class="hero-subtitle"><span id="typedHero">Unlock Your Motion.</span></p>
       <p class="hero-desc">Generator Alight Motion Premium dengan pengalaman sederhana, cepat, dan modern. Gratis untuk semua pengguna.</p>
       <div class="hero-cta">
         <a href="/generator" class="btn btn-primary btn-lg">⚡ Start Generating</a>
