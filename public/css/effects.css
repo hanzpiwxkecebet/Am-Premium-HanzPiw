@@ -1,0 +1,243 @@
+/* ============================================================
+   AM Premium Free v2.0 - Effects CSS
+   ============================================================ */
+
+/* ─── Noise Texture ─────────────────────────────────────────── */
+body::after {
+  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity:.4;
+}
+
+/* ─── Cursor Trail ──────────────────────────────────────────── */
+.cursor-dot {
+  position:fixed; pointer-events:none; z-index:99999;
+  border-radius:50%; transform:translate(-50%,-50%);
+  transition:opacity .3s ease;
+}
+.cursor-main {
+  width:12px; height:12px;
+  background:var(--red); box-shadow:0 0 12px var(--red-glow);
+  animation:cursorPulse 1.5s ease infinite;
+}
+@keyframes cursorPulse { 0%,100%{box-shadow:0 0 8px var(--red-glow)} 50%{box-shadow:0 0 20px var(--red-glow)} }
+.cursor-trail {
+  width:6px; height:6px; opacity:.5;
+  background:var(--red); box-shadow:0 0 6px var(--red-glow);
+}
+
+/* ─── Skeleton Loading ──────────────────────────────────────── */
+.skeleton {
+  background:linear-gradient(90deg, var(--bg-2) 25%, rgba(255,255,255,.05) 50%, var(--bg-2) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.5s infinite;
+  border-radius:var(--radius-xs);
+}
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.skeleton-text { height:14px; margin-bottom:.5rem; }
+.skeleton-text.w-80 { width:80%; }
+.skeleton-text.w-60 { width:60%; }
+.skeleton-text.w-40 { width:40%; }
+.skeleton-title { height:24px; width:60%; margin-bottom:1rem; }
+.skeleton-card { height:100px; border-radius:var(--radius); }
+.skeleton-avatar { width:48px; height:48px; border-radius:50%; flex-shrink:0; }
+
+/* ─── Cooldown Ring ─────────────────────────────────────────── */
+.cooldown-ring-wrap {
+  display:none; flex-direction:column; align-items:center;
+  gap:.5rem; margin-top:1rem; animation:fadeIn .3s ease;
+}
+.cooldown-ring-wrap.active { display:flex; }
+.cooldown-ring-svg {
+  width:80px; height:80px; transform:rotate(-90deg);
+  filter:drop-shadow(0 0 8px var(--red-glow));
+}
+.cooldown-ring-bg { fill:none; stroke:var(--bg-2); stroke-width:5; }
+.cooldown-ring-bar { fill:none; stroke:url(#ringGrad); stroke-width:5; stroke-linecap:round; transition:stroke-dashoffset 1s linear; }
+.cooldown-ring-center { font-family:var(--font-head); font-size:.75rem; font-weight:800; fill:var(--text); }
+.cooldown-label { color:var(--text-2); font-size:.8rem; text-align:center; }
+.cooldown-label span { color:var(--red); font-weight:800; }
+
+/* ─── Floating Action Button ────────────────────────────────── */
+.fab-wrap {
+  position:fixed; bottom:1.75rem; right:1.75rem; z-index:500;
+  display:flex; flex-direction:column; align-items:flex-end; gap:.6rem;
+}
+.fab-main {
+  width:52px; height:52px; border-radius:50%;
+  background:var(--grad); color:#fff; border:none;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.3rem; cursor:pointer; transition:var(--tr-bounce);
+  box-shadow:0 4px 20px var(--red-glow), 0 2px 8px rgba(0,0,0,.4);
+}
+.fab-main:hover { transform:scale(1.12) rotate(15deg); box-shadow:0 6px 28px var(--red-glow); }
+.fab-items {
+  display:flex; flex-direction:column; gap:.5rem;
+  opacity:0; transform:translateY(10px) scale(.9);
+  pointer-events:none; transition:var(--tr);
+}
+.fab-wrap.open .fab-items { opacity:1; transform:translateY(0) scale(1); pointer-events:all; }
+.fab-wrap.open .fab-main { transform:rotate(45deg); }
+.fab-item {
+  display:flex; align-items:center; gap:.6rem;
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:99px; padding:.45rem .9rem .45rem .6rem;
+  backdrop-filter:blur(12px); cursor:pointer;
+  transition:var(--tr); text-decoration:none; color:var(--text);
+  box-shadow:var(--shadow-sm); white-space:nowrap; font-size:.82rem; font-weight:600;
+}
+.fab-item:hover { transform:translateX(-4px); border-color:var(--red-border); }
+.fab-item-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.9rem; flex-shrink:0; }
+.fab-item.tg .fab-item-icon { background:#229ED9; }
+.fab-item.wa .fab-item-icon { background:#25D366; }
+
+/* ─── Color Picker ──────────────────────────────────────────── */
+.color-picker-wrap {
+  position:fixed; bottom:1.75rem; left:1.75rem; z-index:500;
+  display:flex; flex-direction:column; gap:.4rem; align-items:flex-start;
+}
+.color-picker-toggle {
+  width:38px; height:38px; border-radius:50%;
+  background:var(--bg-card); border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; font-size:1rem; transition:var(--tr-bounce);
+  box-shadow:var(--shadow-sm);
+}
+.color-picker-toggle:hover { transform:scale(1.1) rotate(30deg); }
+.color-swatches {
+  display:flex; flex-direction:column; gap:.35rem;
+  opacity:0; pointer-events:none; transform:translateY(8px);
+  transition:var(--tr); position:absolute; bottom:46px; left:0;
+}
+.color-picker-wrap.open .color-swatches { opacity:1; pointer-events:all; transform:translateY(0); }
+.color-swatch {
+  width:30px; height:30px; border-radius:50%; cursor:pointer;
+  border:2px solid transparent; transition:var(--tr-bounce);
+  box-shadow:var(--shadow-sm);
+}
+.color-swatch:hover, .color-swatch.active { transform:scale(1.2); border-color:#fff; }
+.color-swatch.red    { background:linear-gradient(135deg,#ff0040,#ff5500); }
+.color-swatch.blue   { background:linear-gradient(135deg,#0050ff,#00e5ff); }
+.color-swatch.green  { background:linear-gradient(135deg,#00c853,#64dd17); }
+.color-swatch.purple { background:linear-gradient(135deg,#8000ff,#e040fb); }
+.color-swatch.gold   { background:linear-gradient(135deg,#ff8f00,#ffd600); }
+
+/* ─── Keyboard Shortcuts Modal ──────────────────────────────── */
+.shortcuts-modal {
+  position:fixed; inset:0; z-index:8000; background:rgba(0,0,0,.8);
+  backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center;
+  padding:1rem; opacity:0; pointer-events:none; transition:opacity .3s ease;
+}
+.shortcuts-modal.open { opacity:1; pointer-events:all; }
+.shortcuts-box {
+  background:var(--bg-card); border:1px solid var(--border-neon);
+  border-radius:var(--radius); padding:2rem; max-width:420px; width:100%;
+  backdrop-filter:blur(24px); box-shadow:var(--shadow-red);
+  animation:modalIn .4s var(--tr-bounce);
+}
+.shortcuts-title { font-family:var(--font-head); font-size:1rem; margin-bottom:1.25rem; text-align:center; background:var(--grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.shortcut-row { display:flex; align-items:center; justify-content:space-between; padding:.6rem 0; border-bottom:1px solid var(--border); }
+.shortcut-row:last-child { border-bottom:none; }
+.shortcut-key {
+  display:inline-flex; align-items:center; gap:.3rem;
+}
+.key {
+  background:var(--bg-2); border:1px solid var(--border);
+  border-radius:5px; padding:.2rem .55rem; font-family:monospace;
+  font-size:.82rem; font-weight:700; color:var(--text);
+  box-shadow:0 2px 0 var(--border);
+}
+.shortcut-desc { color:var(--text-2); font-size:.85rem; }
+
+/* ─── Easter Egg ────────────────────────────────────────────── */
+.easter-egg-overlay {
+  position:fixed; inset:0; z-index:99998;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none; opacity:0; transition:opacity .5s ease;
+}
+.easter-egg-overlay.active { opacity:1; }
+.easter-egg-text {
+  font-family:var(--font-head); font-size:clamp(2rem,8vw,5rem); font-weight:900;
+  text-align:center; background:var(--grad);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  animation:eggPop .5s var(--tr-bounce);
+  filter:drop-shadow(0 0 40px rgba(255,0,64,.6));
+}
+@keyframes eggPop { from{transform:scale(0) rotate(-10deg)} to{transform:scale(1) rotate(0)} }
+
+/* ─── Card Tilt ─────────────────────────────────────────────── */
+.tilt-card { transform-style:preserve-3d; will-change:transform; }
+.tilt-card:hover { transition:none; }
+
+/* ─── Profile Page ──────────────────────────────────────────── */
+.profile-wrap { max-width:800px; margin:0 auto; padding:3rem 1.25rem; }
+.profile-header-card {
+  background:var(--bg-card); border:1px solid var(--border-neon);
+  border-radius:var(--radius); padding:2rem; backdrop-filter:blur(20px);
+  box-shadow:var(--shadow-red); margin-bottom:1.5rem; position:relative; overflow:hidden;
+}
+.profile-header-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--grad);
+}
+.profile-avatar-row { display:flex; align-items:center; gap:1.25rem; margin-bottom:1.5rem; }
+.profile-avatar {
+  width:64px; height:64px; border-radius:50%; background:var(--grad);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-head); font-size:1.5rem; font-weight:900; color:#fff;
+  flex-shrink:0; box-shadow:0 0 24px var(--red-glow);
+}
+.profile-email { font-weight:700; font-size:1rem; margin-bottom:.25rem; word-break:break-all; }
+.profile-joined { color:var(--text-3); font-size:.78rem; }
+.profile-stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
+.profile-stat { background:var(--bg-2); border-radius:var(--radius-sm); padding:1rem; text-align:center; border:1px solid var(--border); }
+.profile-stat-val { font-family:var(--font-head); font-size:1.5rem; font-weight:800; background:var(--grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.profile-stat-label { font-size:.72rem; color:var(--text-3); text-transform:uppercase; letter-spacing:1px; margin-top:.2rem; }
+
+/* Profile history filter */
+.filter-tabs { display:flex; gap:.4rem; margin-bottom:1rem; flex-wrap:wrap; }
+.filter-tab { padding:.35rem .85rem; border-radius:99px; font-size:.78rem; font-weight:700; cursor:pointer; border:1px solid var(--border); background:var(--bg-2); color:var(--text-2); transition:var(--tr); }
+.filter-tab.active { background:var(--grad); color:#fff; border-color:transparent; }
+.filter-tab:hover:not(.active) { border-color:var(--red-border); color:var(--text); }
+
+/* Change password */
+.password-form { display:flex; flex-direction:column; gap:.75rem; }
+
+/* ─── Confetti Canvas ───────────────────────────────────────── */
+#confettiCanvas { position:fixed; inset:0; z-index:9998; pointer-events:none; }
+
+/* ─── Live visitor badge ────────────────────────────────────── */
+.live-badge {
+  display:inline-flex; align-items:center; gap:.4rem;
+  padding:.25rem .7rem; border-radius:99px;
+  background:rgba(0,255,136,.1); border:1px solid rgba(0,255,136,.25);
+  font-size:.72rem; font-weight:700; color:#00ff88;
+}
+.live-badge::before { content:''; width:6px; height:6px; border-radius:50%; background:#00ff88; box-shadow:0 0 8px #00ff88; animation:blinkDot 1.4s infinite; }
+
+/* ─── Top stats milestone ───────────────────────────────────── */
+.milestone-banner {
+  position:fixed; top:calc(var(--nav-h) + 1rem); left:50%; transform:translateX(-50%);
+  z-index:8000; background:var(--grad); color:#fff; padding:.75rem 2rem;
+  border-radius:99px; font-weight:700; font-size:.9rem; white-space:nowrap;
+  box-shadow:0 4px 24px var(--red-glow), 0 2px 8px rgba(0,0,0,.4);
+  animation:milestoneIn .5s var(--tr-bounce), milestoneOut .4s ease 4s forwards;
+  pointer-events:none;
+}
+@keyframes milestoneIn { from{transform:translateX(-50%) translateY(-60px);opacity:0} to{transform:translateX(-50%) translateY(0);opacity:1} }
+@keyframes milestoneOut { to{transform:translateX(-50%) translateY(-60px);opacity:0} }
+
+/* ─── Shortcut hint ─────────────────────────────────────────── */
+.shortcut-hint {
+  position:fixed; bottom:5.5rem; right:1.75rem; z-index:499;
+  color:var(--text-3); font-size:.68rem; text-align:right;
+  animation:fadeIn 1s ease 3s both;
+  pointer-events:none;
+}
+
+/* ─── Auto-scroll indicator ─────────────────────────────────── */
+.step-transition-overlay {
+  position:fixed; inset:0; z-index:7000; background:rgba(255,0,64,.04);
+  pointer-events:none; opacity:0; animation:stepFlash .4s ease;
+}
+@keyframes stepFlash { 0%{opacity:0} 30%{opacity:1} 100%{opacity:0} }
