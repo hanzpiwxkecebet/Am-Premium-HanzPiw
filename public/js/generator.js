@@ -55,7 +55,13 @@ const Generator = (() => {
     [e.line1, e.line2].forEach((l, i) => {
       if (l) l.classList.toggle('done', step > i + 1);
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const genWrap = document.querySelector('.generator-wrap');
+    if (genWrap) genWrap.scrollIntoView({ behavior:'smooth', block:'start' });
+    // Flash effect
+    const flash = document.createElement('div');
+    flash.className = 'step-transition-overlay';
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 500);
   }
 
   /* ─── Validation ─────────────────────────────────────────── */
@@ -76,27 +82,34 @@ const Generator = (() => {
     if (el) { el.textContent = msg || ''; el.classList.toggle('hidden', !msg); }
   }
 
-  /* ─── Cooldown UI ────────────────────────────────────────── */
+  /* ─── Cooldown Ring ──────────────────────────────────────── */
   function startCooldown(seconds) {
     const e = els();
     if (!e.cooldownWrap) return;
     let remaining = seconds;
+    const circumference = 2 * Math.PI * 34; // r=34
     e.cooldownWrap.classList.add('active');
-    e.cooldownSec.textContent = remaining;
-    e.cooldownBar.style.width = '100%';
     if (e.sendBtn) e.sendBtn.disabled = true;
 
-    const interval = 1000;
+    function updateRing() {
+      const pct = remaining / seconds;
+      const offset = circumference * (1 - pct);
+      const bar = document.getElementById('cooldownRingBar');
+      const num = document.getElementById('cooldownRingNum');
+      if (bar) bar.style.strokeDashoffset = offset;
+      if (num) num.textContent = remaining;
+    }
+    updateRing();
+
     cooldownTimer = setInterval(() => {
       remaining--;
-      if (e.cooldownSec) e.cooldownSec.textContent = remaining;
-      if (e.cooldownBar) e.cooldownBar.style.width = `${(remaining / seconds) * 100}%`;
+      updateRing();
       if (remaining <= 0) {
         clearInterval(cooldownTimer);
         e.cooldownWrap.classList.remove('active');
         if (e.sendBtn) e.sendBtn.disabled = false;
       }
-    }, interval);
+    }, 1000);
   }
 
   /* ─── Send Verification ──────────────────────────────────── */
@@ -130,9 +143,11 @@ const Generator = (() => {
       if (!json.success) {
         showError(e.emailError, json.error || 'Gagal mengirim. Coba lagi.');
         window.Toast?.error(json.error || 'Gagal mengirim email verifikasi.');
+      window.Sound?.error();
         return;
       }
       window.Toast?.success(json.message || 'Email verifikasi berhasil dikirim!');
+      window.Sound?.send();
       goToStep(2);
     } catch (err) {
       window.Toast?.error('Koneksi gagal. Periksa internet kamu.');
@@ -170,6 +185,8 @@ const Generator = (() => {
       renderResult(json);
       goToStep(3);
       window.Toast?.success('Verifikasi berhasil! 🎉');
+      window.fireConfetti?.();
+      window.Sound?.success();
     } catch (err) {
       window.Toast?.error('Koneksi gagal. Periksa internet kamu.');
       showError(e.linkError, 'Koneksi error. Coba lagi.');
@@ -296,6 +313,32 @@ const Generator = (() => {
     // Enter key
     e.emailInput?.addEventListener('keydown', ev => { if (ev.key === 'Enter') handleSend(); });
     e.linkInput?.addEventListener('keydown',  ev => { if (ev.key === 'Enter') handleVerify(); });
+
+    // Auto-paste detect for verification link
+    document.addEventListener('paste', ev => {
+      if (currentStep !== 2) return;
+      const text = ev.clipboardData?.getData('text')?.trim();
+      if (!text) return;
+      if (text.startsWith('http') && text.length > 30) {
+        const input = e.linkInput;
+        if (input && !input.value) {
+          ev.preventDefault();
+          input.value = text;
+          input.style.borderColor = 'var(--red)';
+          setTimeout(() => { input.style.borderColor = ''; }, 1000);
+          window.Toast?.info('🔗 Link verifikasi terdeteksi & di-paste otomatis!');
+          window.Sound?.send();
+        }
+      }
+    });
+
+    // Show email used on step 2
+    document.getElementById('showEmailUsed')?.addEventListener('click', () => {
+      const el = document.getElementById('emailUsedDisplay');
+      if (!el) return;
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+      el.textContent = userEmail || '—';
+    });
   }
 
   document.addEventListener('DOMContentLoaded', init);
