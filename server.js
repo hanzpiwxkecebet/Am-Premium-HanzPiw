@@ -53,6 +53,7 @@ const pages = {
   '/history':           'history.html',
   '/sosmed':            'sosmed.html',
   '/login':             'login.html',
+  '/profile':           'profile.html',
   '/admin':             'admin/login.html',
   '/admin/login':       'admin/login.html',
   '/admin/dashboard':   'admin/dashboard.html',
