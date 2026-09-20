@@ -25,9 +25,10 @@
     <div class="loading-logo-icon"></div>
     <div class="loading-title">AM PREMIUM FREE</div>
     <div class="loading-subtitle">by HanzPiw Official</div>
+  <div class="loading-version">Version 2.0.0</div>
   </div>
   <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
-  <div class="loading-version">Version 1.0.0</div>
+  <div class="loading-version">Version 2.0.0</div>
 </div>
 
 <!-- Welcome Modal -->
@@ -74,6 +75,7 @@
     </div>
     <div class="nav-actions">
       <a href="/profile" class="btn-gen-nav" id="navProfileBtn" style="display:none">👤 Profile</a>
+      <a href="/profile" class="btn-gen-nav" id="navProfileBtn" style="display:none">👤 Profile</a>
       <a href="/login" class="btn-gen-nav" id="navLoginBtn">🔐 Login</a>
       <button onclick="Auth?.logout()" class="btn-gen-nav" id="navLogoutBtn" style="display:none">🚪 Logout</button>
       <button class="btn-theme" data-theme-toggle aria-label="Toggle theme" title="Toggle theme">☀️</button>
@@ -104,7 +106,7 @@
 <main>
   <section class="hero">
     <div class="container">
-      <div class="hero-badge">⚡ VERSION 1.0.0 — LIVE NOW</div>
+      <div class="hero-badge"><span class="badge-dot"></span> VERSION 2.0.0 &nbsp;•&nbsp; <span class="live-badge">👁️ Online</span></div>
       <h1 class="hero-title">AM PREMIUM FREE</h1>
       <p class="hero-subtitle"><span id="typedHero">Unlock Your Motion.</span></p>
       <p class="hero-desc">Generator Alight Motion Premium dengan pengalaman sederhana, cepat, dan modern. Gratis untuk semua pengguna.</p>
@@ -221,9 +223,92 @@
   </div>
 </footer>
 
+<!-- Typed.js -->
+<script src="https://cdn.jsdelivr.net/npm/typed.js@2.1.0/dist/typed.umd.js"></script>
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="/public/js/app.js"></script>
 <script src="/public/js/auth.js"></script>
+<script src="/public/js/effects.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Show profile btn if logged in
+  if (Auth?.isLoggedIn()) {
+    const profBtn = document.getElementById('navProfileBtn');
+    if (profBtn) profBtn.style.display = 'inline-flex';
+    const fabProf = document.getElementById('fabProfile');
+    if (fabProf) fabProf.style.display = 'flex';
+  }
+  // Real-time announcement via Firebase
+  try {
+    if (typeof firebase !== 'undefined' && firebase.apps?.length) {
+      const db = firebase.firestore?.();
+      if (db) {
+        db.collection('announcements').where('active','==',true)
+          .onSnapshot(snap => {
+            snap.docChanges().forEach(change => {
+              if (change.type === 'added') {
+                const d = change.doc.data();
+                if (d.title) Toast?.info('📢 ' + d.title + (d.description ? ' — ' + d.description : ''));
+              }
+            });
+          });
+      }
+    }
+  } catch {}
+  // Milestone check
+  fetch('/api/stats').then(r=>r.json()).then(j => {
+    if (j.success) checkMilestone?.(j.data.total || 0);
+  }).catch(()=>{});
+});
+</script>
+
+<!-- FAB -->
+<div class="fab-wrap" id="fabWrap">
+  <div class="fab-items">
+    <a href="https://t.me/abouthanzpiww" target="_blank" rel="noopener" class="fab-item tg">
+      <span class="fab-item-icon">✈️</span> Telegram
+    </a>
+    <a href="https://wa.me/6285191782145" target="_blank" rel="noopener" class="fab-item wa">
+      <span class="fab-item-icon">💬</span> WhatsApp
+    </a>
+    <a href="/profile" class="fab-item" id="fabProfile" style="display:none">
+      <span class="fab-item-icon" style="background:var(--grad)">👤</span> Profile
+    </a>
+  </div>
+  <button class="fab-main" aria-label="Quick actions">✦</button>
+</div>
+
+<!-- Color Picker -->
+<div class="color-picker-wrap" id="colorPickerWrap">
+  <div class="color-swatches">
+    <div class="color-swatch red active" data-color="red" title="Red Neon"></div>
+    <div class="color-swatch blue" data-color="blue" title="Blue Neon"></div>
+    <div class="color-swatch green" data-color="green" title="Green Neon"></div>
+    <div class="color-swatch purple" data-color="purple" title="Purple Neon"></div>
+    <div class="color-swatch gold" data-color="gold" title="Gold Neon"></div>
+  </div>
+  <button class="color-picker-toggle" aria-label="Change theme color">🎨</button>
+</div>
+
+<!-- Shortcut hint -->
+<div class="shortcut-hint">Press <span class="key">?</span> for shortcuts</div>
+
+<!-- Shortcuts Modal -->
+<div class="shortcuts-modal" id="shortcutsModal">
+  <div class="shortcuts-box">
+    <div class="shortcuts-title">⌨️ Keyboard Shortcuts</div>
+    <div class="shortcut-row"><span class="shortcut-key"><span class="key">G</span></span><span class="shortcut-desc">Buka Generator</span></div>
+    <div class="shortcut-row"><span class="shortcut-key"><span class="key">H</span></span><span class="shortcut-desc">Kembali ke Home</span></div>
+    <div class="shortcut-row"><span class="shortcut-key"><span class="key">S</span></span><span class="shortcut-desc">Halaman Sosmed</span></div>
+    <div class="shortcut-row"><span class="shortcut-key"><span class="key">P</span></span><span class="shortcut-desc">Profile (login)</span></div>
+    <div class="shortcut-row"><span class="shortcut-key"><span class="key">?</span></span><span class="shortcut-desc">Tampilkan/sembunyikan ini</span></div>
+    <div class="shortcut-row"><span class="shortcut-key"><span class="key">Esc</span></span><span class="shortcut-desc">Tutup modal</span></div>
+    <div class="shortcut-row"><span class="shortcut-key"><span class="key">hanzpiw</span></span><span class="shortcut-desc">Easter egg 🎯</span></div>
+    <button class="btn btn-outline btn-sm shortcuts-close" style="width:100%;margin-top:1rem">Tutup</button>
+  </div>
+</div>
+
 </body>
 </html>
