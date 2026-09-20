@@ -228,6 +228,7 @@
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="/public/js/app.js"></script>
 <script src="/public/js/auth.js"></script>
 <script src="/public/js/effects.js"></script>
@@ -263,27 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }).catch(()=>{});
 });
 </script>
-
-<!-- FAB -->
-<div class="fab-wrap" id="fabWrap">
-  <div class="fab-items">
-    <a href="https://t.me/abouthanzpiww" target="_blank" rel="noopener" class="fab-item tg">
-      <span class="fab-item-icon">✈️</span> Telegram
-    </a>
-    <a href="https://wa.me/6285191782145" target="_blank" rel="noopener" class="fab-item wa">
-      <span class="fab-item-icon">💬</span> WhatsApp
-    </a>
-    <a href="/profile" class="fab-item" id="fabProfile" style="display:none">
-      <span class="fab-item-icon" style="background:var(--grad)">👤</span> Profile
-    </a>
-  </div>
   <button class="fab-main" aria-label="Quick actions">✦</button>
 </div>
-
-<!-- Color Picker -->
-<div class="color-picker-wrap" id="colorPickerWrap">
-  <div class="color-swatches">
-    <div class="color-swatch red active" data-color="red" title="Red Neon"></div>
     <div class="color-swatch blue" data-color="blue" title="Blue Neon"></div>
     <div class="color-swatch green" data-color="green" title="Green Neon"></div>
     <div class="color-swatch purple" data-color="purple" title="Purple Neon"></div>
@@ -294,11 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- Shortcut hint -->
 <div class="shortcut-hint">Press <span class="key">?</span> for shortcuts</div>
-
-<!-- Shortcuts Modal -->
-<div class="shortcuts-modal" id="shortcutsModal">
-  <div class="shortcuts-box">
-    <div class="shortcuts-title">⌨️ Keyboard Shortcuts</div>
     <div class="shortcut-row"><span class="shortcut-key"><span class="key">G</span></span><span class="shortcut-desc">Buka Generator</span></div>
     <div class="shortcut-row"><span class="shortcut-key"><span class="key">H</span></span><span class="shortcut-desc">Kembali ke Home</span></div>
     <div class="shortcut-row"><span class="shortcut-key"><span class="key">S</span></span><span class="shortcut-desc">Halaman Sosmed</span></div>
