@@ -82,25 +82,22 @@ const App = (() => {
     });
   }
 
-  /* ─── Welcome Modal ──────────────────────────────────────── */
+  /* ─── Welcome Modal (per-day) ────────────────────────────── */
   function initWelcomeModal() {
     const overlay = document.getElementById('welcomeModal');
     if (!overlay) return;
-    if (localStorage.getItem(STORAGE_KEYS.welcome)) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem(STORAGE_KEYS.welcome) === today) {
       overlay.classList.add('hidden');
       return;
     }
     overlay.classList.remove('hidden');
-    document.getElementById('btnJoined')?.addEventListener('click', () => {
+    function dismiss() {
       overlay.classList.add('hidden');
-      localStorage.setItem(STORAGE_KEYS.welcome, '1');
-    });
-    overlay.addEventListener('click', e => {
-      if (e.target === overlay) {
-        overlay.classList.add('hidden');
-        localStorage.setItem(STORAGE_KEYS.welcome, '1');
-      }
-    });
+      localStorage.setItem(STORAGE_KEYS.welcome, today);
+    }
+    document.getElementById('btnJoined')?.addEventListener('click', dismiss);
+    overlay.addEventListener('click', e => { if (e.target === overlay) dismiss(); });
   }
 
   /* ─── Announcements ──────────────────────────────────────── */
