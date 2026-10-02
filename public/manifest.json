@@ -1,0 +1,25 @@
+{
+  "name": "AM Premium Free by HanzPiw",
+  "short_name": "AM Premium",
+  "description": "Generator Alight Motion Premium gratis oleh HanzPiw Official",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07070f",
+  "theme_color": "#ff0040",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/public/assets/favicon/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/public/assets/logo/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["utilities", "productivity"],
+  "lang": "id"
+}
