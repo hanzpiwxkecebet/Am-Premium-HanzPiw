@@ -42,6 +42,7 @@ async function sendEmail(req, res) {
 async function verifyEmail(req, res) {
   if (!validateRequest(req, res)) return;
   const ip = getClientIp(req);
+  const uid = req.uid;
   const email = sanitizeEmail(req.body.email);
   const link = req.body.link?.trim();
 
