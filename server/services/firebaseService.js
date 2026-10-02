@@ -53,7 +53,7 @@ async function incrementStat(type) {
 
 // ─── Generations ───────────────────────────────────────────────────────────
 
-async function saveGeneration({ email, status, requestId, ip }) {
+async function saveGeneration({ email, status, requestId, ip, uid }) {
   const db = getDb();
   const id = uuidv4();
   const masked = maskEmail(email);
@@ -63,7 +63,8 @@ async function saveGeneration({ email, status, requestId, ip }) {
     status,
     requestId: requestId || id,
     timestamp: new Date().toISOString(),
-    ip: ip ? hashIp(ip) : 'unknown'
+    ip: ip ? hashIp(ip) : 'unknown',
+    uid: uid || null
   };
   if (!db) {
     memStore.generations.unshift(entry);
