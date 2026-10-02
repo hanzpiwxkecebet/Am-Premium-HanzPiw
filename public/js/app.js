@@ -380,3 +380,11 @@ const App = (() => {
 
 window.App = App;
 window.Toast = App.Toast;
+
+// ─── PWA Service Worker Registration ──────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/public/sw.js')
+      .catch(err => console.warn('[SW] Registration failed:', err));
+  });
+}
