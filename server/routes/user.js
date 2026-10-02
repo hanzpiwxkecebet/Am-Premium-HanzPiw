@@ -37,4 +37,33 @@ router.get('/stats', userAuthMiddleware, async (req, res) => {
   }
 });
 
+
+router.get('/history', userAuthMiddleware, async (req, res) => {
+  try {
+    const db = getDb();
+    if (!db) return res.json({ success: true, data: [] });
+
+    const snap = await db.collection('generations')
+      .where('uid', '==', req.uid)
+      .orderBy('timestamp', 'desc')
+      .limit(50)
+      .get();
+
+    const history = snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: data.id,
+        maskedEmail: data.maskedEmail,
+        status: data.status,
+        timestamp: data.timestamp,
+        requestId: data.requestId
+      };
+    });
+
+    res.json({ success: true, data: history });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 module.exports = router;

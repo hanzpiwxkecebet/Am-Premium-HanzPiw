@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
         total: stats.total || 0,
         success: stats.success || 0,
         failed: stats.failed || 0,
-        today: stats[`daily.${new Date().toISOString().slice(0,10)}`] || 0,
+        today: ( stats.daily || {} )[new Date().toISOString().slice(0,10)] || 0,
         apiOnline: apiStatus.online
       }
     });
