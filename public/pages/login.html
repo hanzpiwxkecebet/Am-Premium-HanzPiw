@@ -133,7 +133,10 @@
           return;
         }
       } catch (err) {
-        Toast.error(err.message || 'Google login gagal');
+        // Abaikan error domain — hanya tampilkan error jika bukan unauthorized-domain
+        if (!err.code || err.code !== 'auth/unauthorized-domain') {
+          Toast.error(err.message || 'Google login gagal');
+        }
       }
 
       firebase.auth().onAuthStateChanged(user => {
