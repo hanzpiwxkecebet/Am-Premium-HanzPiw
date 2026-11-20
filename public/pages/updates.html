@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Updates - AM Premium Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <style>
+    .ann-card { padding: 18px 16px; border-radius: var(--radius-lg); border: 1px solid var(--border-glass); background: var(--bg-glass); margin-bottom: 12px; cursor: pointer; transition: var(--transition); }
+    .ann-card:hover { background: var(--bg-glass-hover); border-color: var(--border-neon-blue); }
+    .ann-card.priority-high { border-color: var(--border-neon-red); background: rgba(255,34,68,0.04); }
+    .ann-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+    .ann-title { font-weight: 700; font-size: 0.95rem; flex: 1; }
+    .ann-content-preview { font-size: 0.84rem; color: var(--text-secondary); line-height: 1.6; }
+    .ann-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+    .ann-date { font-size: 0.72rem; color: var(--text-muted); }
+    .new-badge { background: rgba(255,34,68,0.15); color: var(--neon-red); font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: var(--radius-full); border: 1px solid var(--border-neon-red); letter-spacing: 0.5px; text-transform: uppercase; }
+    .ann-detail-modal .modal-body { font-size: 0.88rem; line-height: 1.8; color: var(--text-secondary); white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+  <div id="toast-container"></div>
+
+  <div class="page-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title gradient-text">Updates 🔔</div>
+        <div class="page-subtitle">Pengumuman terbaru dari admin</div>
+      </div>
+    </div>
+
+    <div id="ann-list">
+      <div class="skeleton" style="height:90px;border-radius:var(--radius-lg);margin-bottom:12px"></div>
+      <div class="skeleton" style="height:90px;border-radius:var(--radius-lg);margin-bottom:12px"></div>
+      <div class="skeleton" style="height:90px;border-radius:var(--radius-lg)"></div>
+    </div>
+  </div>
+
+  <nav id="bottom-nav"></nav>
+
+  <script src="/assets/js/theme.js"></script>
+  <script>Theme.init();</script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="/assets/js/particles.js"></script>
+  <script src="/assets/js/firebase-init.js"></script>
+  <script src="/assets/js/notifications.js"></script>
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/utils.js"></script>
+  <script src="/assets/js/nav.js"></script>
+  <script>
+    const readKey = 'read_announcements';
+    let readIds = [];
+    try { readIds = JSON.parse(localStorage.getItem(readKey) || '[]'); } catch (e) { readIds = []; }
+
+    function markRead(id) {
+      if (!readIds.includes(id)) {
+        readIds.push(id);
+        try { localStorage.setItem(readKey, JSON.stringify(readIds)); } catch (e) {}
+      }
+    }
+
+    function showAnnDetail(ann) {
+      markRead(ann.id);
+      document.querySelectorAll(`.ann-new-${ann.id}`).forEach(el => el.style.display = 'none');
+      Utils.createModal(ann.title, `
+        <div style="font-size:0.88rem;line-height:1.8;color:var(--text-secondary);white-space:pre-wrap">${Utils.escapeHtml(ann.content)}</div>
+        <div style="margin-top:12px;font-size:0.72rem;color:var(--text-muted)">${Utils.formatDate(ann.createdAt)}</div>
+      `, [{ label: 'Tutup', action: 'close', class: 'btn-primary' }]);
+    }
+
+    function renderAnnouncements(list) {
+      const container = document.getElementById('ann-list');
+      if (!list || list.length === 0) {
+        container.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--text-muted)"><div style="font-size:3rem;margin-bottom:12px;opacity:0.5">🔔</div><div>Belum ada pengumuman</div></div>`;
+        return;
+      }
+      container.innerHTML = list.map(ann => {
+        const isNew = !readIds.includes(ann.id);
+        const isHigh = ann.priority > 0;
+        const preview = ann.content.substring(0, 120) + (ann.content.length > 120 ? '...' : '');
+        return `
+          <div class="ann-card ${isHigh ? 'priority-high' : ''}" onclick="showAnnDetail(${JSON.stringify(ann).replace(/</g,'&lt;')})">
+            <div class="ann-header">
+              <div class="ann-title">${Utils.escapeHtml(ann.title)}</div>
+              ${isNew ? `<span class="new-badge ann-new-${ann.id}">Baru</span>` : ''}
+              ${isHigh ? '<span class="badge badge-admin" style="font-size:0.65rem;flex-shrink:0">Penting</span>' : ''}
+            </div>
+            <div class="ann-content-preview">${Utils.escapeHtml(preview)}</div>
+            <div class="ann-footer">
+              <span class="ann-date">${Utils.formatDateShort(ann.createdAt)}</span>
+              <span class="text-xs text-muted">Baca selengkapnya →</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.showAnnDetail = showAnnDetail;
+
+    window.addEventListener('load', async () => {
+      initParticles();
+      await AMApp.initFirebaseClient();
+      const user = await Auth.init();
+      if (!user) { window.location.href = '/pages/login.html'; return; }
+
+      Nav.init('updates');
+
+      try {
+        const res = await fetch('/api/public/announcements');
+        const data = await res.json();
+        renderAnnouncements(data.data || []);
+      } catch (err) {
+        Toast.error('Gagal memuat pengumuman');
+        document.getElementById('ann-list').innerHTML = '<div class="text-error text-sm">Gagal memuat</div>';
+      }
+    });
+  </script>
+</body>
+</html>

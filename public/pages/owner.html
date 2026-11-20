@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Owner Panel - AM Premium Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <style>
+    .owner-header { background: linear-gradient(135deg, rgba(255,34,68,0.15) 0%, rgba(34,85,255,0.15) 100%); border: 1px solid rgba(255,34,68,0.3); border-radius: var(--radius-xl); padding: 20px; margin-bottom: 16px; }
+    .owner-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--gradient-primary); padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+    .owner-tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px; scrollbar-width: none; }
+    .owner-tabs::-webkit-scrollbar { display: none; }
+    .owner-tab { flex-shrink: 0; padding: 8px 16px; border-radius: var(--radius-full); border: 1px solid var(--border-glass); background: var(--bg-glass); font-size: 0.82rem; font-weight: 600; cursor: pointer; color: var(--text-secondary); transition: var(--transition); white-space: nowrap; }
+    .owner-tab.active { background: rgba(255,34,68,0.15); border-color: var(--border-neon-red); color: var(--text-primary); box-shadow: 0 0 10px rgba(255,34,68,0.1); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .admin-table { width: 100%; border-collapse: collapse; }
+    .admin-table th, .admin-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border-glass); font-size: 0.82rem; }
+    .admin-table th { font-weight: 700; color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .admin-table tr:last-child td { border-bottom: none; }
+    .admin-table tr:hover td { background: var(--bg-glass); }
+    .admin-table .action-btn { padding: 4px 10px; border-radius: var(--radius-sm); font-size: 0.72rem; font-weight: 600; cursor: pointer; border: 1px solid; transition: var(--transition); background: transparent; }
+    .table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border-glass); }
+    .table-tools { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+    .input-sm { padding: 7px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); font-size: 0.82rem; color: var(--text-primary); }
+    .log-entry { padding: 10px 14px; border-radius: var(--radius-md); border-left: 3px solid var(--border-neon-red); background: var(--bg-glass); margin-bottom: 6px; }
+    .log-entry-action { font-weight: 700; font-size: 0.82rem; }
+    .log-entry-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; font-family: var(--font-mono); }
+    .danger-zone { border: 1px solid rgba(255,34,68,0.4); border-radius: var(--radius-xl); padding: 20px; background: rgba(255,34,68,0.03); }
+    .danger-zone-title { color: var(--neon-red); font-weight: 800; font-size: 1rem; margin-bottom: 4px; }
+    .danger-zone-desc { font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 16px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+    .stat-mini { padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); text-align: center; }
+    .stat-mini-num { font-size: 1.5rem; font-weight: 800; }
+    .stat-mini-lbl { font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+  <div id="toast-container"></div>
+
+  <div class="page-content">
+    <!-- Owner Header -->
+    <div class="owner-header">
+      <div class="owner-badge">👑 Owner Panel</div>
+      <div style="font-size:1.1rem;font-weight:800;margin-bottom:4px">Kontrol Penuh</div>
+      <div style="font-size:0.82rem;color:var(--text-secondary)">Kelola semua aspek sistem dengan tanggung jawab penuh</div>
+    </div>
+
+    <!-- Owner Tabs -->
+    <div class="owner-tabs">
+      <button class="owner-tab active" data-tab="overview">📊 Overview</button>
+      <button class="owner-tab" data-tab="staff">👮 Staff</button>
+      <button class="owner-tab" data-tab="allusers">👥 Semua User</button>
+      <button class="owner-tab" data-tab="system">⚙️ Sistem</button>
+      <button class="owner-tab" data-tab="logs">📋 Log Lengkap</button>
+      <button class="owner-tab" data-tab="danger">⚠️ Danger Zone</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="tab-panel active" id="tab-overview">
+      <div class="stats-grid" id="owner-stats-grid">
+        <div class="skeleton" style="height:76px;border-radius:var(--radius-md)"></div>
+        <div class="skeleton" style="height:76px;border-radius:var(--radius-md)"></div>
+        <div class="skeleton" style="height:76px;border-radius:var(--radius-md)"></div>
+        <div class="skeleton" style="height:76px;border-radius:var(--radius-md)"></div>
+      </div>
+      <div class="glass-card">
+        <div class="section-title" style="margin-top:0">Status Server</div>
+        <div id="server-status-info" style="display:flex;flex-direction:column;gap:8px;font-size:0.82rem">
+          <div class="skeleton" style="height:20px;border-radius:4px"></div>
+          <div class="skeleton" style="height:20px;border-radius:4px"></div>
+          <div class="skeleton" style="height:20px;border-radius:4px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAFF MANAGEMENT -->
+    <div class="tab-panel" id="tab-staff">
+      <div class="glass-card" style="margin-bottom:16px;padding:16px 20px">
+        <div style="font-size:0.9rem;color:var(--text-secondary);line-height:1.6">
+          🛡 Kelola admin dan moderator. Owner tidak dapat diubah via panel ini — hanya via env <code>OWNER_UID</code>.
+        </div>
+      </div>
+      <div class="table-tools">
+        <input type="text" class="input-sm" id="staff-search" placeholder="Cari username/email..." style="flex:1">
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr><th>User</th><th>Role</th><th>Status</th><th>Aksi</th></tr>
+          </thead>
+          <tbody id="staff-tbody">
+            <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">Memuat...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ALL USERS (full list) -->
+    <div class="tab-panel" id="tab-allusers">
+      <div class="table-tools">
+        <input type="text" class="input-sm" id="alluser-search" placeholder="Cari..." style="flex:1">
+        <select class="input-sm" id="alluser-role">
+          <option value="">Semua Role</option>
+          <option value="user">User</option>
+          <option value="premium">Premium</option>
+          <option value="moderator">Moderator</option>
+          <option value="admin">Admin</option>
+          <option value="owner">Owner</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Limit</th><th>Aksi</th></tr>
+          </thead>
+          <tbody id="allusers-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">Memuat...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SYSTEM -->
+    <div class="tab-panel" id="tab-system">
+      <div class="glass-card">
+        <div class="section-title" style="margin-top:0">Pengaturan Sistem (Owner)</div>
+        <div class="form-group">
+          <label class="form-label">Mode Maintenance</label>
+          <select class="form-input" id="owner-maint">
+            <option value="false">Nonaktif</option>
+            <option value="true">Aktif</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pesan Maintenance</label>
+          <input type="text" class="form-input" id="owner-maint-msg" placeholder="Sistem sedang dalam pemeliharaan">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Limit Default Harian (semua user baru)</label>
+          <input type="number" class="form-input" id="owner-default-limit" min="1" max="100">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Versi Aplikasi</label>
+          <input type="text" class="form-input" id="owner-version" placeholder="2.0.0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pesan Selamat Datang (optional)</label>
+          <input type="text" class="form-input" id="owner-welcome-msg" placeholder="Selamat datang di AM Premium Generator!">
+        </div>
+        <button class="btn btn-primary btn-full" id="owner-save-sys">💾 Simpan Semua Pengaturan</button>
+      </div>
+    </div>
+
+    <!-- LOGS (Full) -->
+    <div class="tab-panel" id="tab-logs">
+      <div class="table-tools">
+        <input type="text" class="input-sm" id="owner-log-search" placeholder="Filter log..." style="flex:1">
+        <select class="input-sm" id="owner-log-role">
+          <option value="">Semua Aktor</option>
+          <option value="admin">Admin</option>
+          <option value="moderator">Moderator</option>
+          <option value="owner">Owner</option>
+        </select>
+        <button class="btn btn-secondary" style="padding:7px 12px;font-size:0.82rem" id="refresh-logs-btn">↻</button>
+      </div>
+      <div id="owner-logs-list">
+        <div class="skeleton" style="height:60px;border-radius:var(--radius-md);margin-bottom:8px"></div>
+        <div class="skeleton" style="height:60px;border-radius:var(--radius-md)"></div>
+      </div>
+    </div>
+
+    <!-- DANGER ZONE -->
+    <div class="tab-panel" id="tab-danger">
+      <div class="danger-zone">
+        <div class="danger-zone-title">⚠️ Danger Zone</div>
+        <div class="danger-zone-desc">Tindakan-tindakan berikut bersifat permanen dan tidak dapat dibatalkan. Pastikan Anda benar-benar memahami konsekuensinya.</div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="glass-card">
+            <div style="font-weight:700;margin-bottom:4px;font-size:0.9rem">Reset Semua Statistik Global</div>
+            <div class="text-secondary text-sm mb-2">Reset total success/failed ke 0. Data per user tidak terpengaruh.</div>
+            <button class="btn btn-danger" id="reset-global-stats-btn">Reset Global Stats</button>
+          </div>
+
+          <div class="glass-card">
+            <div style="font-weight:700;margin-bottom:4px;font-size:0.9rem">Reset Semua Limit Harian</div>
+            <div class="text-secondary text-sm mb-2">Reset limit harian semua pengguna ke default.</div>
+            <button class="btn btn-danger" id="reset-all-limits-btn">Reset Semua Limit</button>
+          </div>
+
+          <div class="glass-card">
+            <div style="font-weight:700;margin-bottom:4px;font-size:0.9rem">Force Maintenance Mode</div>
+            <div class="text-secondary text-sm mb-2">Aktifkan maintenance segera dan blokir semua akses (kecuali owner).</div>
+            <button class="btn btn-danger" id="force-maint-btn">Force Maintenance</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav id="bottom-nav"></nav>
+
+  <script src="/assets/js/theme.js"></script>
+  <script>Theme.init();</script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="/assets/js/particles.js"></script>
+  <script src="/assets/js/firebase-init.js"></script>
+  <script src="/assets/js/notifications.js"></script>
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/utils.js"></script>
+  <script src="/assets/js/nav.js"></script>
+  <script>
+    let allUsers = [];
+    let allLogs = [];
+
+    // ========== TABS ==========
+    document.querySelectorAll('.owner-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.owner-tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        loadTab(btn.dataset.tab);
+      });
+    });
+
+    // ========== OVERVIEW ==========
+    async function loadOverview() {
+      try {
+        const res = await AMApp.apiCall('GET', '/api/admin/stats');
+        const d = res.data;
+        document.getElementById('owner-stats-grid').innerHTML = `
+          <div class="stat-mini"><div class="stat-mini-num gradient-text">${d.totalUsers || 0}</div><div class="stat-mini-lbl">Total Users</div></div>
+          <div class="stat-mini"><div class="stat-mini-num" style="color:var(--neon-blue)">${d.premiumUsers || 0}</div><div class="stat-mini-lbl">Premium</div></div>
+          <div class="stat-mini"><div class="stat-mini-num" style="color:var(--text-success)">${d.totalSuccess || 0}</div><div class="stat-mini-lbl">Berhasil</div></div>
+          <div class="stat-mini"><div class="stat-mini-num" style="color:var(--text-error)">${d.totalFailed || 0}</div><div class="stat-mini-lbl">Gagal</div></div>
+        `;
+        document.getElementById('server-status-info').innerHTML = `
+          <div style="display:flex;justify-content:space-between"><span>Status API</span>${d.apiOnline ? '<span class="badge badge-active">Online</span>' : '<span class="badge badge-suspended">Offline</span>'}</div>
+          <div style="display:flex;justify-content:space-between"><span>Maintenance</span><span style="color:${d.maintenance?'var(--text-error)':'var(--text-success)'}">${d.maintenance ? '⚠️ Aktif' : '✅ Nonaktif'}</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Versi</span><span style="font-family:var(--font-mono)">${d.version || '-'}</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Total Redeem Codes</span><span>${d.totalCodes || 0}</span></div>
+          <div style="display:flex;justify-content:space-between"><span>System Emails</span><span>${d.totalEmails || 0}</span></div>
+        `;
+      } catch (e) { Toast.error('Gagal muat overview'); }
+    }
+
+    // ========== STAFF ==========
+    function renderStaff(list) {
+      const tbody = document.getElementById('staff-tbody');
+      const staff = list.filter(u => ['admin','moderator','owner'].includes(u.role));
+      if (!staff.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">Tidak ada staff</td></tr>'; return; }
+      tbody.innerHTML = staff.map(u => `
+        <tr>
+          <td>
+            <div style="font-weight:600;font-size:0.82rem">${Utils.escapeHtml(u.name || '-')}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">@${Utils.escapeHtml(u.username || '-')}</div>
+          </td>
+          <td>${Utils.getRoleBadge(u.role)}</td>
+          <td>${u.status === 'active' ? '<span class="badge badge-active">Aktif</span>' : '<span class="badge badge-suspended">Suspended</span>'}</td>
+          <td>
+            ${u.role !== 'owner' ? `<button class="action-btn" style="color:var(--neon-blue);border-color:var(--border-neon-blue)" onclick="manageStaff('${Utils.escapeHtml(u.uid)}')">Edit Role</button>` : '<span style="font-size:0.72rem;color:var(--text-muted)">Owner</span>'}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    window.manageStaff = function(uid) {
+      const user = allUsers.find(u => u.uid === uid);
+      if (!user || user.role === 'owner') return;
+      const { overlay } = Utils.createModal(`Edit Role: @${Utils.escapeHtml(user.username||'')}`, `
+        <div class="form-group">
+          <label class="form-label">Role Baru</label>
+          <select class="form-input" id="staff-new-role">
+            <option value="user" ${user.role==='user'?'selected':''}>User</option>
+            <option value="premium" ${user.role==='premium'?'selected':''}>Premium</option>
+            <option value="moderator" ${user.role==='moderator'?'selected':''}>Moderator</option>
+            <option value="admin" ${user.role==='admin'?'selected':''}>Admin</option>
+          </select>
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-secondary);background:rgba(255,34,68,0.06);padding:10px;border-radius:var(--radius-md)">
+          ⚠️ Mengubah role admin/moderator mempengaruhi akses mereka ke panel ini secara langsung.
+        </div>
+      `, [
+        { label: 'Batal', action: 'cancel', class: 'btn-secondary' },
+        { label: 'Konfirmasi', action: 'save', class: 'btn-danger', close: false, onClick: async () => {
+          const role = document.getElementById('staff-new-role').value;
+          try {
+            await AMApp.apiCall('PUT', `/api/admin/users/${uid}/role`, { role });
+            Toast.success('Role diperbarui');
+            overlay.remove();
+            await loadAllUsers();
+          } catch (e) { Toast.error(e.message || 'Gagal update role'); }
+        }}
+      ]);
+    };
+
+    // ========== ALL USERS ==========
+    async function loadAllUsers() {
+      try {
+        const res = await AMApp.apiCall('GET', '/api/admin/users');
+        allUsers = res.data || [];
+        filterStaff();
+        filterAllUsers();
+      } catch (e) { Toast.error('Gagal muat users'); }
+    }
+
+    function filterStaff() {
+      const q = (document.getElementById('staff-search')?.value || '').toLowerCase();
+      const staff = allUsers.filter(u => ['admin','moderator','owner'].includes(u.role));
+      const filtered = q ? staff.filter(u => (u.username||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q)) : staff;
+      renderStaff(filtered.length ? filtered : allUsers); // fallback: render all users filtered
+    }
+
+    function filterAllUsers() {
+      const q = (document.getElementById('alluser-search')?.value || '').toLowerCase();
+      const role = document.getElementById('alluser-role')?.value;
+      let filtered = allUsers;
+      if (q) filtered = filtered.filter(u => (u.username||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || (u.name||'').toLowerCase().includes(q));
+      if (role) filtered = filtered.filter(u => u.role === role);
+      renderAllUsers(filtered);
+    }
+
+    function renderAllUsers(list) {
+      const tbody = document.getElementById('allusers-tbody');
+      if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">Tidak ada user</td></tr>'; return; }
+      tbody.innerHTML = list.map(u => `
+        <tr>
+          <td>
+            <div style="font-weight:600;font-size:0.82rem">${Utils.escapeHtml(u.name || '-')}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">@${Utils.escapeHtml(u.username || '-')}</div>
+          </td>
+          <td style="font-size:0.75rem;color:var(--text-secondary);max-width:120px;overflow:hidden;text-overflow:ellipsis">${Utils.escapeHtml(u.email || '-')}</td>
+          <td>${Utils.getRoleBadge(u.role)}</td>
+          <td>${u.status === 'active' ? '<span class="badge badge-active">Aktif</span>' : '<span class="badge badge-suspended">Suspended</span>'}</td>
+          <td style="font-family:var(--font-mono);font-size:0.78rem">${u.usedToday||0}/${u.dailyLimit||0}</td>
+          <td>
+            <div style="display:flex;gap:4px">
+              ${u.role !== 'owner' ? `<button class="action-btn" style="color:var(--neon-blue);border-color:var(--border-neon-blue)" onclick="manageStaff('${Utils.escapeHtml(u.uid)}')">Edit</button>` : ''}
+              ${u.status === 'active' && u.role !== 'owner'
+                ? `<button class="action-btn" style="color:var(--text-error);border-color:rgba(255,34,68,0.3)" onclick="toggleUser('${Utils.escapeHtml(u.uid)}','${Utils.escapeHtml(u.username||'')}','suspend')">Suspend</button>`
+                : u.role !== 'owner' ? `<button class="action-btn" style="color:var(--text-success);border-color:rgba(0,255,136,0.3)" onclick="toggleUser('${Utils.escapeHtml(u.uid)}','${Utils.escapeHtml(u.username||'')}','activate')">Aktifkan</button>` : ''
+              }
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    window.toggleUser = async function(uid, username, action) {
+      if (!confirm(`${action === 'suspend' ? 'Suspend' : 'Aktifkan'} @${username}?`)) return;
+      try {
+        await AMApp.apiCall('POST', `/api/admin/users/${uid}/${action}`);
+        Toast.success(`@${username} ${action === 'suspend' ? 'disuspend' : 'diaktifkan'}`);
+        await loadAllUsers();
+      } catch (e) { Toast.error(e.message); }
+    };
+
+    document.getElementById('staff-search')?.addEventListener('input', Utils.debounce(filterStaff, 300));
+    document.getElementById('alluser-search')?.addEventListener('input', Utils.debounce(filterAllUsers, 300));
+    document.getElementById('alluser-role')?.addEventListener('change', filterAllUsers);
+
+    // ========== SYSTEM SETTINGS ==========
+    async function loadOwnerSystem() {
+      try {
+        const res = await AMApp.apiCall('GET', '/api/admin/system');
+        const d = res.data;
+        document.getElementById('owner-maint').value = d.maintenance ? 'true' : 'false';
+        document.getElementById('owner-maint-msg').value = d.maintenanceMessage || '';
+        document.getElementById('owner-default-limit').value = d.defaultDailyLimit || 10;
+        document.getElementById('owner-version').value = d.version || '';
+        document.getElementById('owner-welcome-msg').value = d.welcomeMessage || '';
+      } catch (e) { Toast.error('Gagal muat pengaturan'); }
+    }
+
+    document.getElementById('owner-save-sys').addEventListener('click', async () => {
+      const btn = document.getElementById('owner-save-sys');
+      Utils.setButtonLoading(btn);
+      try {
+        await AMApp.apiCall('PUT', '/api/admin/system', {
+          maintenance: document.getElementById('owner-maint').value === 'true',
+          maintenanceMessage: document.getElementById('owner-maint-msg').value.trim(),
+          defaultDailyLimit: parseInt(document.getElementById('owner-default-limit').value) || 10,
+          version: document.getElementById('owner-version').value.trim(),
+          welcomeMessage: document.getElementById('owner-welcome-msg').value.trim()
+        });
+        Toast.success('Pengaturan disimpan');
+      } catch (e) { Toast.error(e.message); } finally { Utils.setButtonLoading(btn, false); }
+    });
+
+    // ========== LOGS ==========
+    async function loadOwnerLogs() {
+      try {
+        const res = await AMApp.apiCall('GET', '/api/admin/logs?limit=100');
+        allLogs = res.data || [];
+        filterOwnerLogs();
+      } catch (e) { Toast.error('Gagal muat log'); }
+    }
+
+    function filterOwnerLogs() {
+      const q = (document.getElementById('owner-log-search')?.value || '').toLowerCase();
+      const role = document.getElementById('owner-log-role')?.value;
+      let filtered = allLogs;
+      if (q) filtered = filtered.filter(l => l.action?.toLowerCase().includes(q) || l.actorUID?.toLowerCase().includes(q) || l.targetUsername?.toLowerCase().includes(q));
+      if (role) filtered = filtered.filter(l => l.actorRole === role);
+      renderOwnerLogs(filtered);
+    }
+
+    function renderOwnerLogs(list) {
+      const container = document.getElementById('owner-logs-list');
+      if (!list.length) { container.innerHTML = '<div class="text-muted text-sm text-center" style="padding:16px">Belum ada log</div>'; return; }
+      container.innerHTML = list.map(l => `
+        <div class="log-entry">
+          <div class="log-entry-action">${Utils.escapeHtml(l.action)}</div>
+          <div class="log-entry-meta">[${Utils.escapeHtml(l.actorRole)}] UID:${Utils.escapeHtml(l.actorUID||'').substring(0,10)} → ${Utils.escapeHtml(l.targetUsername||l.targetUID||'-')} · ${Utils.formatDate(l.timestamp)}</div>
+          ${l.summary ? `<div style="font-size:0.76rem;color:var(--text-secondary);margin-top:4px">${Utils.escapeHtml(l.summary)}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('owner-log-search')?.addEventListener('input', Utils.debounce(filterOwnerLogs, 300));
+    document.getElementById('owner-log-role')?.addEventListener('change', filterOwnerLogs);
+    document.getElementById('refresh-logs-btn')?.addEventListener('click', loadOwnerLogs);
+
+    // ========== DANGER ZONE ==========
+    document.getElementById('reset-global-stats-btn').addEventListener('click', async () => {
+      if (!confirm('Reset statistik global? Ini tidak dapat dibatalkan.')) return;
+      const confirmCode = prompt('Ketik RESET untuk konfirmasi:');
+      if (confirmCode !== 'RESET') { Toast.warning('Dibatalkan'); return; }
+      try {
+        await AMApp.apiCall('POST', '/api/admin/system/reset-stats');
+        Toast.success('Global stats direset');
+      } catch (e) { Toast.error(e.message || 'Gagal reset stats'); }
+    });
+
+    document.getElementById('reset-all-limits-btn').addEventListener('click', async () => {
+      if (!confirm('Reset limit harian SEMUA user? Ini tidak dapat dibatalkan.')) return;
+      const confirmCode = prompt('Ketik RESET-LIMITS untuk konfirmasi:');
+      if (confirmCode !== 'RESET-LIMITS') { Toast.warning('Dibatalkan'); return; }
+      try {
+        await AMApp.apiCall('POST', '/api/admin/system/reset-limits');
+        Toast.success('Semua limit harian direset');
+      } catch (e) { Toast.error(e.message || 'Gagal reset limits'); }
+    });
+
+    document.getElementById('force-maint-btn').addEventListener('click', async () => {
+      if (!confirm('Aktifkan maintenance mode sekarang? Semua user akan terblokir.')) return;
+      try {
+        await AMApp.apiCall('PUT', '/api/admin/system', { maintenance: true, maintenanceMessage: 'Sistem sedang dalam pemeliharaan. Silakan coba lagi nanti.' });
+        Toast.warning('Maintenance mode diaktifkan!');
+        await loadOwnerSystem();
+      } catch (e) { Toast.error(e.message); }
+    });
+
+    // ========== TAB LOADER ==========
+    const loaded = new Set();
+    function loadTab(tab) {
+      if (loaded.has(tab)) return;
+      loaded.add(tab);
+      if (tab === 'overview') loadOverview();
+      else if (tab === 'staff') { loadAllUsers(); }
+      else if (tab === 'allusers') { if (!allUsers.length) loadAllUsers(); else filterAllUsers(); }
+      else if (tab === 'system') loadOwnerSystem();
+      else if (tab === 'logs') loadOwnerLogs();
+    }
+
+    // ========== INIT ==========
+    window.addEventListener('load', async () => {
+      initParticles();
+      await AMApp.initFirebaseClient();
+      const user = await Auth.init();
+      if (!user) { window.location.href = '/pages/login.html'; return; }
+
+      const role = Auth.userData?.role;
+      if (role !== 'owner') {
+        Toast.error('Hanya owner yang dapat mengakses halaman ini');
+        window.location.href = '/pages/admin.html';
+        return;
+      }
+
+      Nav.init('');
+      loadTab('overview');
+    });
+  </script>
+</body>
+</html>

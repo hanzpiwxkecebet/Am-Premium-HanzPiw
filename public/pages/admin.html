@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - AM Premium Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <style>
+    .admin-tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px; scrollbar-width: none; }
+    .admin-tabs::-webkit-scrollbar { display: none; }
+    .admin-tab { flex-shrink: 0; padding: 8px 16px; border-radius: var(--radius-full); border: 1px solid var(--border-glass); background: var(--bg-glass); font-size: 0.82rem; font-weight: 600; cursor: pointer; color: var(--text-secondary); transition: var(--transition); white-space: nowrap; }
+    .admin-tab.active { background: rgba(255,34,68,0.1); border-color: var(--border-neon-red); color: var(--text-primary); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .admin-table { width: 100%; border-collapse: collapse; }
+    .admin-table th, .admin-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border-glass); font-size: 0.82rem; }
+    .admin-table th { font-weight: 700; color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .admin-table tr:last-child td { border-bottom: none; }
+    .admin-table tr:hover td { background: var(--bg-glass); }
+    .admin-table .action-btn { padding: 4px 10px; border-radius: var(--radius-sm); font-size: 0.72rem; font-weight: 600; cursor: pointer; border: 1px solid; transition: var(--transition); background: transparent; }
+    .table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border-glass); }
+    .table-tools { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+    .input-sm { padding: 7px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); font-size: 0.82rem; color: var(--text-primary); }
+    .log-entry { padding: 10px 14px; border-radius: var(--radius-md); border-left: 3px solid var(--border-neon-blue); background: var(--bg-glass); margin-bottom: 6px; }
+    .log-entry-action { font-weight: 700; font-size: 0.82rem; }
+    .log-entry-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; font-family: var(--font-mono); }
+    .announce-form { display: flex; flex-direction: column; gap: 12px; }
+    .email-status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .email-available { background: var(--text-success); }
+    .email-inuse { background: var(--text-warning); }
+    .email-disabled { background: var(--text-error); }
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+    .stat-mini { padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); text-align: center; }
+    .stat-mini-num { font-size: 1.5rem; font-weight: 800; }
+    .stat-mini-lbl { font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .code-wrap { font-family: var(--font-mono); font-size: 0.75rem; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: var(--radius-sm); display: inline-block; }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+  <div id="toast-container"></div>
+
+  <div class="page-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title gradient-text">Admin Panel 🛡</div>
+        <div class="page-subtitle">Manajemen sistem & pengguna</div>
+      </div>
+    </div>
+
+    <!-- Admin Tabs -->
+    <div class="admin-tabs">
+      <button class="admin-tab active" data-tab="stats">📊 Stats</button>
+      <button class="admin-tab" data-tab="users">👥 Users</button>
+      <button class="admin-tab" data-tab="redeem">🎟 Redeem</button>
+      <button class="admin-tab" data-tab="emails">📧 Emails</button>
+      <button class="admin-tab" data-tab="announce">🔔 Pengumuman</button>
+      <button class="admin-tab" data-tab="system">⚙️ Sistem</button>
+      <button class="admin-tab" data-tab="logs">📋 Log</button>
+    </div>
+
+    <!-- STATS TAB -->
+    <div class="tab-panel active" id="tab-stats">
+      <div class="stats-grid" id="admin-stats-grid">
+        <div class="skeleton" style="height:76px;border-radius:var(--radius-md)"></div>
+        <div class="skeleton" style="height:76px;border-radius:var(--radius-md)"></div>
+        <div class="skeleton" style="height:76px;border-radius:var(--radius-md)"></div>
+        <div class="skeleton" style="height:76px;border-radius:var(--radius-md)"></div>
+      </div>
+      <div class="glass-card">
+        <div class="section-title" style="margin-top:0">Informasi Sistem</div>
+        <div class="info-row" style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-glass)">
+          <span style="font-size:0.82rem;color:var(--text-secondary)">Status API</span>
+          <span id="sys-api-status" style="font-size:0.82rem">-</span>
+        </div>
+        <div class="info-row" style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-glass)">
+          <span style="font-size:0.82rem;color:var(--text-secondary)">Mode Maintenance</span>
+          <span id="sys-maint" style="font-size:0.82rem">-</span>
+        </div>
+        <div class="info-row" style="display:flex;justify-content:space-between;padding:10px 0">
+          <span style="font-size:0.82rem;color:var(--text-secondary)">Versi</span>
+          <span id="sys-version" style="font-size:0.82rem">-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS TAB -->
+    <div class="tab-panel" id="tab-users">
+      <div class="table-tools">
+        <input type="text" class="input-sm" id="user-search" placeholder="Cari username/email..." style="flex:1">
+        <select class="input-sm" id="user-role-filter">
+          <option value="">Semua Role</option>
+          <option value="user">User</option>
+          <option value="premium">Premium</option>
+          <option value="moderator">Moderator</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr><th>User</th><th>Role</th><th>Status</th><th>Limit</th><th>Aksi</th></tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">Memuat...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REDEEM TAB -->
+    <div class="tab-panel" id="tab-redeem">
+      <button class="btn btn-primary" id="create-code-btn" style="margin-bottom:12px">+ Buat Kode</button>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr><th>Kode</th><th>Tipe</th><th>Nilai</th><th>Pakai/Max</th><th>Aktif</th><th>Aksi</th></tr>
+          </thead>
+          <tbody id="codes-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">Memuat...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- EMAILS TAB -->
+    <div class="tab-panel" id="tab-emails">
+      <button class="btn btn-primary" id="add-email-btn" style="margin-bottom:12px">+ Tambah Email</button>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr><th>Email</th><th>Label</th><th>Status</th><th>Aksi</th></tr>
+          </thead>
+          <tbody id="emails-tbody">
+            <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">Memuat...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ANNOUNCE TAB -->
+    <div class="tab-panel" id="tab-announce">
+      <div class="glass-card announce-form" id="ann-form-wrap" style="margin-bottom:16px">
+        <div class="form-group">
+          <label class="form-label">Judul</label>
+          <input type="text" class="form-input" id="ann-title" placeholder="Judul pengumuman">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Isi</label>
+          <textarea class="form-input" id="ann-content" rows="4" placeholder="Isi pengumuman..." style="resize:vertical"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <label class="form-label" style="margin:0">Prioritas:</label>
+          <select class="input-sm" id="ann-priority">
+            <option value="0">Normal</option>
+            <option value="1">Penting</option>
+          </select>
+          <button class="btn btn-primary" id="post-ann-btn" style="margin-left:auto">📢 Kirim</button>
+        </div>
+      </div>
+      <div id="ann-list-admin">
+        <div class="skeleton" style="height:60px;border-radius:var(--radius-md);margin-bottom:8px"></div>
+        <div class="skeleton" style="height:60px;border-radius:var(--radius-md)"></div>
+      </div>
+    </div>
+
+    <!-- SYSTEM TAB -->
+    <div class="tab-panel" id="tab-system">
+      <div class="glass-card" id="sys-settings-card">
+        <div class="section-title" style="margin-top:0">Pengaturan Sistem</div>
+        <div class="form-group">
+          <label class="form-label">Mode Maintenance</label>
+          <select class="form-input" id="set-maint">
+            <option value="false">Tidak Aktif</option>
+            <option value="true">Aktif</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pesan Maintenance</label>
+          <input type="text" class="form-input" id="set-maint-msg" placeholder="Pesan untuk pengguna">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Limit Default Harian</label>
+          <input type="number" class="form-input" id="set-default-limit" min="1" max="100" placeholder="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Versi Aplikasi</label>
+          <input type="text" class="form-input" id="set-version" placeholder="2.0.0">
+        </div>
+        <button class="btn btn-primary btn-full" id="save-settings-btn">💾 Simpan Pengaturan</button>
+      </div>
+    </div>
+
+    <!-- LOGS TAB -->
+    <div class="tab-panel" id="tab-logs">
+      <div class="table-tools">
+        <input type="text" class="input-sm" id="log-search" placeholder="Cari aksi/actor..." style="flex:1">
+      </div>
+      <div id="logs-list">
+        <div class="skeleton" style="height:60px;border-radius:var(--radius-md);margin-bottom:8px"></div>
+        <div class="skeleton" style="height:60px;border-radius:var(--radius-md)"></div>
+      </div>
+    </div>
+  </div>
+
+  <nav id="bottom-nav"></nav>
+
+  <script src="/assets/js/theme.js"></script>
+  <script>Theme.init();</script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="/assets/js/particles.js"></script>
+  <script src="/assets/js/firebase-init.js"></script>
+  <script src="/assets/js/notifications.js"></script>
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/utils.js"></script>
+  <script src="/assets/js/nav.js"></script>
+  <script>
+    let userData = null;
+    let allUsers = [];
+    let allCodes = [];
+    let allEmails = [];
+    let allLogs = [];
+    let allAnnouncements = [];
+
+    // ========== TABS ==========
+    document.querySelectorAll('.admin-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        loadTab(btn.dataset.tab);
+      });
+    });
+
+    // ========== STATS ==========
+    async function loadStats() {
+      try {
+        const res = await AMApp.apiCall('GET', '/api/admin/stats');
+        const d = res.data;
+        document.getElementById('admin-stats-grid').innerHTML = `
+          <div class="stat-mini"><div class="stat-mini-num gradient-text">${d.totalUsers || 0}</div><div class="stat-mini-lbl">Total Users</div></div>
+          <div class="stat-mini"><div class="stat-mini-num" style="color:var(--neon-blue)">${d.premiumUsers || 0}</div><div class="stat-mini-lbl">Premium</div></div>
+          <div class="stat-mini"><div class="stat-mini-num" style="color:var(--text-success)">${d.totalSuccess || 0}</div><div class="stat-mini-lbl">Berhasil</div></div>
+          <div class="stat-mini"><div class="stat-mini-num" style="color:var(--text-error)">${d.totalFailed || 0}</div><div class="stat-mini-lbl">Gagal</div></div>
+        `;
+        document.getElementById('sys-api-status').innerHTML = d.apiOnline ? '<span class="badge badge-active">Online</span>' : '<span class="badge badge-suspended">Offline</span>';
+        document.getElementById('sys-maint').textContent = d.maintenance ? 'Aktif' : 'Tidak Aktif';
+        document.getElementById('sys-version').textContent = d.version || '-';
+      } catch (e) { Toast.error('Gagal muat stats'); }
+    }
+
+    // ========== USERS ==========
+    function renderUsers(list) {
+      const tbody = document.getElementById('users-tbody');
+      if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">Tidak ada user</td></tr>'; return; }
+      tbody.innerHTML = list.map(u => `
+        <tr>
+          <td>
+            <div style="font-weight:600;font-size:0.82rem">${Utils.escapeHtml(u.name || '-')}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">@${Utils.escapeHtml(u.username || '-')}</div>
+          </td>
+          <td>${Utils.getRoleBadge(u.role)}</td>
+          <td>${u.status === 'active' ? '<span class="badge badge-active">Aktif</span>' : '<span class="badge badge-suspended">Suspended</span>'}</td>
+          <td style="font-family:var(--font-mono);font-size:0.78rem">${u.usedToday || 0}/${u.dailyLimit || 0}</td>
+          <td>
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
+              <button class="action-btn" style="color:var(--neon-blue);border-color:var(--border-neon-blue)" onclick="manageUser('${Utils.escapeHtml(u.uid)}')">Edit</button>
+              ${u.status === 'active'
+                ? `<button class="action-btn" style="color:var(--text-error);border-color:rgba(255,34,68,0.3)" onclick="suspendUser('${Utils.escapeHtml(u.uid)}','${Utils.escapeHtml(u.username||'')}')">Suspend</button>`
+                : `<button class="action-btn" style="color:var(--text-success);border-color:rgba(0,255,136,0.3)" onclick="activateUser('${Utils.escapeHtml(u.uid)}','${Utils.escapeHtml(u.username||'')}')">Aktifkan</button>`
+              }
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await AMApp.apiCall('GET', '/api/admin/users');
+        allUsers = res.data || [];
+        filterUsers();
+      } catch (e) { Toast.error('Gagal muat users'); }
+    }
+
+    function filterUsers() {
+      const q = (document.getElementById('user-search').value || '').toLowerCase();
+      const role = document.getElementById('user-role-filter').value;
+      let filtered = allUsers;
+      if (q) filtered = filtered.filter(u => (u.username||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || (u.name||'').toLowerCase().includes(q));
+      if (role) filtered = filtered.filter(u => u.role === role);
+      renderUsers(filtered);
+    }
+
+    document.getElementById('user-search').addEventListener('input', Utils.debounce(filterUsers, 300));
+    document.getElementById('user-role-filter').addEventListener('change', filterUsers);
+
+    window.manageUser = function(uid) {
+      const user = allUsers.find(u => u.uid === uid);
+      if (!user) return;
+      const actorRole = userData?.role;
+      const manageable = ['user', 'premium'];
+      if (actorRole === 'admin') manageable.push('moderator');
+      const roleOptions = manageable.map(r => `<option value="${r}" ${user.role===r?'selected':''}>${r}</option>`).join('');
+
+      const { overlay } = Utils.createModal(`Edit User: @${Utils.escapeHtml(user.username||'')}`, `
+        <div class="form-group">
+          <label class="form-label">Role</label>
+          <select class="form-input" id="edit-role">${roleOptions}</select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tambah Limit Harian (+)</label>
+          <input type="number" class="form-input" id="edit-limit-add" value="0" min="0" max="100">
+        </div>
+      `, [
+        { label: 'Batal', action: 'cancel', class: 'btn-secondary' },
+        { label: 'Simpan', action: 'save', class: 'btn-primary', close: false, onClick: async () => {
+          const role = document.getElementById('edit-role').value;
+          const limitAdd = parseInt(document.getElementById('edit-limit-add').value) || 0;
+          try {
+            if (role !== user.role) await AMApp.apiCall('PUT', `/api/admin/users/${uid}/role`, { role });
+            if (limitAdd > 0) await AMApp.apiCall('PUT', `/api/admin/users/${uid}/limit`, { adjustment: limitAdd });
+            Toast.success('User diperbarui');
+            overlay.remove();
+            await loadUsers();
+          } catch (e) { Toast.error(e.message || 'Gagal update user'); }
+        }}
+      ]);
+    };
+
+    window.suspendUser = async function(uid, username) {
+      if (!confirm(`Suspend @${username}?`)) return;
+      try {
+        await AMApp.apiCall('POST', `/api/admin/users/${uid}/suspend`);
+        Toast.warning(`@${username} disuspend`);
+        await loadUsers();
+      } catch (e) { Toast.error(e.message); }
+    };
+
+    window.activateUser = async function(uid, username) {
+      try {
+        await AMApp.apiCall('POST', `/api/admin/users/${uid}/activate`);
+        Toast.success(`@${username} diaktifkan`);
+        await loadUsers();
+      } catch (e) { Toast.error(e.message); }
+    };
+
+    // ========== REDEEM CODES ==========
+    function renderCodes(list) {
+      const tbody = document.getElementById('codes-tbody');
+      if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">Belum ada kode</td></tr>'; return; }
+      tbody.innerHTML = list.map(c => `
+        <tr>
+          <td><span class="code-wrap">${Utils.escapeHtml(c.code)}</span></td>
+          <td>${Utils.escapeHtml(c.type)}</td>
+          <td style="font-weight:700">${Utils.escapeHtml(String(c.value))}</td>
+          <td style="font-family:var(--font-mono);font-size:0.78rem">${c.usedCount||0}/${c.maxUses||'∞'}</td>
+          <td>${c.isActive ? '<span class="badge badge-active">Aktif</span>' : '<span class="badge badge-suspended">Nonaktif</span>'}</td>
+          <td>
+            <button class="action-btn" style="color:var(--text-error);border-color:rgba(255,34,68,0.3)" onclick="deleteCode('${Utils.escapeHtml(c.id)}','${Utils.escapeHtml(c.code)}')">Hapus</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadCodes() {
+      try {
+        const res = await AMApp.apiCall('GET', '/api/admin/redeem');
+        allCodes = res.data || [];
+        renderCodes(allCodes);
+      } catch (e) { Toast.error('Gagal muat kode'); }
+    }
+
+    document.getElementById('create-code-btn').addEventListener('click', () => {
+      const { overlay } = Utils.createModal('Buat Kode Redeem', `
+        <div class="form-group">
+          <label class="form-label">Kode (opsional, auto-generate jika kosong)</label>
+          <input type="text" class="form-input" id="new-code-val" placeholder="XXXXXXXX" maxlength="20" style="text-transform:uppercase">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipe</label>
+          <select class="form-input" id="new-code-type">
+            <option value="limit">Limit</option>
+            <option value="premium">Premium</option>
+            <option value="special">Special</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nilai (limit: jumlah, premium: durasi hari, special: access key)</label>
+          <input type="text" class="form-input" id="new-code-value" placeholder="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Maks. penggunaan (0 = tidak terbatas)</label>
+          <input type="number" class="form-input" id="new-code-max" value="1" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Kedaluwarsa (opsional)</label>
+          <input type="date" class="form-input" id="new-code-expiry">
+        </div>
+      `, [
+        { label: 'Batal', action: 'cancel', class: 'btn-secondary' },
+        { label: 'Buat', action: 'save', class: 'btn-primary', close: false, onClick: async () => {
+          const payload = {
+            code: document.getElementById('new-code-val').value.toUpperCase().trim() || undefined,
+            type: document.getElementById('new-code-type').value,
+            value: document.getElementById('new-code-value').value.trim(),
+            maxUses: parseInt(document.getElementById('new-code-max').value) || 0,
+            expiresAt: document.getElementById('new-code-expiry').value || null
+          };
+          if (!payload.value) { Toast.warning('Nilai tidak boleh kosong'); return; }
+          try {
+            const res = await AMApp.apiCall('POST', '/api/admin/redeem', payload);
+            Toast.success(`Kode ${res.data?.code || ''} dibuat!`);
+            overlay.remove();
+            await loadCodes();
+          } catch (e) { Toast.error(e.message || 'Gagal buat kode'); }
+        }}
+      ]);
+    });
+
+    window.deleteCode = async function(id, code) {
+      if (!confirm(`Hapus kode ${code}?`)) return;
+      try {
+        await AMApp.apiCall('DELETE', `/api/admin/redeem/${id}`);
+        Toast.success('Kode dihapus');
+        await loadCodes();
+      } catch (e) { Toast.error(e.message); }
+    };
+
+    // ========== EMAILS ==========
+    function renderEmails(list) {
+      const tbody = document.getElementById('emails-tbody');
+      if (!list.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">Belum ada email sistem</td></tr>'; return; }
+      tbody.innerHTML = list.map(em => `
+        <tr>
+          <td style="font-family:var(--font-mono);font-size:0.78rem">${Utils.escapeHtml(em.email)}</td>
+          <td>${Utils.escapeHtml(em.label || '-')}</td>
+          <td>
+            <span class="email-status-dot email-${em.status==='available'?'available':em.status==='in_use'?'inuse':'disabled'}"></span>
+            ${em.status === 'available' ? 'Tersedia' : em.status === 'in_use' ? 'Digunakan' : 'Nonaktif'}
+          </td>
+          <td>
+            <button class="action-btn" style="color:var(--text-error);border-color:rgba(255,34,68,0.3)" onclick="deleteEmail('${Utils.escapeHtml(em.id)}','${Utils.escapeHtml(em.email)}')">Hapus</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadEmails() {
+      try {
+        const res = await AMApp.apiCall('GET', '/api/admin/emails');
+        allEmails = res.data || [];
+        renderEmails(allEmails);
+      } catch (e) { Toast.error('Gagal muat emails'); }
+    }
+
+    document.getElementById('add-email-btn').addEventListener('click', () => {
+      const { overlay } = Utils.createModal('Tambah Email Sistem', `
+        <div class="form-group">
+          <label class="form-label">Alamat Email</label>
+          <input type="email" class="form-input" id="new-email-addr" placeholder="email@example.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Label (opsional)</label>
+          <input type="text" class="form-input" id="new-email-label" placeholder="Email Utama">
+        </div>
+      `, [
+        { label: 'Batal', action: 'cancel', class: 'btn-secondary' },
+        { label: 'Tambah', action: 'save', class: 'btn-primary', close: false, onClick: async () => {
+          const email = document.getElementById('new-email-addr').value.trim();
+          const label = document.getElementById('new-email-label').value.trim();
+          if (!email) { Toast.warning('Masukkan alamat email'); return; }
+          try {
+            await AMApp.apiCall('POST', '/api/admin/emails', { email, label });
+            Toast.success('Email ditambahkan');
+            overlay.remove();
+            await loadEmails();
+          } catch (e) { Toast.error(e.message || 'Gagal tambah email'); }
+        }}
+      ]);
+    });
+
+    window.deleteEmail = async function(id, email) {
+      if (!confirm(`Hapus email ${email}?`)) return;
+      try {
+        await AMApp.apiCall('DELETE', `/api/admin/emails/${id}`);
+        Toast.success('Email dihapus');
+        await loadEmails();
+      } catch (e) { Toast.error(e.message); }
+    };
+
+    // ========== ANNOUNCEMENTS ==========
+    function renderAnnouncements(list) {
+      const container = document.getElementById('ann-list-admin');
+      if (!list.length) { container.innerHTML = '<div class="text-muted text-sm text-center" style="padding:16px">Belum ada pengumuman</div>'; return; }
+      container.innerHTML = list.map(a => `
+        <div class="log-entry" style="border-color:${a.priority > 0 ? 'var(--border-neon-red)' : 'var(--border-neon-blue)'}">
+          <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
+            <div>
+              <div class="log-entry-action">${Utils.escapeHtml(a.title)}</div>
+              <div class="log-entry-meta">${Utils.formatDateShort(a.createdAt)} · ${a.isActive ? 'Aktif' : 'Nonaktif'} · ${a.priority > 0 ? '🔴 Penting' : '🔵 Normal'}</div>
+            </div>
+            <button class="action-btn" style="color:var(--text-error);border-color:rgba(255,34,68,0.3);flex-shrink:0" onclick="deleteAnn('${Utils.escapeHtml(a.id)}')">Hapus</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadAnnouncements() {
+      try {
+        const res = await AMApp.apiCall('GET', '/api/admin/announcements');
+        allAnnouncements = res.data || [];
+        renderAnnouncements(allAnnouncements);
+      } catch (e) { Toast.error('Gagal muat pengumuman'); }
+    }
+
+    document.getElementById('post-ann-btn').addEventListener('click', async () => {
+      const title = document.getElementById('ann-title').value.trim();
+      const content = document.getElementById('ann-content').value.trim();
+      const priority = parseInt(document.getElementById('ann-priority').value);
+      if (!title || !content) { Toast.warning('Judul dan isi harus diisi'); return; }
+      const btn = document.getElementById('post-ann-btn');
+      Utils.setButtonLoading(btn);
+      try {
+        await AMApp.apiCall('POST', '/api/admin/announcements', { title, content, priority });
+        Toast.success('Pengumuman dikirim');
+        document.getElementById('ann-title').value = '';
+        document.getElementById('ann-content').value = '';
+        await loadAnnouncements();
+      } catch (e) { Toast.error(e.message); } finally { Utils.setButtonLoading(btn, false); }
+    });
+
+    window.deleteAnn = async function(id) {
+      if (!confirm('Hapus pengumuman?')) return;
+      try {
+        await AMApp.apiCall('DELETE', `/api/admin/announcements/${id}`);
+        Toast.success('Pengumuman dihapus');
+        await loadAnnouncements();
+      } catch (e) { Toast.error(e.message); }
+    };
+
+    // ========== SYSTEM SETTINGS ==========
+    async function loadSystemSettings() {
+      try {
+        const res = await AMApp.apiCall('GET', '/api/admin/system');
+        const d = res.data;
+        document.getElementById('set-maint').value = d.maintenance ? 'true' : 'false';
+        document.getElementById('set-maint-msg').value = d.maintenanceMessage || '';
+        document.getElementById('set-default-limit').value = d.defaultDailyLimit || 10;
+        document.getElementById('set-version').value = d.version || '';
+      } catch (e) { Toast.error('Gagal muat pengaturan'); }
+    }
+
+    document.getElementById('save-settings-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('save-settings-btn');
+      Utils.setButtonLoading(btn);
+      try {
+        await AMApp.apiCall('PUT', '/api/admin/system', {
+          maintenance: document.getElementById('set-maint').value === 'true',
+          maintenanceMessage: document.getElementById('set-maint-msg').value.trim(),
+          defaultDailyLimit: parseInt(document.getElementById('set-default-limit').value) || 10,
+          version: document.getElementById('set-version').value.trim()
+        });
+        Toast.success('Pengaturan disimpan');
+      } catch (e) { Toast.error(e.message); } finally { Utils.setButtonLoading(btn, false); }
+    });
+
+    // ========== LOGS ==========
+    function renderLogs(list) {
+      const container = document.getElementById('logs-list');
+      if (!list.length) { container.innerHTML = '<div class="text-muted text-sm text-center" style="padding:16px">Belum ada log</div>'; return; }
+      container.innerHTML = list.map(l => `
+        <div class="log-entry">
+          <div class="log-entry-action">${Utils.escapeHtml(l.action)}</div>
+          <div class="log-entry-meta">${Utils.escapeHtml(l.actorRole)} @${Utils.escapeHtml(l.actorUID||'').substring(0,8)} → ${Utils.escapeHtml(l.targetUsername||l.targetUID||'-')} · ${Utils.formatDate(l.timestamp)}</div>
+          ${l.summary ? `<div style="font-size:0.76rem;color:var(--text-secondary);margin-top:4px">${Utils.escapeHtml(l.summary)}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    async function loadLogs() {
+      try {
+        const res = await AMApp.apiCall('GET', '/api/admin/logs?limit=50');
+        allLogs = res.data || [];
+        filterLogs();
+      } catch (e) { Toast.error('Gagal muat log'); }
+    }
+
+    function filterLogs() {
+      const q = (document.getElementById('log-search').value || '').toLowerCase();
+      const filtered = q ? allLogs.filter(l => l.action?.toLowerCase().includes(q) || l.actorUID?.toLowerCase().includes(q) || l.targetUsername?.toLowerCase().includes(q)) : allLogs;
+      renderLogs(filtered);
+    }
+
+    document.getElementById('log-search').addEventListener('input', Utils.debounce(filterLogs, 300));
+
+    // ========== TAB LOADER ==========
+    const loaded = new Set();
+    function loadTab(tab) {
+      if (loaded.has(tab)) return;
+      loaded.add(tab);
+      if (tab === 'stats') loadStats();
+      else if (tab === 'users') loadUsers();
+      else if (tab === 'redeem') loadCodes();
+      else if (tab === 'emails') loadEmails();
+      else if (tab === 'announce') loadAnnouncements();
+      else if (tab === 'system') loadSystemSettings();
+      else if (tab === 'logs') loadLogs();
+    }
+
+    // ========== INIT ==========
+    window.addEventListener('load', async () => {
+      initParticles();
+      await AMApp.initFirebaseClient();
+      const user = await Auth.init();
+      if (!user) { window.location.href = '/pages/login.html'; return; }
+
+      userData = Auth.userData;
+      const role = userData?.role;
+      const allowed = ['moderator','admin','owner'];
+      if (!allowed.includes(role)) {
+        Toast.error('Akses ditolak');
+        window.location.href = '/pages/dashboard.html';
+        return;
+      }
+
+      Nav.init('');
+      loadTab('stats');
+    });
+  </script>
+</body>
+</html>
