@@ -117,6 +117,18 @@
       initParticles();
       await AMApp.initFirebaseClient();
 
+      // Tangani hasil Google redirect (jika user baru balik dari Google login)
+      try {
+        const googleResult = await Auth.handleGoogleRedirect();
+        if (googleResult && googleResult.user) {
+          Toast.success('Login dengan Google berhasil!');
+          setTimeout(() => window.location.href = '/pages/dashboard.html', 500);
+          return;
+        }
+      } catch (err) {
+        Toast.error(err.message || 'Google login gagal');
+      }
+
       firebase.auth().onAuthStateChanged(user => {
         if (user) window.location.href = '/pages/dashboard.html';
       });
@@ -177,14 +189,12 @@
         }
       });
 
-      // Google login
+      // Google login — pakai redirect (lebih stabil di mobile)
       document.getElementById('google-login-btn').addEventListener('click', async () => {
         const btn = document.getElementById('google-login-btn');
         Utils.setButtonLoading(btn);
         try {
-          await Auth.loginGoogle();
-          Toast.success('Login dengan Google berhasil!');
-          setTimeout(() => window.location.href = '/pages/dashboard.html', 500);
+          await Auth.loginGoogle(); // akan redirect ke Google, halaman ini reload setelah selesai
         } catch (err) {
           Toast.error(err.message || 'Google login gagal');
           Utils.setButtonLoading(btn, false);
