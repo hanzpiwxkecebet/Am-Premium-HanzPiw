@@ -22,6 +22,9 @@
       font-weight: 900;
       letter-spacing: -1px;
       margin-bottom: 8px;
+      text-align: center;
+      width: 100%;
+      padding: 0 24px;
     }
     .loading-dev {
       font-size: 0.85rem;
@@ -29,6 +32,7 @@
       letter-spacing: 2px;
       text-transform: uppercase;
       margin-bottom: 48px;
+      text-align: center;
     }
     .loading-bar-wrap {
       width: min(300px, 80vw);
@@ -101,10 +105,20 @@
 
       try {
         setProgress(20, 'Menghubungkan ke Firebase...');
-        await AMApp.initFirebaseClient();
+        try {
+          await AMApp.initFirebaseClient();
+        } catch (firebaseErr) {
+          console.warn('[Boot] Firebase init warning:', firebaseErr.message);
+          // Lanjutkan meski Firebase gagal — fallback config akan dipakai
+        }
 
         setProgress(50, 'Memeriksa autentikasi...');
-        const user = await Auth.init();
+        let user = null;
+        try {
+          user = await Auth.init();
+        } catch (authErr) {
+          console.warn('[Boot] Auth init warning:', authErr.message);
+        }
 
         setProgress(80, 'Memeriksa status sistem...');
         try {
