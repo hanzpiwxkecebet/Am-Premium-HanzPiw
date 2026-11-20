@@ -115,7 +115,14 @@
   <script>
     window.addEventListener('load', async () => {
       initParticles();
-      await AMApp.initFirebaseClient();
+
+      // Init Firebase — jangan crash jika gagal
+      try {
+        await AMApp.initFirebaseClient();
+      } catch (err) {
+        console.error('[Login] Firebase init error:', err.message);
+        Toast.error('Koneksi bermasalah. Coba refresh halaman.');
+      }
 
       // Tangani hasil Google redirect (jika user baru balik dari Google login)
       try {
