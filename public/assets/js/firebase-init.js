@@ -1,28 +1,53 @@
 // Firebase Client Initialization
-// Config is loaded dynamically from server to avoid hardcoding in HTML
 let firebaseApp = null;
 let firebaseAuth = null;
 let firebaseDb = null;
 
+// Fallback config publik (aman di-expose di frontend)
+const FIREBASE_FALLBACK_CONFIG = {
+  apiKey: "AIzaSyC0NvbOa6C_ZbSG2EZnlDEV7KbhuCz6uCc",
+  authDomain: "alight-motion-hanzpiw.firebaseapp.com",
+  projectId: "alight-motion-hanzpiw",
+  storageBucket: "alight-motion-hanzpiw.firebasestorage.app",
+  messagingSenderId: "1020253139262",
+  appId: "1:1020253139262:web:cfef138198dbbd7497bc6f"
+};
+
 async function initFirebaseClient() {
   if (firebaseApp) return { app: firebaseApp, auth: firebaseAuth, db: firebaseDb };
 
+  let config = null;
+
+  // Coba ambil config dari server
   try {
     const res = await fetch('/api/firebase-config');
     const json = await res.json();
-    if (!json.success) throw new Error(json.message || 'Config not available');
+    if (json.success && json.data) config = json.data;
+  } catch (err) {
+    console.warn('[Firebase] Gagal ambil config dari server, pakai fallback:', err.message);
+  }
 
-    const config = json.data;
+  // Fallback ke config hardcoded jika server gagal
+  if (!config) {
+    console.warn('[Firebase] Menggunakan fallback config');
+    config = FIREBASE_FALLBACK_CONFIG;
+  }
 
-    // Import Firebase modules (CDN globals assumed loaded via HTML)
+  try {
     firebaseApp = firebase.initializeApp(config);
     firebaseAuth = firebase.auth();
-    firebaseDb = firebase.database();
-
+    firebaseDb = firebase.database ? firebase.database() : null;
     console.log('[Firebase] Client initialized');
     return { app: firebaseApp, auth: firebaseAuth, db: firebaseDb };
   } catch (err) {
-    console.error('[Firebase] Init failed:', err.message);
+    // Mungkin sudah diinisialisasi sebelumnya
+    if (err.code === 'app/duplicate-app') {
+      firebaseApp = firebase.app();
+      firebaseAuth = firebase.auth();
+      firebaseDb = firebase.database ? firebase.database() : null;
+      return { app: firebaseApp, auth: firebaseAuth, db: firebaseDb };
+    }
+    console.error('[Firebase] Init error:', err.message);
     throw err;
   }
 }
@@ -30,7 +55,7 @@ async function initFirebaseClient() {
 async function getIdToken() {
   const user = firebaseAuth?.currentUser;
   if (!user) throw new Error('Belum login');
-  return await user.getIdToken(/* forceRefresh */ false);
+  return await user.getIdToken(false);
 }
 
 async function apiCall(method, endpoint, body = null, extraHeaders = {}) {
@@ -60,5 +85,4 @@ function generateRequestId() {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// Export globally
 window.AMApp = { initFirebaseClient, getIdToken, apiCall };
