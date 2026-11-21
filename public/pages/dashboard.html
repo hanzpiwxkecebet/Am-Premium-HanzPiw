@@ -57,7 +57,7 @@
   <canvas id="particles-canvas"></canvas>
   <div id="toast-container"></div>
 
-  <div class="page-content" id="page-content" style="opacity:0;transition:opacity 0.4s">
+  <div class="page-content" id="page-content">
     <!-- Welcome -->
     <div class="welcome-card glass-card" style="margin-bottom:16px">
       <div class="avatar" id="user-avatar">?</div>
@@ -219,8 +219,15 @@
 
     window.addEventListener('load', async () => {
       initParticles();
-      await AMApp.initFirebaseClient();
-      const user = await Auth.init();
+
+      let user = null;
+      try {
+        await AMApp.initFirebaseClient();
+        user = await Auth.init();
+      } catch (err) {
+        console.error('[Dashboard] Auth error:', err.message);
+      }
+
       if (!user) { window.location.href = '/pages/login.html'; return; }
 
       Nav.init('home');
