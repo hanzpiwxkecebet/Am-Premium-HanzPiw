@@ -124,21 +124,6 @@
         Toast.error('Koneksi bermasalah. Coba refresh halaman.');
       }
 
-      // Tangani hasil Google redirect (jika user baru balik dari Google login)
-      try {
-        const googleResult = await Auth.handleGoogleRedirect();
-        if (googleResult && googleResult.user) {
-          Toast.success('Login dengan Google berhasil!');
-          setTimeout(() => window.location.href = '/pages/dashboard.html', 500);
-          return;
-        }
-      } catch (err) {
-        // Abaikan error domain — hanya tampilkan error jika bukan unauthorized-domain
-        if (!err.code || err.code !== 'auth/unauthorized-domain') {
-          Toast.error(err.message || 'Google login gagal');
-        }
-      }
-
       firebase.auth().onAuthStateChanged(user => {
         if (user) window.location.href = '/pages/dashboard.html';
       });
@@ -199,12 +184,14 @@
         }
       });
 
-      // Google login — pakai redirect (lebih stabil di mobile)
+      // Google login — pakai popup (domain sudah authorized)
       document.getElementById('google-login-btn').addEventListener('click', async () => {
         const btn = document.getElementById('google-login-btn');
         Utils.setButtonLoading(btn);
         try {
-          await Auth.loginGoogle(); // akan redirect ke Google, halaman ini reload setelah selesai
+          await Auth.loginGoogle();
+          Toast.success('Login dengan Google berhasil!');
+          setTimeout(() => window.location.href = '/pages/dashboard.html', 500);
         } catch (err) {
           Toast.error(err.message || 'Google login gagal');
           Utils.setButtonLoading(btn, false);
