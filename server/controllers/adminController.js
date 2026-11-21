@@ -1,4 +1,5 @@
 const { getDb, getAuth } = require('../config/firebase');
+const { invalidateUser } = require('../middleware/auth');
 const { logAction } = require('../services/auditService');
 const { getTodayJakarta } = require('../services/limitService');
 const { checkApiStatus } = require('../services/apiService');
@@ -82,6 +83,7 @@ async function updateUserRole(req, res) {
   }
 
   await db.ref(`users/${uid}`).update({ role });
+  invalidateUser(uid);
   await logAction({ actorUID: actor.uid, actorRole: actor.role, action: 'update_role', targetUID: uid, targetUsername: target.username, summary: `${target.username} role changed to ${role}` });
   return res.json({ success: true, message: `Role ${target.username} diubah ke ${role}` });
 }
@@ -129,6 +131,7 @@ async function suspendUser(req, res) {
   }
 
   await db.ref(`users/${uid}`).update({ status: 'suspended' });
+  invalidateUser(uid);
   await logAction({ actorUID: actor.uid, actorRole: actor.role, action: 'suspend_user', targetUID: uid, targetUsername: target.username, summary: 'Account suspended' });
   return res.json({ success: true, message: `Akun ${target.username} disuspend` });
 }
@@ -143,6 +146,7 @@ async function activateUser(req, res) {
   const target = targetSnap.val();
 
   await db.ref(`users/${uid}`).update({ status: 'active' });
+  invalidateUser(uid);
   await logAction({ actorUID: actor.uid, actorRole: actor.role, action: 'activate_user', targetUID: uid, targetUsername: target.username, summary: 'Account activated' });
   return res.json({ success: true, message: `Akun ${target.username} diaktifkan` });
 }

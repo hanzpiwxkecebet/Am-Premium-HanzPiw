@@ -1,4 +1,5 @@
 const { getDb } = require('../config/firebase');
+const { invalidateUser } = require('../middleware/auth');
 
 /**
  * Redeem a code (atomic transaction)
@@ -90,6 +91,7 @@ async function redeemCode(req, res) {
   }
 
   await db.ref('/').update(updates);
+  invalidateUser(uid);
 
   // Add to redeem history
   const historyId = `${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
