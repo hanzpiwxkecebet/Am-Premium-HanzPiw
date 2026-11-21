@@ -107,26 +107,24 @@
   <script>Theme.init();</script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="/assets/js/particles.js"></script>
   <script src="/assets/js/firebase-init.js"></script>
   <script src="/assets/js/notifications.js"></script>
   <script src="/assets/js/auth.js"></script>
   <script>
-    window.addEventListener('load', async () => {
-      initParticles();
+    document.addEventListener('DOMContentLoaded', async () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
 
-      // Init Firebase — jangan crash jika gagal
+      // Init Firebase — jangan crash jika gagal (form tetap bisa dipakai setelah refresh)
       try {
         await AMApp.initFirebaseClient();
+        firebase.auth().onAuthStateChanged(user => {
+          if (user) window.location.href = '/pages/dashboard.html';
+        });
       } catch (err) {
         console.error('[Login] Firebase init error:', err.message);
         Toast.error('Koneksi bermasalah. Coba refresh halaman.');
       }
-
-      firebase.auth().onAuthStateChanged(user => {
-        if (user) window.location.href = '/pages/dashboard.html';
-      });
 
       // Tabs
       document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -161,7 +159,7 @@
           Toast.success('Login berhasil!');
           setTimeout(() => window.location.href = '/pages/dashboard.html', 500);
         } catch (err) {
-          Toast.error(err.message || 'Login gagal');
+          Toast.error(Auth.friendlyError(err) || 'Login gagal');
           Utils.setButtonLoading(btn, false);
         }
       });
@@ -179,7 +177,7 @@
           Toast.success('Login berhasil!');
           setTimeout(() => window.location.href = '/pages/dashboard.html', 500);
         } catch (err) {
-          Toast.error(err.message || 'Login gagal');
+          Toast.error(Auth.friendlyError(err) || 'Login gagal');
           Utils.setButtonLoading(btn, false);
         }
       });
@@ -193,7 +191,7 @@
           Toast.success('Login dengan Google berhasil!');
           setTimeout(() => window.location.href = '/pages/dashboard.html', 500);
         } catch (err) {
-          Toast.error(err.message || 'Google login gagal');
+          { const m = Auth.friendlyError(err); if (m) Toast.error(m); }
           Utils.setButtonLoading(btn, false);
         }
       });

@@ -108,17 +108,22 @@
   <script>Theme.init();</script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="/assets/js/particles.js"></script>
   <script src="/assets/js/firebase-init.js"></script>
   <script src="/assets/js/notifications.js"></script>
   <script src="/assets/js/auth.js"></script>
   <script src="/assets/js/utils.js"></script>
   <script>
-    window.addEventListener('load', async () => {
-      initParticles();
-      await AMApp.initFirebaseClient();
-      firebase.auth().onAuthStateChanged(u => { if (u) window.location.href = '/pages/dashboard.html'; });
+    document.addEventListener('DOMContentLoaded', async () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
+      try {
+        await AMApp.initFirebaseClient();
+        // Jangan redirect otomatis selagi proses registrasi berjalan (profil belum tersimpan)
+        firebase.auth().onAuthStateChanged(u => { if (u && !Auth.registering) window.location.href = '/pages/dashboard.html'; });
+      } catch (err) {
+        console.error('[Register] Firebase init error:', err.message);
+        Toast.error('Koneksi bermasalah. Coba refresh halaman.');
+      }
 
       // Password visibility toggle
       document.getElementById('toggle-pass').addEventListener('click', () => {
@@ -185,10 +190,10 @@
           Toast.success('Akun berhasil dibuat!');
           setTimeout(() => window.location.href = '/pages/dashboard.html', 800);
         } catch (err) {
-          let msg = err.message || 'Registrasi gagal';
+          let msg = (err && err.code) ? Auth.friendlyError(err) : ((err && err.message) || 'Registrasi gagal');
           if (msg.includes('email-already-in-use')) msg = 'Email sudah digunakan akun lain';
           if (msg.includes('weak-password')) msg = 'Password terlalu lemah';
-          Toast.error(msg);
+          Toast.error(msg || 'Registrasi gagal');
           Utils.setButtonLoading(btn, false);
         }
       });

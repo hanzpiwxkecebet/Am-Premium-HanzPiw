@@ -88,7 +88,6 @@
   <script>Theme.init();</script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="/assets/js/particles.js"></script>
   <script src="/assets/js/firebase-init.js"></script>
   <script src="/assets/js/notifications.js"></script>
@@ -112,20 +111,26 @@
             <div class="text-muted text-xs">${Utils.formatDate(item.redeemedAt)}</div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-            <span class="badge ${TYPE_BADGE_CLS[item.type] || 'badge-user'}">${TYPE_LABELS[item.type] || item.type}</span>
+            <span class="badge ${TYPE_BADGE_CLS[item.type] || 'badge-user'}">${Utils.escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>
             <span class="text-xs text-muted">+${Utils.escapeHtml(String(item.value))}</span>
           </div>
         </div>
       `).join('');
     }
 
-    window.addEventListener('load', async () => {
-      initParticles();
-      await AMApp.initFirebaseClient();
-      const user = await Auth.init();
-      if (!user) { window.location.href = '/pages/login.html'; return; }
-
+    document.addEventListener('DOMContentLoaded', async () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
       Nav.init('redeem');
+
+      let user = null;
+      try {
+        user = await Auth.init();
+      } catch (err) {
+        console.error('[redeem] Auth error:', err);
+        Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
+        return;
+      }
+      if (!user) { window.location.href = '/pages/login.html'; return; }
 
       // Auto uppercase code input
       const codeInput = document.getElementById('redeem-code');
@@ -150,8 +155,8 @@
             codeInput.value = '';
 
             // Show reward modal
-            const typeLabel = TYPE_LABELS[res.data?.type] || res.data?.type;
-            const val = res.data?.value;
+            const typeLabel = Utils.escapeHtml(TYPE_LABELS[res.data && res.data.type] || (res.data && res.data.type) || '');
+            const val = res.data ? res.data.value : '';
             Utils.createModal('🎉 Redeem Berhasil!',
               `<div style="text-align:center;padding:8px 0">
                 <div style="font-size:2.5rem;margin-bottom:12px">🎊</div>

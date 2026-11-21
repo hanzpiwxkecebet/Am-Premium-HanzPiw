@@ -150,7 +150,6 @@
   <script>Theme.init();</script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="/assets/js/particles.js"></script>
   <script src="/assets/js/firebase-init.js"></script>
   <script src="/assets/js/notifications.js"></script>
@@ -259,13 +258,19 @@
 
     window.resetGenerator = resetGenerator;
 
-    window.addEventListener('load', async () => {
-      initParticles();
-      await AMApp.initFirebaseClient();
-      const user = await Auth.init();
-      if (!user) { window.location.href = '/pages/login.html'; return; }
-
+    document.addEventListener('DOMContentLoaded', async () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
       Nav.init('generator');
+
+      let user = null;
+      try {
+        user = await Auth.init();
+      } catch (err) {
+        console.error('[generator] Auth error:', err);
+        Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
+        return;
+      }
+      if (!user) { window.location.href = '/pages/login.html'; return; }
       renderProgressSteps();
 
       // Load limit
@@ -274,7 +279,7 @@
         document.getElementById('limit-display').textContent = limRes.data.remaining;
       } catch (e) { document.getElementById('limit-display').textContent = '-'; }
 
-      document.getElementById('role-badge').innerHTML = Utils.getRoleBadge(Auth.userData?.role || 'user');
+      document.getElementById('role-badge').innerHTML = Utils.getRoleBadge((Auth.userData && Auth.userData.role) || 'user');
 
       // Method tabs
       document.querySelectorAll('.method-tab').forEach(tab => {

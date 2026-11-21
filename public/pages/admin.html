@@ -210,7 +210,6 @@
   <script>Theme.init();</script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="/assets/js/particles.js"></script>
   <script src="/assets/js/firebase-init.js"></script>
   <script src="/assets/js/notifications.js"></script>
@@ -243,7 +242,7 @@
         const d = res.data;
         document.getElementById('admin-stats-grid').innerHTML = `
           <div class="stat-mini"><div class="stat-mini-num gradient-text">${d.totalUsers || 0}</div><div class="stat-mini-lbl">Total Users</div></div>
-          <div class="stat-mini"><div class="stat-mini-num" style="color:var(--neon-blue)">${d.premiumUsers || 0}</div><div class="stat-mini-lbl">Premium</div></div>
+          <div class="stat-mini"><div class="stat-mini-num" style="color:var(--neon-blue)">${(d.premiumUsers ?? d.totalPremium) || 0}</div><div class="stat-mini-lbl">Premium</div></div>
           <div class="stat-mini"><div class="stat-mini-num" style="color:var(--text-success)">${d.totalSuccess || 0}</div><div class="stat-mini-lbl">Berhasil</div></div>
           <div class="stat-mini"><div class="stat-mini-num" style="color:var(--text-error)">${d.totalFailed || 0}</div><div class="stat-mini-lbl">Gagal</div></div>
         `;
@@ -302,9 +301,10 @@
     window.manageUser = function(uid) {
       const user = allUsers.find(u => u.uid === uid);
       if (!user) return;
-      const actorRole = userData?.role;
+      const actorRole = userData && userData.role;
       const manageable = ['user', 'premium'];
-      if (actorRole === 'admin') manageable.push('moderator');
+      if (actorRole === 'admin' || actorRole === 'owner') manageable.push('moderator');
+      if (actorRole === 'owner') manageable.push('admin');
       const roleOptions = manageable.map(r => `<option value="${r}" ${user.role===r?'selected':''}>${r}</option>`).join('');
 
       const { overlay } = Utils.createModal(`Edit User: @${Utils.escapeHtml(user.username||'')}`, `
@@ -355,13 +355,13 @@
       if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">Belum ada kode</td></tr>'; return; }
       tbody.innerHTML = list.map(c => `
         <tr>
-          <td><span class="code-wrap">${Utils.escapeHtml(c.code)}</span></td>
+          <td><span class="code-wrap">${Utils.escapeHtml(c.code || c.id)}</span></td>
           <td>${Utils.escapeHtml(c.type)}</td>
           <td style="font-weight:700">${Utils.escapeHtml(String(c.value))}</td>
           <td style="font-family:var(--font-mono);font-size:0.78rem">${c.usedCount||0}/${c.maxUses||'∞'}</td>
-          <td>${c.isActive ? '<span class="badge badge-active">Aktif</span>' : '<span class="badge badge-suspended">Nonaktif</span>'}</td>
+          <td>${(c.isActive ?? c.active) ? '<span class="badge badge-active">Aktif</span>' : '<span class="badge badge-suspended">Nonaktif</span>'}</td>
           <td>
-            <button class="action-btn" style="color:var(--text-error);border-color:rgba(255,34,68,0.3)" onclick="deleteCode('${Utils.escapeHtml(c.id)}','${Utils.escapeHtml(c.code)}')">Hapus</button>
+            <button class="action-btn" style="color:var(--text-error);border-color:rgba(255,34,68,0.3)" onclick="deleteCode('${Utils.escapeHtml(c.id)}','${Utils.escapeHtml(c.code || c.id)}')">Hapus</button>
           </td>
         </tr>
       `).join('');
@@ -502,7 +502,7 @@
           <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
             <div>
               <div class="log-entry-action">${Utils.escapeHtml(a.title)}</div>
-              <div class="log-entry-meta">${Utils.formatDateShort(a.createdAt)} · ${a.isActive ? 'Aktif' : 'Nonaktif'} · ${a.priority > 0 ? '🔴 Penting' : '🔵 Normal'}</div>
+              <div class="log-entry-meta">${Utils.formatDateShort(a.createdAt)} · ${(a.isActive ?? a.active) ? 'Aktif' : 'Nonaktif'} · ${a.priority > 0 ? '🔴 Penting' : '🔵 Normal'}</div>
             </div>
             <button class="action-btn" style="color:var(--text-error);border-color:rgba(255,34,68,0.3);flex-shrink:0" onclick="deleteAnn('${Utils.escapeHtml(a.id)}')">Hapus</button>
           </div>
@@ -576,7 +576,7 @@
       container.innerHTML = list.map(l => `
         <div class="log-entry">
           <div class="log-entry-action">${Utils.escapeHtml(l.action)}</div>
-          <div class="log-entry-meta">${Utils.escapeHtml(l.actorRole)} @${Utils.escapeHtml(l.actorUID||'').substring(0,8)} → ${Utils.escapeHtml(l.targetUsername||l.targetUID||'-')} · ${Utils.formatDate(l.timestamp)}</div>
+          <div class="log-entry-meta">${Utils.escapeHtml(l.actorRole)} @${Utils.escapeHtml(l.actorUID||'').substring(0,8)} → ${Utils.escapeHtml(l.targetUsername||l.targetUID||'-')} · ${Utils.formatDate(l.timestamp || l.createdAt)}</div>
           ${l.summary ? `<div style="font-size:0.76rem;color:var(--text-secondary);margin-top:4px">${Utils.escapeHtml(l.summary)}</div>` : ''}
         </div>
       `).join('');
@@ -613,14 +613,21 @@
     }
 
     // ========== INIT ==========
-    window.addEventListener('load', async () => {
-      initParticles();
-      await AMApp.initFirebaseClient();
-      const user = await Auth.init();
+    document.addEventListener('DOMContentLoaded', async () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
+
+      let user = null;
+      try {
+        user = await Auth.init();
+      } catch (err) {
+        console.error('[admin] Auth error:', err);
+        Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
+        return;
+      }
       if (!user) { window.location.href = '/pages/login.html'; return; }
 
       userData = Auth.userData;
-      const role = userData?.role;
+      const role = userData && userData.role;
       const allowed = ['moderator','admin','owner'];
       if (!allowed.includes(role)) {
         Toast.error('Akses ditolak');

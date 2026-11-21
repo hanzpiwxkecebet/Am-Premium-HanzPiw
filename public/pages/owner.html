@@ -207,7 +207,6 @@
   <script>Theme.init();</script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="/assets/js/particles.js"></script>
   <script src="/assets/js/firebase-init.js"></script>
   <script src="/assets/js/notifications.js"></script>
@@ -236,7 +235,7 @@
         const d = res.data;
         document.getElementById('owner-stats-grid').innerHTML = `
           <div class="stat-mini"><div class="stat-mini-num gradient-text">${d.totalUsers || 0}</div><div class="stat-mini-lbl">Total Users</div></div>
-          <div class="stat-mini"><div class="stat-mini-num" style="color:var(--neon-blue)">${d.premiumUsers || 0}</div><div class="stat-mini-lbl">Premium</div></div>
+          <div class="stat-mini"><div class="stat-mini-num" style="color:var(--neon-blue)">${(d.premiumUsers ?? d.totalPremium) || 0}</div><div class="stat-mini-lbl">Premium</div></div>
           <div class="stat-mini"><div class="stat-mini-num" style="color:var(--text-success)">${d.totalSuccess || 0}</div><div class="stat-mini-lbl">Berhasil</div></div>
           <div class="stat-mini"><div class="stat-mini-num" style="color:var(--text-error)">${d.totalFailed || 0}</div><div class="stat-mini-lbl">Gagal</div></div>
         `;
@@ -417,7 +416,7 @@
       container.innerHTML = list.map(l => `
         <div class="log-entry">
           <div class="log-entry-action">${Utils.escapeHtml(l.action)}</div>
-          <div class="log-entry-meta">[${Utils.escapeHtml(l.actorRole)}] UID:${Utils.escapeHtml(l.actorUID||'').substring(0,10)} → ${Utils.escapeHtml(l.targetUsername||l.targetUID||'-')} · ${Utils.formatDate(l.timestamp)}</div>
+          <div class="log-entry-meta">[${Utils.escapeHtml(l.actorRole)}] UID:${Utils.escapeHtml(l.actorUID||'').substring(0,10)} → ${Utils.escapeHtml(l.targetUsername||l.targetUID||'-')} · ${Utils.formatDate(l.timestamp || l.createdAt)}</div>
           ${l.summary ? `<div style="font-size:0.76rem;color:var(--text-secondary);margin-top:4px">${Utils.escapeHtml(l.summary)}</div>` : ''}
         </div>
       `).join('');
@@ -470,13 +469,20 @@
     }
 
     // ========== INIT ==========
-    window.addEventListener('load', async () => {
-      initParticles();
-      await AMApp.initFirebaseClient();
-      const user = await Auth.init();
+    document.addEventListener('DOMContentLoaded', async () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
+
+      let user = null;
+      try {
+        user = await Auth.init();
+      } catch (err) {
+        console.error('[owner] Auth error:', err);
+        Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
+        return;
+      }
       if (!user) { window.location.href = '/pages/login.html'; return; }
 
-      const role = Auth.userData?.role;
+      const role = Auth.userData && Auth.userData.role;
       if (role !== 'owner') {
         Toast.error('Hanya owner yang dapat mengakses halaman ini');
         window.location.href = '/pages/admin.html';

@@ -74,7 +74,7 @@
     const params = new URLSearchParams(window.location.search);
     const msg = params.get('message');
     if (msg) {
-      document.getElementById('maint-message').textContent = decodeURIComponent(msg);
+      document.getElementById('maint-message').textContent = msg; // URLSearchParams sudah men-decode
     }
 
     async function checkStatus() {

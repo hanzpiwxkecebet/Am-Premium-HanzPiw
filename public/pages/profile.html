@@ -144,7 +144,6 @@
   <script>Theme.init();</script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="/assets/js/particles.js"></script>
   <script src="/assets/js/firebase-init.js"></script>
   <script src="/assets/js/notifications.js"></script>
@@ -167,16 +166,30 @@
     window.toggleTheme = toggleTheme;
     window.toggleSound = toggleSound;
 
-    window.addEventListener('load', async () => {
-      initParticles();
-      await AMApp.initFirebaseClient();
-      const user = await Auth.init();
-      if (!user) { window.location.href = '/pages/login.html'; return; }
-
+    document.addEventListener('DOMContentLoaded', async () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
       Nav.init('profile');
 
-      const ud = Auth.userData;
-      if (!ud) return;
+      let user = null;
+      try {
+        user = await Auth.init();
+      } catch (err) {
+        console.error('[profile] Auth error:', err);
+        Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
+        return;
+      }
+      if (!user) { window.location.href = '/pages/login.html'; return; }
+
+      // Kalau backend belum merespons, pakai data akun Firebase supaya halaman tetap berfungsi
+      const ud = Auth.userData || {
+        name: user.displayName || user.email || 'Pengguna',
+        username: user.email ? user.email.split('@')[0] : 'user',
+        email: user.email || '',
+        role: 'user',
+        status: 'active',
+        photoURL: user.photoURL || '',
+        createdAt: user.metadata && user.metadata.creationTime ? Date.parse(user.metadata.creationTime) : null,
+      };
 
       // Render profile hero
       const hero = document.getElementById('profile-hero');
@@ -204,7 +217,8 @@
       themeSw.classList.toggle('on', Theme.current === 'dark');
 
       // Sound toggle sync
-      const soundEnabled = localStorage.getItem('sound_enabled') !== 'false';
+      let soundEnabled = true;
+      try { soundEnabled = localStorage.getItem('sound_enabled') !== 'false'; } catch (e) { /* storage diblokir */ }
       document.getElementById('sound-toggle').classList.toggle('on', soundEnabled);
 
       // Edit name

@@ -203,7 +203,6 @@
   <script>Theme.init();</script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="/assets/js/particles.js"></script>
   <script src="/assets/js/firebase-init.js"></script>
   <script src="/assets/js/notifications.js"></script>
@@ -212,29 +211,15 @@
   <script src="/assets/js/nav.js"></script>
   <script>
     function goAdmin() {
-      const role = Auth.userData?.role;
+      const role = Auth.userData && Auth.userData.role;
       if (role === 'owner') window.location.href = '/pages/owner.html';
       else window.location.href = '/pages/admin.html';
     }
 
-    window.addEventListener('load', async () => {
-      initParticles();
+    const $ = (id) => document.getElementById(id);
 
-      let user = null;
-      try {
-        await AMApp.initFirebaseClient();
-        user = await Auth.init();
-      } catch (err) {
-        console.error('[Dashboard] Auth error:', err.message);
-      }
-
-      if (!user) { window.location.href = '/pages/login.html'; return; }
-
-      Nav.init('home');
-      Theme.updateToggleBtn();
-
-      // Gunakan data backend jika ada, fallback ke Firebase Auth user
-      const ud = Auth.userData || {
+    function fallbackUserData(user) {
+      return {
         name: user.displayName || user.email || 'Pengguna',
         username: user.email ? user.email.split('@')[0] : 'user',
         role: 'user',
@@ -242,101 +227,152 @@
         photoURL: user.photoURL || null,
         totalUsage: 0,
         totalSuccess: 0,
+        totalFailed: 0,
       };
+    }
 
-      // Populate user info
-      const avatarEl = document.getElementById('user-avatar');
+    function renderUser(ud) {
+      const avatarEl = $('user-avatar');
+      const initial = (String(ud.name || 'U').trim()[0] || 'U').toUpperCase();
+      avatarEl.textContent = initial;
       if (ud.photoURL) {
-        const img = document.createElement('img');
-        img.src = ud.photoURL;
-        img.className = 'avatar';
+        const img = new Image();
         img.alt = 'Avatar';
-        img.onerror = () => { img.style.display='none'; avatarEl.textContent = (ud.name||'U')[0].toUpperCase(); };
-        avatarEl.replaceWith(img);
-      } else {
-        avatarEl.textContent = (ud.name||'U')[0].toUpperCase();
-        avatarEl.classList.remove('skeleton');
+        img.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover';
+        img.onload = () => { avatarEl.textContent = ''; avatarEl.appendChild(img); };
+        img.src = ud.photoURL;
       }
 
-      document.getElementById('user-name').textContent = ud.name || 'Pengguna';
-      document.getElementById('user-username').textContent = '@' + (ud.username || '-');
-      document.getElementById('user-role-badge').innerHTML = Utils.getRoleBadge(ud.role);
-      document.getElementById('user-status-badge').innerHTML = ud.status === 'active'
-        ? '<span class="badge badge-active">Aktif</span>'
-        : '<span class="badge badge-suspended">Suspended</span>';
+      $('user-name').textContent = ud.name || 'Pengguna';
+      $('user-username').textContent = '@' + (ud.username || '-');
+      $('user-role-badge').innerHTML = Utils.getRoleBadge(ud.role || 'user');
+      $('user-status-badge').innerHTML = ud.status === 'suspended'
+        ? '<span class="badge badge-suspended">Suspended</span>'
+        : '<span class="badge badge-active">Aktif</span>';
 
-      // Show admin FAB
-      if (['admin','owner','moderator'].includes(ud.role)) {
-        document.getElementById('admin-fab').style.display = 'block';
+      if (['admin', 'owner', 'moderator'].includes(ud.role)) {
+        $('admin-fab').style.display = 'block';
       }
+    }
 
-      // Load limit
+    function renderStats(ud) {
+      const total = Number(ud.totalUsage) || 0;
+      const success = Number(ud.totalSuccess) || 0;
+      const failed = Number(ud.totalFailed) || 0;
+      const rate = total > 0 ? Math.round((success / total) * 100) : 0;
+      Utils.animateNumber($('stat-total'), 0, total);
+      Utils.animateNumber($('stat-success'), 0, success);
+      Utils.animateNumber($('stat-failed'), 0, failed);
+      $('stat-rate').textContent = rate + '%';
+    }
+
+    async function loadLimit() {
+      const numEl = $('limit-num');
       try {
         const limRes = await AMApp.apiCall('GET', '/api/generator/limit');
-        const lim = limRes.data;
-        const remaining = lim.remaining;
-        const total = lim.limit;
-        const used = lim.used;
+        const lim = limRes.data || {};
+        const total = Number(lim.limit) || 0;
+        const remaining = Number(lim.remaining) || 0;
+        const used = Number(lim.used) || 0;
         const pct = total > 0 ? Math.round((remaining / total) * 100) : 0;
 
-        document.getElementById('limit-num').textContent = remaining;
-        document.getElementById('limit-num').classList.remove('skeleton');
-        document.getElementById('limit-bar').style.width = pct + '%';
-        document.getElementById('limit-used').textContent = `${used} dipakai`;
-        document.getElementById('limit-total').textContent = `/ ${total} limit`;
+        numEl.textContent = remaining;
+        $('limit-bar').style.width = pct + '%';
+        $('limit-used').textContent = `${used} dipakai`;
+        $('limit-total').textContent = `/ ${total} limit`;
       } catch (e) {
-        document.getElementById('limit-num').textContent = '-';
-        document.getElementById('limit-num').classList.remove('skeleton');
+        console.warn('[Dashboard] limit error:', e.message);
+        numEl.textContent = '-';
+      } finally {
+        numEl.classList.remove('skeleton');
       }
+    }
 
-      // Stats
-      const total = ud.totalUsage || 0;
-      const success = ud.totalSuccess || 0;
-      const failed = ud.totalFailed || 0;
-      const rate = total > 0 ? Math.round((success / total) * 100) : 0;
-      Utils.animateNumber(document.getElementById('stat-total'), 0, total);
-      Utils.animateNumber(document.getElementById('stat-success'), 0, success);
-      Utils.animateNumber(document.getElementById('stat-failed'), 0, failed);
-      document.getElementById('stat-rate').textContent = rate + '%';
-
-      // API status
+    async function loadApiStatus() {
+      const dot = $('api-dot');
+      const txt = $('api-status-text');
       try {
         const apiRes = await AMApp.apiCall('GET', '/api/generator/api-status');
-        const dot = document.getElementById('api-dot');
-        const txt = document.getElementById('api-status-text');
-        if (apiRes.data?.online) {
-          dot.classList.remove('warning'); dot.classList.add('online');
+        dot.classList.remove('warning', 'animate-pulse');
+        if (apiRes.data && apiRes.data.online) {
+          dot.classList.add('online');
           txt.textContent = 'Online';
         } else {
-          dot.classList.remove('warning'); dot.classList.add('offline');
+          dot.classList.add('offline');
           txt.textContent = 'Offline / Tidak dapat dijangkau';
         }
       } catch (e) {
-        document.getElementById('api-status-text').textContent = 'Tidak dapat diperiksa';
+        dot.classList.remove('animate-pulse');
+        txt.textContent = 'Tidak dapat diperiksa';
       }
+    }
 
-      // Announcements
+    async function loadAnnouncements() {
+      const list = $('announcements-list');
       try {
-        const annRes = await fetch('/api/public/announcements');
-        const ann = await annRes.json();
-        const list = document.getElementById('announcements-list');
+        const { res, data: ann } = await AMApp.requestJson('/api/public/announcements', {}, 10000);
+        if (!res.ok || !ann) throw new Error('Respons tidak valid');
         if (ann.data && ann.data.length > 0) {
-          list.innerHTML = ann.data.slice(0, 3).map(a => `
+          list.innerHTML = ann.data.slice(0, 3).map(a => {
+            const content = String(a.content || '');
+            return `
             <div class="announcement-item glass-card">
               <div class="ann-title">${Utils.escapeHtml(a.title)}</div>
-              <div class="ann-content">${Utils.escapeHtml(a.content.substring(0, 100))}${a.content.length > 100 ? '...' : ''}</div>
+              <div class="ann-content">${Utils.escapeHtml(content.substring(0, 100))}${content.length > 100 ? '...' : ''}</div>
               <div class="ann-date">${Utils.formatDateShort(a.createdAt)}</div>
-            </div>
-          `).join('');
+            </div>`;
+          }).join('');
         } else {
           list.innerHTML = '<div class="text-muted text-sm text-center" style="padding:16px">Belum ada pengumuman</div>';
         }
       } catch (e) {
-        document.getElementById('announcements-list').innerHTML = '<div class="text-muted text-sm">Gagal memuat pengumuman</div>';
+        list.innerHTML = '<div class="text-muted text-sm">Gagal memuat pengumuman</div>';
+      }
+    }
+
+    async function bootDashboard() {
+      try { initParticles(); } catch (e) { console.warn('[Dashboard] particles:', e.message); }
+
+      // Tampilkan navigasi & tema SEKARANG, jangan tunggu server
+      Nav.init('home');
+      Theme.updateToggleBtn();
+
+      // Pengumuman bersifat publik: langsung dimuat paralel
+      loadAnnouncements();
+
+      let user = null;
+      try {
+        // Jangan tunggu profil dari backend — halaman tampil dulu
+        user = await Auth.init({ waitProfile: false });
+      } catch (err) {
+        console.error('[Dashboard] Auth error:', err);
+        $('user-name').textContent = 'Gagal memuat';
+        $('limit-num').classList.remove('skeleton');
+        $('api-status-text').textContent = 'Tidak dapat diperiksa';
+        Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
+        return;
       }
 
-      document.getElementById('page-content').style.opacity = '1';
-    });
+      if (!user) { window.location.href = '/pages/login.html'; return; }
+
+      // 1) Langsung render dari data akun Firebase
+      renderUser(fallbackUserData(user));
+
+      // 2) Perbarui dengan data backend begitu tersedia (maks. ~8 detik, tidak memblokir UI)
+      try { await Auth.profilePromise; } catch (e) { /* sudah ditangani di Auth */ }
+      const ud = Auth.userData || fallbackUserData(user);
+      renderUser(ud);
+      renderStats(ud);
+
+      // 3) Endpoint yang butuh profil di database dipanggil setelah profil siap (paralel)
+      await Promise.allSettled([loadLimit(), loadApiStatus()]);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootDashboard);
+    } else {
+      bootDashboard();
+    }
   </script>
 </body>
 </html>

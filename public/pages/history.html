@@ -81,7 +81,6 @@
   <script>Theme.init();</script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="/assets/js/particles.js"></script>
   <script src="/assets/js/firebase-init.js"></script>
   <script src="/assets/js/notifications.js"></script>
@@ -106,7 +105,7 @@
         const statusClass = `status-${item.status || 'pending'}`;
         const methodLabel = item.method === 'system' ? '🔖 Sistem' : '📧 Custom';
         return `
-          <div class="history-item" onclick="showDetail('${Utils.escapeHtml(item.id)}')">
+          <div class="history-item" data-id="${Utils.escapeHtml(item.id)}">
             <div class="history-status-dot ${statusClass}"></div>
             <div class="history-info">
               <div class="history-id">#${Utils.escapeHtml(item.id)}</div>
@@ -134,7 +133,7 @@
       });
 
       if (searchQuery) {
-        filtered = filtered.filter(item => item.id.toLowerCase().includes(searchQuery.toLowerCase()));
+        filtered = filtered.filter(item => String(item.id || '').toLowerCase().includes(searchQuery.toLowerCase()));
       }
 
       const success = filtered.filter(i => i.status === 'completed').length;
@@ -149,25 +148,38 @@
     window.showDetail = function(id) {
       const item = allHistory.find(i => i.id === id);
       if (!item) return;
-      Utils.createModal(`Detail #${id.substring(0,12)}...`, `
+      const safeId = Utils.escapeHtml(id);
+      Utils.createModal(`Detail #${Utils.escapeHtml(id.substring(0,12))}...`, `
         <div style="display:flex;flex-direction:column;gap:10px;font-size:0.88rem">
           <div class="flex justify-between"><span class="text-secondary">Status</span>${Utils.getStatusBadge(item.status)}</div>
           <div class="flex justify-between"><span class="text-secondary">Waktu</span><span>${Utils.formatDate(item.createdAt)}</span></div>
           <div class="flex justify-between"><span class="text-secondary">Selesai</span><span>${Utils.formatDate(item.completedAt)}</span></div>
           <div class="flex justify-between"><span class="text-secondary">Durasi</span><span>${Utils.formatDuration(item.duration)}</span></div>
           <div class="flex justify-between"><span class="text-secondary">Metode</span><span>${item.method === 'system' ? 'Email Sistem' : 'Email Sendiri'}</span></div>
-          <div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-muted);word-break:break-all">ID: ${id}</div>
+          <div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-muted);word-break:break-all">ID: ${safeId}</div>
         </div>
       `, [{ label: 'Tutup', action: 'close', class: 'btn-primary' }]);
     };
 
-    window.addEventListener('load', async () => {
-      initParticles();
-      await AMApp.initFirebaseClient();
-      const user = await Auth.init();
+    document.addEventListener('DOMContentLoaded', async () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
+      Nav.init('history');
+
+      let user = null;
+      try {
+        user = await Auth.init();
+      } catch (err) {
+        console.error('[history] Auth error:', err);
+        Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
+        return;
+      }
       if (!user) { window.location.href = '/pages/login.html'; return; }
 
-      Nav.init('history');
+      // Klik item history (delegasi event, aman dari karakter aneh di ID)
+      document.getElementById('history-list').addEventListener('click', (e) => {
+        const el = e.target.closest('.history-item');
+        if (el && el.dataset.id) window.showDetail(el.dataset.id);
+      });
 
       // Filters
       document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -193,7 +205,7 @@
         applyFilter();
       } catch (err) {
         Toast.error('Gagal memuat history');
-        document.getElementById('history-list').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div><div>${err.message}</div></div>`;
+        document.getElementById('history-list').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div><div>${Utils.escapeHtml(err.message)}</div></div>`;
       }
     });
   </script>
