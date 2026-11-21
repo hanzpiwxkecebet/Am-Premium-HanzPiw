@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { getDb } = require('../config/firebase');
 
-// Public announcements (active only)
+// Public announcements (active only) — di-cache di edge Vercel supaya tidak kena cold start
 router.get('/announcements', async (req, res) => {
+  res.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');
   const db = getDb();
   const snap = await db.ref('announcements').orderByChild('active').equalTo(true).once('value');
   const items = [];
@@ -17,6 +18,7 @@ router.get('/announcements', async (req, res) => {
 
 // System status (maintenance, version)
 router.get('/status', async (req, res) => {
+  res.set('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=60');
   const db = getDb();
   const snap = await db.ref('system').once('value');
   const sys = snap.val() || {};

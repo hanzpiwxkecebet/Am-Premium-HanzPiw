@@ -9,9 +9,13 @@ const { checkLimit } = require('../services/limitService');
 const { checkApiStatus } = require('../services/apiService');
 
 // Maintenance check middleware
+let maintenanceCache = { v: false, t: 0 };
 async function checkMaintenance(req, res, next) {
-  const snap = await getDb().ref('system/maintenance').once('value');
-  if (snap.val() === true) {
+  if (Date.now() - maintenanceCache.t > 5000) {
+    const snap = await getDb().ref('system/maintenance').once('value');
+    maintenanceCache = { v: snap.val() === true, t: Date.now() };
+  }
+  if (maintenanceCache.v === true) {
     return res.status(503).json({ success: false, message: 'Aplikasi sedang dalam maintenance' });
   }
   next();
