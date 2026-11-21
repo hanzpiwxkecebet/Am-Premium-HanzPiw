@@ -86,7 +86,6 @@
   <!-- Firebase SDK (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <script src="/assets/js/particles.js"></script>
   <script src="/assets/js/firebase-init.js"></script>
@@ -115,16 +114,15 @@
         setProgress(50, 'Memeriksa autentikasi...');
         let user = null;
         try {
-          user = await Auth.init();
+          user = await Auth.init({ waitProfile: false });
         } catch (authErr) {
           console.warn('[Boot] Auth init warning:', authErr.message);
         }
 
         setProgress(80, 'Memeriksa status sistem...');
         try {
-          const statusRes = await fetch('/api/public/status');
-          const statusData = await statusRes.json();
-          if (statusData.data?.maintenance) {
+          const { data: statusData } = await AMApp.requestJson('/api/public/status', {}, 5000);
+          if (statusData && statusData.data && statusData.data.maintenance) {
             setProgress(100, 'Redirect ke maintenance...');
             setTimeout(() => { window.location.href = '/pages/maintenance.html'; }, 400);
             return;
@@ -152,8 +150,8 @@
       }
     }
 
-    window.addEventListener('load', () => {
-      initParticles();
+    document.addEventListener('DOMContentLoaded', () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
       boot();
     });
   </script>
