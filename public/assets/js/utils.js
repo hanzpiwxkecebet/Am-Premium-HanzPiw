@@ -22,6 +22,9 @@ function formatDuration(ms) {
 }
 
 function animateNumber(el, from, to, duration = 1000) {
+  if (!el) return;
+  from = Number(from) || 0;
+  to = Number(to) || 0;
   const start = performance.now();
   const update = (time) => {
     const elapsed = time - start;
@@ -92,10 +95,13 @@ function getRoleBadge(role) {
 }
 
 function escapeHtml(str) {
-  if (!str) return '';
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function debounce(fn, ms = 300) {

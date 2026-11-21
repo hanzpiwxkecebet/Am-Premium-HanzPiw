@@ -13,7 +13,11 @@ const ToastIcons = {
   info: 'ℹ',
 };
 
-const SoundEnabled = { value: localStorage.getItem('sound_enabled') !== 'false' };
+function readSoundSetting() {
+  try { return localStorage.getItem('sound_enabled') !== 'false'; } catch (e) { return true; }
+}
+
+const SoundEnabled = { value: readSoundSetting() };
 
 function showToast(message, type = 'info', title = null, duration = 4000) {
   let container = document.getElementById('toast-container');
@@ -80,14 +84,18 @@ function playSound(type) {
 }
 
 function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function setSoundEnabled(enabled) {
   SoundEnabled.value = enabled;
-  localStorage.setItem('sound_enabled', enabled ? 'true' : 'false');
+  try { localStorage.setItem('sound_enabled', enabled ? 'true' : 'false'); } catch (e) { /* storage diblokir */ }
 }
 
 window.Toast = { show: showToast, success: (m, t) => showToast(m, 'success', t), error: (m, t) => showToast(m, 'error', t), warning: (m, t) => showToast(m, 'warning', t), info: (m, t) => showToast(m, 'info', t), setSoundEnabled };
