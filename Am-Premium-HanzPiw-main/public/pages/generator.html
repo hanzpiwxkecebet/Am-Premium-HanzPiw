@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generator - AM Premium Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <style>
+    .method-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .method-tab { flex: 1; padding: 12px; border: 1px solid var(--border-glass); border-radius: var(--radius-md); background: var(--bg-glass); cursor: pointer; text-align: center; transition: var(--transition); font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); }
+    .method-tab.active { border-color: var(--neon-red-dim); background: rgba(255,34,68,0.08); color: var(--text-primary); }
+    .step-indicator { display: flex; align-items: center; margin-bottom: 24px; }
+    .step-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border-glass); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; transition: var(--transition); background: var(--bg-glass); }
+    .step-dot.active { border-color: var(--neon-red); background: rgba(255,34,68,0.15); color: var(--neon-red); }
+    .step-dot.done { border-color: var(--text-success); background: rgba(0,255,136,0.15); color: var(--text-success); }
+    .step-line { flex: 1; height: 2px; background: var(--border-glass); margin: 0 6px; border-radius: 9999px; transition: var(--transition); }
+    .step-line.done { background: var(--gradient-primary); }
+    .progress-steps { margin: 16px 0; }
+    .progress-step { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.82rem; font-weight: 500; color: var(--text-muted); transition: var(--transition); }
+    .progress-step.active { color: var(--text-primary); background: rgba(255,34,68,0.06); }
+    .progress-step.done { color: var(--text-success); }
+    .progress-step.failed { color: var(--text-error); }
+    .step-icon { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; flex-shrink: 0; }
+    .step-icon.spinning { animation: spin 0.8s linear infinite; border-top-color: transparent; }
+    .terminal-box { background: #0a0a0a; border: 1px solid rgba(255,34,68,0.2); border-radius: var(--radius-md); padding: 14px 16px; font-family: var(--font-mono); font-size: 0.75rem; height: 140px; overflow-y: auto; margin-top: 12px; }
+    .terminal-line { color: #aaa; line-height: 1.6; }
+    .terminal-line.ok { color: #00ff88; }
+    .terminal-line.err { color: #ff4455; }
+    .terminal-line.info { color: #44aaff; }
+    .timer-display { font-family: var(--font-mono); font-size: 1.1rem; color: var(--text-secondary); }
+    .result-card { text-align: center; padding: 24px; border-radius: var(--radius-xl); animation: fadeInUp 0.4s ease; }
+    .result-card.success { background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.2); }
+    .result-card.failed { background: rgba(255,34,68,0.05); border: 1px solid rgba(255,34,68,0.2); }
+    .result-icon { font-size: 3rem; margin-bottom: 12px; }
+    .email-select-item { padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); cursor: pointer; transition: var(--transition); font-size: 0.88rem; display: flex; align-items: center; justify-content: space-between; }
+    .email-select-item:hover { border-color: var(--border-neon-red); background: rgba(255,34,68,0.05); }
+    .email-select-item.selected { border-color: var(--neon-red-dim); background: rgba(255,34,68,0.1); }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+  <div id="toast-container"></div>
+
+  <div class="page-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title gradient-text">Generator ⚡</div>
+        <div class="page-subtitle">Generate akun Alight Motion Premium</div>
+      </div>
+      <div class="timer-display" id="timer">00:00</div>
+    </div>
+
+    <!-- Step Indicator -->
+    <div class="step-indicator" id="step-indicator">
+      <div class="step-dot active" id="sdot-1">1</div>
+      <div class="step-line" id="sline-1"></div>
+      <div class="step-dot" id="sdot-2">2</div>
+      <div class="step-line" id="sline-2"></div>
+      <div class="step-dot" id="sdot-3">3</div>
+    </div>
+
+    <!-- Step 1: Input -->
+    <div id="step-1-content">
+      <div class="glass-card" style="padding:20px;margin-bottom:12px">
+        <!-- Limit display -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <span class="text-secondary text-sm">Sisa limit: <strong id="limit-display" class="gradient-text">-</strong></span>
+          <span class="badge badge-user" id="role-badge"></span>
+        </div>
+
+        <!-- Method selection -->
+        <div class="form-group">
+          <label class="form-label">Metode Email</label>
+          <div class="method-tabs">
+            <div class="method-tab active" data-method="custom" id="tab-custom">📧 Email Sendiri</div>
+            <div class="method-tab" data-method="system" id="tab-system">🔖 Email Sistem</div>
+          </div>
+        </div>
+
+        <!-- Custom email input -->
+        <div id="custom-email-wrap" class="form-group">
+          <label class="form-label">Email Kamu</label>
+          <input type="email" class="form-input" id="email-input" placeholder="email@contoh.com" autocomplete="email">
+          <div class="text-xs text-muted mt-1">Verifikasi akan dikirim ke email ini</div>
+        </div>
+
+        <!-- System email list -->
+        <div id="system-email-wrap" class="hidden">
+          <label class="form-label">Pilih Email Sistem</label>
+          <div id="system-email-list" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto">
+            <div class="text-muted text-sm text-center" style="padding:16px">Memuat email...</div>
+          </div>
+          <input type="hidden" id="system-email-selected">
+        </div>
+
+        <button class="btn btn-primary btn-full btn-lg" id="send-btn" style="margin-top:8px">
+          <div class="btn-loader"></div>
+          <span class="btn-text">⚡ Mulai Generate</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2: Verification -->
+    <div id="step-2-content" class="hidden">
+      <div class="glass-card" style="padding:20px;margin-bottom:12px">
+        <div style="font-weight:700;margin-bottom:4px">📬 Cek Email Kamu</div>
+        <div class="text-secondary text-sm mb-2">Link verifikasi sudah dikirim. Buka email dan copy link verifikasinya.</div>
+
+        <div class="form-group">
+          <label class="form-label">Link Verifikasi</label>
+          <input type="text" class="form-input" id="verify-link-input" placeholder="Paste link verifikasi dari email..." style="font-size:0.82rem">
+        </div>
+
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" id="cancel-btn" style="flex:1">Batalkan</button>
+          <button class="btn btn-primary" id="verify-btn" style="flex:2">
+            <div class="btn-loader"></div>
+            <span class="btn-text">✓ Submit Verifikasi</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Progress log -->
+      <div class="glass-card" style="padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span class="text-sm font-weight:600">Progress Log</span>
+          <span class="timer-display text-sm" id="timer-inline">00:00</span>
+        </div>
+        <div class="progress-steps" id="progress-steps"></div>
+        <div class="terminal-box" id="terminal"></div>
+      </div>
+    </div>
+
+    <!-- Step 3: Result -->
+    <div id="step-3-content" class="hidden">
+      <div class="result-card" id="result-card">
+        <div class="result-icon" id="result-icon"></div>
+        <div style="font-size:1.3rem;font-weight:800;margin-bottom:8px" id="result-title"></div>
+        <div class="text-secondary text-sm" id="result-desc"></div>
+        <div style="margin-top:12px;font-size:0.8rem;color:var(--text-muted)" id="result-meta"></div>
+        <button class="btn btn-primary btn-full mt-2" onclick="resetGenerator()">🔄 Generate Lagi</button>
+      </div>
+    </div>
+  </div>
+
+  <nav id="bottom-nav"></nav>
+
+  <script src="/assets/js/theme.js"></script>
+  <script>Theme.init();</script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="/assets/js/particles.js"></script>
+  <script src="/assets/js/firebase-init.js"></script>
+  <script src="/assets/js/notifications.js"></script>
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/utils.js"></script>
+  <script src="/assets/js/nav.js"></script>
+  <script>
+    let currentMethod = 'custom';
+    let currentRequestId = null;
+    let currentEmail = null;
+    let timerInterval = null;
+    let startTime = null;
+
+    const PROGRESS_STEPS = [
+      { id: 'init', label: 'Initializing' },
+      { id: 'validating', label: 'Validating Input' },
+      { id: 'checking', label: 'Checking Limit' },
+      { id: 'connecting', label: 'Connecting API' },
+      { id: 'sending', label: 'Sending Verification' },
+      { id: 'waiting', label: 'Waiting Verification' },
+      { id: 'verifying', label: 'Verifying' },
+      { id: 'done', label: 'Process Completed' },
+    ];
+
+    function renderProgressSteps(doneSteps = [], activeStep = null, failed = false) {
+      const container = document.getElementById('progress-steps');
+      container.innerHTML = PROGRESS_STEPS.map((s, i) => {
+        const isDone = doneSteps.includes(s.id);
+        const isActive = s.id === activeStep;
+        const isFailed = failed && isActive;
+        let cls = isFailed ? 'failed' : isDone ? 'done' : isActive ? 'active' : '';
+        let iconContent = isDone ? '✓' : isFailed ? '✕' : i + 1;
+        let iconClass = isActive && !isFailed ? 'spinning' : '';
+        return `<div class="progress-step ${cls}">
+          <div class="step-icon ${iconClass}" style="border-style:${isActive&&!isFailed?'dashed':'solid'}">${iconContent}</div>
+          <span>${s.label}</span>
+          ${isFailed ? '<span style="margin-left:auto;font-size:0.72rem">FAILED</span>' : ''}
+          ${isDone ? '<span style="margin-left:auto;font-size:0.72rem">✓</span>' : ''}
+        </div>`;
+      }).join('');
+    }
+
+    function logTerminal(msg, type = '') {
+      const t = document.getElementById('terminal');
+      const line = document.createElement('div');
+      line.className = 'terminal-line ' + type;
+      line.textContent = `[${new Date().toLocaleTimeString('id-ID')}] ${msg}`;
+      t.appendChild(line);
+      t.scrollTop = t.scrollHeight;
+    }
+
+    function startTimer() {
+      startTime = Date.now();
+      const updateTimer = () => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const s = String(elapsed % 60).padStart(2, '0');
+        const display = `${m}:${s}`;
+        document.getElementById('timer').textContent = display;
+        const t2 = document.getElementById('timer-inline');
+        if (t2) t2.textContent = display;
+      };
+      timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    function stopTimer() { if (timerInterval) { clearInterval(timerInterval); timerInterval = null; } }
+
+    function setStep(step) {
+      document.getElementById('step-1-content').classList.toggle('hidden', step !== 1);
+      document.getElementById('step-2-content').classList.toggle('hidden', step !== 2);
+      document.getElementById('step-3-content').classList.toggle('hidden', step !== 3);
+
+      ['sdot-1','sdot-2','sdot-3'].forEach((id, i) => {
+        const dot = document.getElementById(id);
+        dot.className = 'step-dot';
+        if (i + 1 < step) { dot.classList.add('done'); dot.textContent = '✓'; }
+        else if (i + 1 === step) { dot.classList.add('active'); dot.textContent = i + 1; }
+        else { dot.textContent = i + 1; }
+      });
+      ['sline-1','sline-2'].forEach((id, i) => {
+        document.getElementById(id).classList.toggle('done', i + 1 < step);
+      });
+    }
+
+    function showResult(success, duration, requestId) {
+      setStep(3);
+      stopTimer();
+      const card = document.getElementById('result-card');
+      card.className = 'result-card ' + (success ? 'success' : 'failed');
+      document.getElementById('result-icon').textContent = success ? '✅' : '❌';
+      document.getElementById('result-title').textContent = success ? 'Generate Berhasil!' : 'Generate Gagal';
+      document.getElementById('result-desc').textContent = success
+        ? 'Akun Alight Motion Premium berhasil dibuat. Cek email kamu.'
+        : 'Proses tidak berhasil. Link tidak valid atau layanan sedang bermasalah.';
+      document.getElementById('result-meta').textContent = `Durasi: ${Utils.formatDuration(duration)} · ID: ${requestId}`;
+    }
+
+    function resetGenerator() {
+      currentRequestId = null; currentEmail = null;
+      stopTimer();
+      document.getElementById('timer').textContent = '00:00';
+      document.getElementById('verify-link-input').value = '';
+      document.getElementById('terminal').innerHTML = '';
+      setStep(1);
+    }
+
+    window.resetGenerator = resetGenerator;
+
+    window.addEventListener('load', async () => {
+      initParticles();
+      await AMApp.initFirebaseClient();
+      const user = await Auth.init();
+      if (!user) { window.location.href = '/pages/login.html'; return; }
+
+      Nav.init('generator');
+      renderProgressSteps();
+
+      // Load limit
+      try {
+        const limRes = await AMApp.apiCall('GET', '/api/generator/limit');
+        document.getElementById('limit-display').textContent = limRes.data.remaining;
+      } catch (e) { document.getElementById('limit-display').textContent = '-'; }
+
+      document.getElementById('role-badge').innerHTML = Utils.getRoleBadge(Auth.userData?.role || 'user');
+
+      // Method tabs
+      document.querySelectorAll('.method-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          currentMethod = tab.dataset.method;
+          document.getElementById('custom-email-wrap').classList.toggle('hidden', currentMethod !== 'custom');
+          document.getElementById('system-email-wrap').classList.toggle('hidden', currentMethod !== 'system');
+          if (currentMethod === 'system') loadSystemEmails();
+        });
+      });
+
+      async function loadSystemEmails() {
+        const container = document.getElementById('system-email-list');
+        try {
+          const res = await AMApp.apiCall('GET', '/api/generator/emails');
+          if (!res.data || res.data.length === 0) {
+            container.innerHTML = '<div class="text-muted text-sm text-center" style="padding:16px">Tidak ada email sistem tersedia</div>';
+            return;
+          }
+          document.getElementById('system-email-selected').value = '';
+          container.innerHTML = res.data.map(e => `
+            <div class="email-select-item" data-email="${Utils.escapeHtml(e.email)}" onclick="selectSystemEmail(this)">
+              <span style="font-family:var(--font-mono);font-size:0.8rem">${Utils.escapeHtml(e.email)}</span>
+              <span class="badge badge-active">Tersedia</span>
+            </div>
+          `).join('');
+        } catch (err) {
+          container.innerHTML = '<div class="text-error text-sm">Gagal memuat email</div>';
+        }
+      }
+
+      window.selectSystemEmail = function(el) {
+        document.querySelectorAll('.email-select-item').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
+        document.getElementById('system-email-selected').value = el.dataset.email;
+      };
+
+      // Send button
+      document.getElementById('send-btn').addEventListener('click', async () => {
+        let email;
+        if (currentMethod === 'custom') {
+          email = document.getElementById('email-input').value.trim();
+          if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            Toast.warning('Masukkan email yang valid');
+            return;
+          }
+        } else {
+          email = document.getElementById('system-email-selected').value;
+          if (!email) { Toast.warning('Pilih email sistem terlebih dahulu'); return; }
+        }
+
+        const btn = document.getElementById('send-btn');
+        Utils.setButtonLoading(btn);
+
+        setStep(2);
+        startTimer();
+        document.getElementById('terminal').innerHTML = '';
+
+        const steps = ['init','validating','checking','connecting','sending'];
+        renderProgressSteps([], 'init');
+        logTerminal('Memulai proses generator...', 'info');
+
+        try {
+          for (let i = 0; i < steps.length; i++) {
+            await new Promise(r => setTimeout(r, 300 + i * 200));
+            renderProgressSteps(steps.slice(0, i), steps[i]);
+            logTerminal(`${steps[i].charAt(0).toUpperCase() + steps[i].slice(1)}...`, 'info');
+          }
+
+          const res = await AMApp.apiCall('POST', '/api/generator/send', {
+            email,
+            method: currentMethod,
+          });
+
+          currentEmail = email;
+          currentRequestId = res.requestId;
+
+          renderProgressSteps(['init','validating','checking','connecting','sending'], 'waiting');
+          logTerminal(`Verifikasi dikirim ke ${email}`, 'ok');
+          logTerminal('Menunggu link verifikasi dari pengguna...', 'info');
+
+          if (res.remaining !== undefined) {
+            document.getElementById('limit-display').textContent = res.remaining;
+          }
+
+          Utils.setButtonLoading(btn, false);
+          Toast.info('Cek email kamu dan paste link verifikasinya');
+        } catch (err) {
+          renderProgressSteps([], 'sending', true);
+          logTerminal('ERROR: ' + err.message, 'err');
+          Toast.error(err.message || 'Gagal mengirim verifikasi');
+          setStep(1);
+          Utils.setButtonLoading(btn, false);
+          stopTimer();
+        }
+      });
+
+      // Verify button
+      document.getElementById('verify-btn').addEventListener('click', async () => {
+        const link = document.getElementById('verify-link-input').value.trim();
+        if (!link) { Toast.warning('Paste link verifikasi dari email'); return; }
+        if (!currentEmail || !currentRequestId) { Toast.error('Session expired, mulai ulang'); return; }
+
+        const btn = document.getElementById('verify-btn');
+        Utils.setButtonLoading(btn);
+
+        renderProgressSteps(['init','validating','checking','connecting','sending','waiting'], 'verifying');
+        logTerminal('Mengirim link verifikasi ke API...', 'info');
+
+        try {
+          const res = await AMApp.apiCall('POST', '/api/generator/verify', {
+            email: currentEmail,
+            link,
+            requestId: currentRequestId,
+            method: currentMethod,
+          });
+
+          const duration = startTime ? Date.now() - startTime : 0;
+
+          if (res.result) {
+            renderProgressSteps(['init','validating','checking','connecting','sending','waiting','verifying','done']);
+            logTerminal('Proses berhasil! Akun premium dibuat.', 'ok');
+            Toast.success('Generate berhasil!');
+            showResult(true, duration, currentRequestId);
+          } else {
+            renderProgressSteps(['init','validating','checking','connecting','sending','waiting'], 'verifying', true);
+            logTerminal('Verifikasi tidak berhasil.', 'err');
+            Toast.error('Verifikasi gagal. Link tidak valid?');
+            showResult(false, duration, currentRequestId);
+          }
+        } catch (err) {
+          renderProgressSteps(['init','validating','checking','connecting','sending','waiting'], 'verifying', true);
+          logTerminal('ERROR: ' + err.message, 'err');
+          Toast.error(err.message || 'Verifikasi gagal');
+          Utils.setButtonLoading(btn, false);
+        }
+      });
+
+      // Cancel button
+      document.getElementById('cancel-btn').addEventListener('click', () => {
+        stopTimer();
+        resetGenerator();
+        Toast.info('Proses dibatalkan');
+      });
+    });
+  </script>
+</body>
+</html>
