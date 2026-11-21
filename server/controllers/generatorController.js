@@ -3,6 +3,14 @@ const { sendVerification, verifyLink } = require('../services/apiService');
 const { consumeLimit, refundLimit, recordUsage, updateStats } = require('../services/limitService');
 const { v4: uuidv4 } = require('uuid');
 
+// requestId dipakai sebagai key di Firebase: tidak boleh mengandung . # $ [ ] /
+const REQUEST_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
+
+function sanitizeRequestId(raw) {
+  const id = String(raw || '');
+  return REQUEST_ID_RE.test(id) ? id : uuidv4();
+}
+
 /**
  * Step 1: Send verification email
  * Validates user, checks limit, calls API /send
@@ -10,7 +18,7 @@ const { v4: uuidv4 } = require('uuid');
 async function sendVerify(req, res) {
   const { email, method } = req.body;
   const { uid } = req.user;
-  const requestId = req.headers['x-request-id'] || uuidv4();
+  const requestId = sanitizeRequestId(req.headers['x-request-id']);
 
   if (!email) return res.status(400).json({ success: false, message: 'Email wajib diisi' });
 
@@ -27,6 +35,7 @@ async function sendVerify(req, res) {
   }
 
   // If system email, check availability and lock it
+  let emailLocked = false;
   if (method === 'system') {
     const emailsSnap = await db.ref('emails').orderByChild('email').equalTo(email).once('value');
     let emailKey = null;
@@ -42,56 +51,76 @@ async function sendVerify(req, res) {
     if (emailData.status === 'in_use') {
       return res.status(409).json({ success: false, message: 'Email sedang digunakan oleh pengguna lain' });
     }
-
-    // Lock email
-    await db.ref(`emails/${emailKey}`).update({ status: 'in_use', lockedBy: uid, lockedAt: Date.now() });
-  }
-
-  // Consume limit atomically
-  const limitResult = await consumeLimit(uid);
-  if (!limitResult.success) {
-    return res.status(429).json({ success: false, message: limitResult.message, remaining: 0 });
-  }
-
-  // Create pending usage record
-  const usageRef = db.ref(`usage/${uid}/${requestId}`);
-  await usageRef.set({
-    status: 'pending',
-    method: method || 'custom',
-    email_masked: maskEmail(email),
-    requestId,
-    createdAt: Date.now(),
-    completedAt: null,
-    duration: null,
-  });
-
-  // Call API
-  let apiResult;
-  try {
-    apiResult = await sendVerification(email);
-  } catch (err) {
-    // Refund limit on API failure
-    await refundLimit(uid);
-    await usageRef.update({ status: 'failed_send', completedAt: Date.now() });
-    if (method === 'system') {
-      // Unlock email
-      const emailsSnap = await db.ref('emails').orderByChild('email').equalTo(email).once('value');
-      emailsSnap.forEach(async child => {
-        await db.ref(`emails/${child.key}`).update({ status: 'available', lockedBy: null, lockedAt: null });
-      });
+    if (emailData.status && emailData.status !== 'available') {
+      return res.status(403).json({ success: false, message: 'Email sistem sedang dinonaktifkan' });
     }
-    return res.status(502).json({ success: false, message: `API gagal: ${err.message}` });
+
+    // Lock email secara atomik (cegah dua user mengunci email yang sama bersamaan)
+    const lockResult = await db.ref(`emails/${emailKey}`).transaction(cur => {
+      if (!cur) return cur;
+      if (cur.status === 'in_use' || cur.authorized !== true) return; // abort
+      cur.status = 'in_use';
+      cur.lockedBy = uid;
+      cur.lockedAt = Date.now();
+      return cur;
+    });
+    if (!lockResult.committed) {
+      return res.status(409).json({ success: false, message: 'Email sedang digunakan oleh pengguna lain' });
+    }
+    emailLocked = true;
   }
 
-  // Update status to waiting verification
-  await usageRef.update({ status: 'waiting_verification', sentAt: Date.now() });
+  const usageRef = db.ref(`usage/${uid}/${requestId}`);
+  let limitConsumed = false;
 
-  return res.json({
-    success: true,
-    message: 'Verifikasi dikirim. Cek email kamu dan masukkan link verifikasi.',
-    requestId,
-    remaining: limitResult.remaining,
-  });
+  try {
+    // Consume limit atomically
+    const limitResult = await consumeLimit(uid);
+    if (!limitResult.success) {
+      // Limit habis: lepas kunci email supaya tidak nyangkut "in_use" selamanya
+      if (emailLocked) await unlockSystemEmail(email, db);
+      return res.status(429).json({ success: false, message: limitResult.message, remaining: 0 });
+    }
+    limitConsumed = true;
+
+    // Create pending usage record
+    await usageRef.set({
+      status: 'pending',
+      method: method || 'custom',
+      email_masked: maskEmail(email),
+      requestId,
+      createdAt: Date.now(),
+      completedAt: null,
+      duration: null,
+    });
+
+    // Call API
+    let apiResult;
+    try {
+      apiResult = await sendVerification(email);
+    } catch (err) {
+      // Refund limit on API failure
+      await refundLimit(uid);
+      await usageRef.update({ status: 'failed_send', completedAt: Date.now() });
+      if (emailLocked) await unlockSystemEmail(email, db);
+      return res.status(502).json({ success: false, message: `API gagal: ${err.message}` });
+    }
+
+    // Update status to waiting verification
+    await usageRef.update({ status: 'waiting_verification', sentAt: Date.now() });
+
+    return res.json({
+      success: true,
+      message: 'Verifikasi dikirim. Cek email kamu dan masukkan link verifikasi.',
+      requestId,
+      remaining: limitResult.remaining,
+    });
+  } catch (err) {
+    // Error tak terduga (mis. database): kembalikan limit & kunci email, lalu biarkan error handler membalas
+    if (limitConsumed) { try { await refundLimit(uid); } catch (e) { /* abaikan */ } }
+    if (emailLocked) { try { await unlockSystemEmail(email, db); } catch (e) { /* abaikan */ } }
+    throw err;
+  }
 }
 
 /**
@@ -103,6 +132,9 @@ async function submitVerify(req, res) {
 
   if (!email || !link || !requestId) {
     return res.status(400).json({ success: false, message: 'Email, link, dan requestId wajib diisi' });
+  }
+  if (!REQUEST_ID_RE.test(String(requestId))) {
+    return res.status(400).json({ success: false, message: 'requestId tidak valid' });
   }
 
   const db = getDb();

@@ -1,5 +1,7 @@
 const { getDb, getAuth } = require('../config/firebase');
 const { logAction } = require('../services/auditService');
+const { getTodayJakarta } = require('../services/limitService');
+const { checkApiStatus } = require('../services/apiService');
 const { v4: uuidv4 } = require('uuid');
 
 const ROLE_HIERARCHY = { user: 0, premium: 1, moderator: 2, admin: 3, owner: 4 };
@@ -14,10 +16,23 @@ function canManageRole(actorRole, targetRole) {
 async function getUsers(req, res) {
   const db = getDb();
   const snap = await db.ref('users').once('value');
+  const today = getTodayJakarta();
   const users = [];
   snap.forEach(child => {
     const u = child.val();
-    users.push({ uid: child.key, name: u.name, username: u.username, email: u.email, role: u.role, status: u.status, createdAt: u.createdAt, dailyLimit: u.dailyLimit });
+    users.push({
+      uid: child.key,
+      name: u.name,
+      username: u.username,
+      email: u.email,
+      role: u.role,
+      status: u.status,
+      createdAt: u.createdAt,
+      dailyLimit: u.dailyLimit,
+      // usedToday hanya berlaku kalau tanggal reset = hari ini
+      usedToday: u.lastResetDate === today ? (u.usedToday || 0) : 0,
+      totalUsage: u.totalUsage || 0,
+    });
   });
   users.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   return res.json({ success: true, data: users });
@@ -135,36 +150,76 @@ async function activateUser(req, res) {
 // ─── REDEEM MANAGEMENT ───────────────────────────────────────────────────────
 
 async function createRedeemCode(req, res) {
-  const { type, value, maxUses, expiresAt, label } = req.body;
+  const { code, type, value, maxUses, expiresAt, label } = req.body;
   const actor = req.user;
 
   const validTypes = ['limit', 'premium', 'special'];
   if (!validTypes.includes(type)) return res.status(400).json({ success: false, message: 'Tipe kode tidak valid' });
-  if (!value) return res.status(400).json({ success: false, message: 'Value kode diperlukan' });
+  if (value === undefined || value === null || String(value).trim() === '') {
+    return res.status(400).json({ success: false, message: 'Value kode diperlukan' });
+  }
+  // limit & premium harus angka positif (kalau tidak, user yang redeem bisa kena NaN)
+  if ((type === 'limit' || type === 'premium') && !(Number(value) > 0)) {
+    return res.status(400).json({ success: false, message: 'Value untuk tipe limit/premium harus angka lebih dari 0' });
+  }
 
-  const codeId = uuidv4().split('-')[0].toUpperCase() + uuidv4().split('-')[1].toUpperCase();
+  // Kode custom (opsional) atau auto-generate
+  let codeId;
+  const custom = typeof code === 'string' ? code.trim().toUpperCase() : '';
+  if (custom) {
+    if (!/^[A-Z0-9]{4,20}$/.test(custom)) {
+      return res.status(400).json({ success: false, message: 'Kode harus 4-20 karakter (huruf besar & angka)' });
+    }
+    codeId = custom;
+  } else {
+    codeId = uuidv4().split('-')[0].toUpperCase() + uuidv4().split('-')[1].toUpperCase();
+  }
+
   const db = getDb();
+  const existing = await db.ref(`redeem/${codeId}`).once('value');
+  if (existing.exists()) return res.status(409).json({ success: false, message: 'Kode sudah ada' });
+
+  // maxUses: 0 = tidak terbatas
+  const maxUsesNum = Number(maxUses);
+  const maxUsesFinal = Number.isFinite(maxUsesNum) && maxUsesNum >= 0 ? Math.floor(maxUsesNum) : 1;
+
+  // expiresAt boleh timestamp (angka) atau tanggal YYYY-MM-DD (berlaku sampai akhir hari WIB)
+  let expiresAtFinal = null;
+  if (typeof expiresAt === 'number' && Number.isFinite(expiresAt)) {
+    expiresAtFinal = expiresAt;
+  } else if (typeof expiresAt === 'string' && expiresAt.trim()) {
+    const raw = expiresAt.trim();
+    const parsed = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? Date.parse(`${raw}T23:59:59+07:00`) : Date.parse(raw);
+    if (!Number.isFinite(parsed)) {
+      return res.status(400).json({ success: false, message: 'Tanggal kedaluwarsa tidak valid' });
+    }
+    expiresAtFinal = parsed;
+  }
+
   await db.ref(`redeem/${codeId}`).set({
     type,
-    value,
-    label: label || '',
+    value: (type === 'limit' || type === 'premium') ? Number(value) : String(value),
+    label: label ? String(label).substring(0, 50) : '',
     active: true,
-    maxUses: maxUses || 1,
+    maxUses: maxUsesFinal,
     usedCount: 0,
-    expiresAt: expiresAt || null,
+    expiresAt: expiresAtFinal,
     createdAt: Date.now(),
     createdBy: actor.uid,
   });
 
   await logAction({ actorUID: actor.uid, actorRole: actor.role, action: 'create_redeem', summary: `Created ${type} code ${codeId}` });
-  return res.status(201).json({ success: true, message: 'Kode redeem dibuat', data: { codeId } });
+  return res.status(201).json({ success: true, message: 'Kode redeem dibuat', data: { codeId, code: codeId } });
 }
 
 async function getRedeemCodes(req, res) {
   const db = getDb();
   const snap = await db.ref('redeem').once('value');
   const codes = [];
-  snap.forEach(child => codes.push({ id: child.key, ...child.val() }));
+  snap.forEach(child => {
+    const v = child.val();
+    codes.push({ id: child.key, code: child.key, ...v, isActive: v.active === true });
+  });
   codes.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   return res.json({ success: true, data: codes });
 }
@@ -207,7 +262,7 @@ async function getEmails(req, res) {
 }
 
 async function addEmail(req, res) {
-  const { email } = req.body;
+  const { email, label } = req.body;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ success: false, message: 'Email tidak valid' });
   }
@@ -216,7 +271,7 @@ async function addEmail(req, res) {
   if (existing.exists()) return res.status(409).json({ success: false, message: 'Email sudah ada' });
 
   const id = uuidv4();
-  await db.ref(`emails/${id}`).set({ email, status: 'available', authorized: true, createdAt: Date.now() });
+  await db.ref(`emails/${id}`).set({ email, label: label ? String(label).substring(0, 50) : '', status: 'available', authorized: true, createdAt: Date.now() });
   return res.status(201).json({ success: true, message: 'Email ditambahkan', data: { id } });
 }
 
@@ -249,7 +304,10 @@ async function getAnnouncements(req, res) {
   const db = getDb();
   const snap = await db.ref('announcements').once('value');
   const items = [];
-  snap.forEach(child => items.push({ id: child.key, ...child.val() }));
+  snap.forEach(child => {
+    const v = child.val();
+    items.push({ id: child.key, ...v, isActive: v.active !== false });
+  });
   items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   return res.json({ success: true, data: items });
 }
@@ -263,7 +321,7 @@ async function createAnnouncement(req, res) {
   await db.ref(`announcements/${id}`).set({
     title: title.trim(),
     content: content.trim(),
-    priority: priority || 0,
+    priority: Number(priority) || 0,
     active: active !== false,
     createdAt: Date.now(),
     createdBy: actor.uid,
@@ -369,7 +427,23 @@ async function resetAllLimits(req, res) {
 
 async function getAdminStats(req, res) {
   const db = getDb();
-  const usersSnap = await db.ref('users').once('value');
+
+  // Cek API eksternal paralel, tapi jangan sampai menahan dashboard admin lebih dari 5 detik
+  let apiTimer;
+  const apiCheck = Promise.race([
+    checkApiStatus().catch(() => ({ online: false })),
+    new Promise(resolve => { apiTimer = setTimeout(() => resolve({ online: false }), 5000); }),
+  ]).finally(() => clearTimeout(apiTimer));
+
+  const [usersSnap, statsSnap, sysSnap, codesSnap, emailsSnap, apiStatus] = await Promise.all([
+    db.ref('users').once('value'),
+    db.ref('system/stats').once('value'),
+    db.ref('system').once('value'),
+    db.ref('redeem').once('value'),
+    db.ref('emails').once('value'),
+    apiCheck,
+  ]);
+
   let totalUsers = 0, totalActive = 0, totalPremium = 0;
   usersSnap.forEach(child => {
     const u = child.val();
@@ -377,25 +451,37 @@ async function getAdminStats(req, res) {
     if (u.status === 'active') totalActive++;
     if (u.role === 'premium') totalPremium++;
   });
-  const statsSnap = await db.ref('system/stats').once('value');
+
   const stats = statsSnap.val() || {};
+  const sys = sysSnap.val() || {};
+
   return res.json({
     success: true,
     data: {
       totalUsers,
       totalActive,
       totalPremium,
+      premiumUsers: totalPremium,
       totalSuccess: stats.totalSuccess || 0,
       totalFailed: stats.totalFailed || 0,
+      totalCodes: codesSnap.numChildren(),
+      totalEmails: emailsSnap.numChildren(),
+      apiOnline: !!(apiStatus && apiStatus.online),
+      maintenance: sys.maintenance === true,
+      version: sys.version || sys.appVersion || process.env.APP_VERSION || '',
     }
   });
 }
 
 async function getAdminLogs(req, res) {
   const db = getDb();
-  const snap = await db.ref('adminLogs').limitToLast(100).once('value');
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 200);
+  const snap = await db.ref('adminLogs').orderByChild('createdAt').limitToLast(limit).once('value');
   const logs = [];
-  snap.forEach(child => logs.push({ id: child.key, ...child.val() }));
+  snap.forEach(child => {
+    const v = child.val();
+    logs.push({ id: child.key, ...v, timestamp: v.createdAt });
+  });
   logs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   return res.json({ success: true, data: logs });
 }

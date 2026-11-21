@@ -5,13 +5,17 @@ const { getDb } = require('../config/firebase');
  */
 async function redeemCode(req, res) {
   const { code } = req.body;
-  const { uid } = req.user;
+  const { uid, role } = req.user;
 
   if (!code || typeof code !== 'string') {
     return res.status(400).json({ success: false, message: 'Kode redeem wajib diisi' });
   }
 
   const codeClean = code.trim().toUpperCase();
+  // Kode dipakai sebagai key database: hanya huruf & angka
+  if (!/^[A-Z0-9]{4,32}$/.test(codeClean)) {
+    return res.status(400).json({ success: false, message: 'Format kode tidak valid' });
+  }
   const db = getDb();
 
   // Check if user already used this code
@@ -65,14 +69,21 @@ async function redeemCode(req, res) {
 
   if (result.type === 'limit') {
     // Atomically add limit
-    await userRef.transaction(userData => {
-      if (!userData) return userData;
-      userData.dailyLimit = (userData.dailyLimit || 20) + Number(result.value);
-      return userData;
-    });
+    const addLimit = Number(result.value);
+    if (Number.isFinite(addLimit) && addLimit > 0) {
+      await userRef.transaction(userData => {
+        if (!userData) return userData;
+        userData.dailyLimit = (userData.dailyLimit || 20) + addLimit;
+        return userData;
+      });
+    }
   } else if (result.type === 'premium') {
-    const duration = Number(result.value) * 24 * 60 * 60 * 1000; // days to ms
-    updates[`users/${uid}/role`] = 'premium';
+    const days = Number(result.value);
+    const duration = (Number.isFinite(days) && days > 0 ? days : 0) * 24 * 60 * 60 * 1000; // days to ms
+    // Jangan turunkan role staff (admin/owner/moderator) menjadi premium
+    if (role === 'user' || role === 'premium') {
+      updates[`users/${uid}/role`] = 'premium';
+    }
     updates[`users/${uid}/premiumExpiresAt`] = Date.now() + duration;
   } else if (result.type === 'special') {
     updates[`users/${uid}/specialAccess`] = result.value;
