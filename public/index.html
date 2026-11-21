@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AM Premium Generator V2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <style>
+    .loading-screen {
+      position: fixed; inset: 0;
+      background: #0a0a0f;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 99999;
+      transition: opacity 0.6s ease;
+    }
+    .loading-screen.fade-out { opacity: 0; pointer-events: none; }
+    .loading-logo {
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 900;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+      text-align: center;
+      width: 100%;
+      padding: 0 24px;
+    }
+    .loading-dev {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 48px;
+      text-align: center;
+    }
+    .loading-bar-wrap {
+      width: min(300px, 80vw);
+      height: 4px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .loading-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff2244, #2255ff);
+      border-radius: 9999px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .loading-status {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .loading-ring {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,34,68,0.1);
+      border-top-color: #ff2244;
+      border-right-color: #2255ff;
+      animation: spin 1.2s linear infinite;
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- Loading Screen -->
+  <div class="loading-screen" id="loading-screen">
+    <div class="loading-ring"></div>
+    <div class="loading-logo gradient-text">AM PREMIUM GENERATOR</div>
+    <div class="loading-dev">by HanzPiw Official</div>
+    <div class="loading-bar-wrap">
+      <div class="loading-bar-fill" id="loading-bar"></div>
+    </div>
+    <div class="loading-status" id="loading-status">Memuat aplikasi...</div>
+  </div>
+
+  <script src="/assets/js/theme.js"></script>
+  <script>Theme.init();</script>
+
+  <!-- Firebase SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script src="/assets/js/particles.js"></script>
+  <script src="/assets/js/firebase-init.js"></script>
+  <script src="/assets/js/notifications.js"></script>
+  <script src="/assets/js/auth.js"></script>
+
+  <script>
+    async function boot() {
+      const bar = document.getElementById('loading-bar');
+      const status = document.getElementById('loading-status');
+
+      function setProgress(pct, msg) {
+        bar.style.width = pct + '%';
+        status.textContent = msg;
+      }
+
+      try {
+        setProgress(20, 'Menghubungkan ke Firebase...');
+        try {
+          await AMApp.initFirebaseClient();
+        } catch (firebaseErr) {
+          console.warn('[Boot] Firebase init warning:', firebaseErr.message);
+          // Lanjutkan meski Firebase gagal — fallback config akan dipakai
+        }
+
+        setProgress(50, 'Memeriksa autentikasi...');
+        let user = null;
+        try {
+          user = await Auth.init();
+        } catch (authErr) {
+          console.warn('[Boot] Auth init warning:', authErr.message);
+        }
+
+        setProgress(80, 'Memeriksa status sistem...');
+        try {
+          const statusRes = await fetch('/api/public/status');
+          const statusData = await statusRes.json();
+          if (statusData.data?.maintenance) {
+            setProgress(100, 'Redirect ke maintenance...');
+            setTimeout(() => { window.location.href = '/pages/maintenance.html'; }, 400);
+            return;
+          }
+        } catch (e) {}
+
+        setProgress(100, 'Selesai!');
+        setTimeout(() => {
+          document.getElementById('loading-screen').classList.add('fade-out');
+          setTimeout(() => {
+            if (user) {
+              window.location.href = '/pages/dashboard.html';
+            } else {
+              window.location.href = '/pages/login.html';
+            }
+          }, 600);
+        }, 300);
+
+      } catch (err) {
+        setProgress(100, 'Gagal memuat. Periksa koneksi.');
+        console.error('[Boot]', err);
+        setTimeout(() => {
+          window.location.href = '/pages/login.html';
+        }, 2000);
+      }
+    }
+
+    window.addEventListener('load', () => {
+      initParticles();
+      boot();
+    });
+  </script>
+</body>
+</html>
