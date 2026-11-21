@@ -82,17 +82,32 @@ const Auth = {
       const result = await firebase.auth().getRedirectResult();
       if (!result || !result.user) return null;
 
-      const user = result.user;
-      const token = await user.getIdToken();
-      // Server otomatis membuat profil kalau belum ada
-      await fetch('/api/auth/profile', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
+      // Langsung return — profile sync dilakukan di dashboard
       return result;
     } catch (e) {
       console.error('[Auth] Google redirect error:', e);
       throw e;
+    }
+  },
+
+  // Sync profil Google user ke backend (dipanggil dari dashboard)
+  async syncGoogleProfile(user) {
+    try {
+      const token = await user.getIdToken();
+      const profileRes = await fetch('/api/auth/profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (profileRes.status === 404) {
+        const username = (user.email.split('@')[0] + Math.floor(Math.random() * 999))
+          .toLowerCase().replace(/[^a-z0-9_]/g, '').substring(0, 20);
+        await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ uid: user.uid, name: user.displayName || user.email, username, email: user.email }),
+        });
+      }
+    } catch (e) {
+      console.warn('[Auth] syncGoogleProfile error:', e.message);
     }
   },
 
