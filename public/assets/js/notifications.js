@@ -42,6 +42,11 @@ function showToast(message, type = 'info', title = null, duration = 4000) {
   `;
 
   toast.addEventListener('click', () => removeToast(toast));
+  toast.style.setProperty('--dur', (duration > 0 ? duration : 0) + 'ms');
+  if (duration > 0) toast.classList.add('has-timer');
+  // maksimal 3 toast sekaligus, yang tertua dihapus
+  const existing = container.querySelectorAll('.toast:not(.hiding)');
+  if (existing.length >= 3) removeToast(existing[0]);
   container.appendChild(toast);
 
   // Play sound

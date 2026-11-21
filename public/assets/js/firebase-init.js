@@ -22,21 +22,39 @@ const API_TIMEOUT_MS = 15000;     // request API biasa
  * Mengembalikan { res, data } — data = null kalau respons bukan JSON.
  */
 async function requestJson(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const method = String((options && options.method) || 'GET').toUpperCase();
+  // Satu kali retry otomatis untuk GET (cold start / jaringan HP yang goyang). POST tidak pernah diulang.
+  const maxAttempts = method === 'GET' ? 2 : 1;
+  if (window.Progress) window.Progress.start();
   try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    const text = await res.text();
-    let data = null;
-    try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
-    return { res, data };
-  } catch (err) {
-    if (err && err.name === 'AbortError') {
-      throw new Error('Server terlalu lama merespons. Coba lagi.');
+    let lastErr = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(url, { ...options, signal: controller.signal });
+        // 502/503/504 = function belum siap: coba sekali lagi
+        if (attempt < maxAttempts && (res.status === 502 || res.status === 503 || res.status === 504)) {
+          await new Promise((r) => setTimeout(r, 400));
+          continue;
+        }
+        const text = await res.text();
+        let data = null;
+        try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
+        return { res, data };
+      } catch (err) {
+        lastErr = err && err.name === 'AbortError'
+          ? new Error('Server terlalu lama merespons. Coba lagi.')
+          : err;
+        if (attempt >= maxAttempts) throw lastErr;
+        await new Promise((r) => setTimeout(r, 400));
+      } finally {
+        clearTimeout(timer);
+      }
     }
-    throw err;
+    throw lastErr || new Error('Permintaan gagal');
   } finally {
-    clearTimeout(timer);
+    if (window.Progress) window.Progress.done();
   }
 }
 
@@ -56,23 +74,16 @@ async function doInitFirebaseClient() {
     throw new Error('Firebase SDK gagal dimuat. Periksa koneksi internet lalu refresh halaman.');
   }
 
+  // JANGAN menunggu server: pakai config cache / fallback SEKETIKA (config ini publik).
+  // Request ke server tetap dilakukan di belakang layar untuk memperbarui cache.
   let config = null;
-
-  // Coba ambil config dari server (dengan timeout)
   try {
-    const { res, data } = await requestJson('/api/firebase-config', {}, CONFIG_TIMEOUT_MS);
-    if (res.ok && data && data.success && data.data && data.data.apiKey && data.data.projectId) {
-      config = data.data;
-    }
-  } catch (err) {
-    console.warn('[Firebase] Gagal ambil config dari server, pakai fallback:', err.message);
-  }
+    const cached = JSON.parse(localStorage.getItem('am:fbconfig') || 'null');
+    if (cached && cached.apiKey && cached.projectId) config = cached;
+  } catch (e) { /* abaikan */ }
+  if (!config) config = FIREBASE_FALLBACK_CONFIG;
 
-  // Fallback ke config hardcoded jika server gagal
-  if (!config) {
-    console.warn('[Firebase] Menggunakan fallback config');
-    config = FIREBASE_FALLBACK_CONFIG;
-  }
+  refreshFirebaseConfig();
 
   try {
     firebaseApp = firebase.apps && firebase.apps.length ? firebase.app() : firebase.initializeApp(config);
@@ -94,6 +105,16 @@ async function doInitFirebaseClient() {
 
   console.log('[Firebase] Client initialized');
   return { app: firebaseApp, auth: firebaseAuth, db: null };
+}
+
+function refreshFirebaseConfig() {
+  requestJson('/api/firebase-config', {}, CONFIG_TIMEOUT_MS * 3)
+    .then(({ res, data }) => {
+      if (res.ok && data && data.success && data.data && data.data.apiKey && data.data.projectId) {
+        try { localStorage.setItem('am:fbconfig', JSON.stringify(data.data)); } catch (e) { /* abaikan */ }
+      }
+    })
+    .catch(() => { /* tidak kritis */ });
 }
 
 async function getIdToken() {

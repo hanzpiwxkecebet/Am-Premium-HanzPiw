@@ -109,4 +109,16 @@ function debounce(fn, ms = 300) {
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
-window.Utils = { formatDate, formatDateShort, formatDuration, animateNumber, setButtonLoading, showElement, hideElement, createModal, getStatusBadge, getRoleBadge, escapeHtml, debounce };
+function renderError(container, message, onRetry) {
+  if (!container) return;
+  container.innerHTML = `
+    <div class="empty-state error-state">
+      <div class="empty-icon">⚠</div>
+      <div style="margin-bottom:14px">${escapeHtml(message || 'Gagal memuat data')}</div>
+      ${onRetry ? '<button class="btn btn-secondary btn-sm" data-retry>↻ Coba lagi</button>' : ''}
+    </div>`;
+  const btn = container.querySelector('[data-retry]');
+  if (btn && onRetry) btn.addEventListener('click', onRetry);
+}
+
+window.Utils = { renderError, formatDate, formatDateShort, formatDuration, animateNumber, setButtonLoading, showElement, hideElement, createModal, getStatusBadge, getRoleBadge, escapeHtml, debounce };

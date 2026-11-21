@@ -27,11 +27,13 @@ function initParticles() {
 
   function init() {
     resize();
-    const count = Math.min(80, Math.floor((canvas.width * canvas.height) / 15000));
+    const isMobile = window.innerWidth < 768;
+    const count = Math.min(isMobile ? 28 : 70, Math.floor((canvas.width * canvas.height) / (isMobile ? 22000 : 15000)));
     particles = Array.from({ length: count }, createParticle);
   }
 
   function drawConnections() {
+    if (window.innerWidth < 768) return; // garis penghubung = O(n²), terlalu berat untuk HP
     for (let i = 0; i < particles.length; i++) {
       for (let j = i + 1; j < particles.length; j++) {
         const dx = particles[i].x - particles[j].x;
@@ -50,7 +52,12 @@ function initParticles() {
     }
   }
 
+  let frame = 0;
+  let running = true;
   function animate(ts) {
+    if (!running) return;
+    // HP: render tiap 2 frame (~30fps) — terlihat sama, jauh lebih hemat
+    if (window.innerWidth < 768 && (frame++ & 1)) { animId = requestAnimationFrame(animate); return; }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawConnections();
 
@@ -76,9 +83,16 @@ function initParticles() {
   }
 
   init();
+  if (window.reduceMotion) return;
   animate();
 
-  window.addEventListener('resize', () => { cancelAnimationFrame(animId); init(); animate(); });
+  // Berhenti total saat tab/app di background
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { running = false; cancelAnimationFrame(animId); }
+    else if (!running) { running = true; animate(); }
+  });
+
+  window.addEventListener('resize', () => { cancelAnimationFrame(animId); init(); if (running) animate(); });
 }
 
 window.initParticles = initParticles;

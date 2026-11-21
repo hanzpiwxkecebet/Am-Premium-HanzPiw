@@ -13,14 +13,20 @@ const Auth = {
    *   Isi false kalau halaman mau tampil dulu — gunakan Auth.profilePromise untuk menunggu profil.
    */
   async init(options = {}) {
-    const waitProfile = options.waitProfile !== false;
+    // waitProfile: true  = selalu tunggu profil backend
+    //              false = tidak pernah menunggu (halaman mengatur sendiri lewat Auth.profilePromise)
+    //              'auto' (default) = tunggu HANYA kalau profil belum pernah dimuat di perangkat ini
+    //                (akun baru perlu dibuat dulu). Selain itu pakai profil cache dan segarkan di belakang layar.
+    const waitProfile = options.waitProfile === undefined ? 'auto' : options.waitProfile;
     await AMApp.initFirebaseClient();
     const user = await this._waitForAuthState();
     this.user = user;
 
     if (user) {
+      const cached = window.Cache ? window.Cache.get('profile:' + user.uid) : null;
+      if (cached && !this.userData) this.userData = cached;
       this.profilePromise = this.loadUserData();
-      if (waitProfile) await this.profilePromise;
+      if (waitProfile === true || (waitProfile === 'auto' && !cached)) await this.profilePromise;
     } else {
       this.userData = null;
       this.profilePromise = Promise.resolve(null);
@@ -57,7 +63,10 @@ const Auth = {
   async loadUserData() {
     try {
       const res = await AMApp.apiCall('GET', '/api/auth/profile', null, {}, 8000);
-      if (res.success) this.userData = res.data;
+      if (res.success) {
+        this.userData = res.data;
+        if (window.Cache && this.user) window.Cache.set('profile:' + this.user.uid, res.data);
+      }
     } catch (e) {
       console.warn('[Auth] Could not load user data:', e.message);
     }
@@ -140,6 +149,7 @@ const Auth = {
 
   async logout() {
     await firebase.auth().signOut();
+    if (window.Cache) window.Cache.clear();
     this.user = null;
     this.userData = null;
   },
