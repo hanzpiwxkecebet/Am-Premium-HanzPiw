@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
   <title>Updates - AM Premium Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/main.css">
@@ -39,6 +46,8 @@
   </div>
 
   <nav id="bottom-nav"></nav>
+
+  <script src="/assets/js/boot.js"></script>
 
   <script src="/assets/js/theme.js"></script>
   <script>Theme.init();</script>
@@ -106,13 +115,32 @@
 
     window.showAnnDetail = showAnnDetail;
 
+    // Pengumuman bersifat publik: tidak perlu menunggu login/token
+    async function loadAnnouncements() {
+      try {
+        await Cache.swr(
+          'announcements',
+          async () => {
+            const { res, data } = await AMApp.requestJson('/api/public/announcements', {}, 10000);
+            if (!res.ok || !data) throw new Error((data && data.message) || 'Server sedang sibuk');
+            return data.data || [];
+          },
+          (list) => renderAnnouncements(list)
+        );
+      } catch (err) {
+        Toast.error('Gagal memuat pengumuman');
+        Utils.renderError(document.getElementById('ann-list'), err.message || 'Gagal memuat pengumuman', loadAnnouncements);
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       try { initParticles(); } catch (e) { /* abaikan */ }
       Nav.init('updates');
+      loadAnnouncements(); // paralel dengan auth
 
       let user = null;
       try {
-        user = await Auth.init();
+        user = await Auth.init({ waitProfile: false });
       } catch (err) {
         console.error('[updates] Auth error:', err);
         Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
@@ -125,14 +153,6 @@
         if (el && el.dataset.id) showAnnDetail(annMap[el.dataset.id]);
       });
 
-      try {
-        const { res, data } = await AMApp.requestJson('/api/public/announcements', {}, 10000);
-        if (!res.ok || !data) throw new Error('Respons tidak valid');
-        renderAnnouncements(data.data || []);
-      } catch (err) {
-        Toast.error('Gagal memuat pengumuman');
-        document.getElementById('ann-list').innerHTML = '<div class="text-error text-sm">Gagal memuat</div>';
-      }
     });
   </script>
 </body>

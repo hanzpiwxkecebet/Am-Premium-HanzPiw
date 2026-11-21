@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
   <title>Profil - AM Premium Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/main.css">
@@ -140,6 +147,8 @@
 
   <nav id="bottom-nav"></nav>
 
+  <script src="/assets/js/boot.js"></script>
+
   <script src="/assets/js/theme.js"></script>
   <script>Theme.init();</script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -172,7 +181,7 @@
 
       let user = null;
       try {
-        user = await Auth.init();
+        user = await Auth.init({ waitProfile: 'auto' });
       } catch (err) {
         console.error('[profile] Auth error:', err);
         Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
@@ -191,6 +200,14 @@
         createdAt: user.metadata && user.metadata.creationTime ? Date.parse(user.metadata.creationTime) : null,
       };
 
+      // Perbarui tampilan begitu profil terbaru dari server tiba (data cache sudah tampil lebih dulu)
+      Auth.profilePromise.then((fresh) => {
+        if (!fresh) return;
+        Object.assign(ud, fresh);
+        paintProfile();
+      }).catch(() => {});
+
+      function paintProfile() {
       // Render profile hero
       const hero = document.getElementById('profile-hero');
       hero.innerHTML = `
@@ -211,6 +228,9 @@
       document.getElementById('info-status').innerHTML = ud.status === 'active'
         ? '<span class="badge badge-active">Aktif</span>'
         : '<span class="badge badge-suspended">Suspended</span>';
+
+      }
+      paintProfile();
 
       // Theme toggle sync
       const themeSw = document.getElementById('theme-toggle-sw');

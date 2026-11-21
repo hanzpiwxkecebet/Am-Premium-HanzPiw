@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
   <title>Dashboard - AM Premium Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/main.css">
@@ -199,6 +206,8 @@
 
   <nav id="bottom-nav"></nav>
 
+  <script src="/assets/js/boot.js"></script>
+
   <script src="/assets/js/theme.js"></script>
   <script>Theme.init();</script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -266,20 +275,29 @@
       $('stat-rate').textContent = rate + '%';
     }
 
-    async function loadLimit() {
+    function paintLimit(lim) {
+      const numEl = $('limit-num');
+      const total = Number(lim.limit) || 0;
+      const remaining = Number(lim.remaining) || 0;
+      const used = Number(lim.used) || 0;
+      const pct = total > 0 ? Math.round((remaining / total) * 100) : 0;
+      numEl.classList.remove('skeleton');
+      numEl.textContent = remaining;
+      $('limit-bar').style.width = pct + '%';
+      $('limit-used').textContent = `${used} dipakai`;
+      $('limit-total').textContent = `/ ${total} limit`;
+    }
+
+    async function loadLimit(user) {
       const numEl = $('limit-num');
       try {
-        const limRes = await AMApp.apiCall('GET', '/api/generator/limit');
-        const lim = limRes.data || {};
-        const total = Number(lim.limit) || 0;
-        const remaining = Number(lim.remaining) || 0;
-        const used = Number(lim.used) || 0;
-        const pct = total > 0 ? Math.round((remaining / total) * 100) : 0;
-
-        numEl.textContent = remaining;
-        $('limit-bar').style.width = pct + '%';
-        $('limit-used').textContent = `${used} dipakai`;
-        $('limit-total').textContent = `/ ${total} limit`;
+        await Cache.swr(
+          'limit:' + user.uid,
+          async () => (await AMApp.apiCall('GET', '/api/generator/limit')).data || {},
+          (lim) => paintLimit(lim),
+          5 * 60 * 1000
+        );
+        return;
       } catch (e) {
         console.warn('[Dashboard] limit error:', e.message);
         numEl.textContent = '-';
@@ -310,8 +328,12 @@
     async function loadAnnouncements() {
       const list = $('announcements-list');
       try {
-        const { res, data: ann } = await AMApp.requestJson('/api/public/announcements', {}, 10000);
-        if (!res.ok || !ann) throw new Error('Respons tidak valid');
+        await Cache.swr('announcements', async () => {
+          const { res, data: ann } = await AMApp.requestJson('/api/public/announcements', {}, 10000);
+          if (!res.ok || !ann) throw new Error('Respons tidak valid');
+          return ann.data || [];
+        }, (items) => {
+        const ann = { data: items };
         if (ann.data && ann.data.length > 0) {
           list.innerHTML = ann.data.slice(0, 3).map(a => {
             const content = String(a.content || '');
@@ -325,6 +347,7 @@
         } else {
           list.innerHTML = '<div class="text-muted text-sm text-center" style="padding:16px">Belum ada pengumuman</div>';
         }
+        });
       } catch (e) {
         list.innerHTML = '<div class="text-muted text-sm">Gagal memuat pengumuman</div>';
       }
@@ -358,14 +381,20 @@
       // 1) Langsung render dari data akun Firebase
       renderUser(fallbackUserData(user));
 
-      // 2) Perbarui dengan data backend begitu tersedia (maks. ~8 detik, tidak memblokir UI)
-      try { await Auth.profilePromise; } catch (e) { /* sudah ditangani di Auth */ }
-      const ud = Auth.userData || fallbackUserData(user);
-      renderUser(ud);
-      renderStats(ud);
+      // 2) Profil cache (kalau ada) tampil seketika
+      const cachedProfile = Cache.get('profile:' + user.uid);
+      if (cachedProfile) { renderUser(cachedProfile); renderStats(cachedProfile); }
 
-      // 3) Endpoint yang butuh profil di database dipanggil setelah profil siap (paralel)
-      await Promise.allSettled([loadLimit(), loadApiStatus()]);
+      // 3) Profil sudah pernah dimuat di perangkat ini -> semua request jalan PARALEL.
+      //    Akun baru: profil dibuat dulu oleh server, baru endpoint lain dipanggil.
+      const profileTask = (async () => {
+        try { await Auth.profilePromise; } catch (e) { /* sudah ditangani di Auth */ }
+        const ud = Auth.userData || cachedProfile || fallbackUserData(user);
+        renderUser(ud);
+        renderStats(ud);
+      })();
+      if (!cachedProfile) await profileTask;
+      await Promise.allSettled([profileTask, loadLimit(user), loadApiStatus()]);
     }
 
     if (document.readyState === 'loading') {

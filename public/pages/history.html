@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
   <title>History - AM Premium Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/main.css">
@@ -77,6 +84,8 @@
 
   <nav id="bottom-nav"></nav>
 
+  <script src="/assets/js/boot.js"></script>
+
   <script src="/assets/js/theme.js"></script>
   <script>Theme.init();</script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -138,8 +147,8 @@
 
       const success = filtered.filter(i => i.status === 'completed').length;
       const failed = filtered.filter(i => i.status === 'failed').length;
-      document.getElementById('sum-success').textContent = success;
-      document.getElementById('sum-failed').textContent = failed;
+      Utils.animateNumber(document.getElementById('sum-success'), Number(document.getElementById('sum-success').textContent) || 0, success, 500);
+      Utils.animateNumber(document.getElementById('sum-failed'), Number(document.getElementById('sum-failed').textContent) || 0, failed, 500);
       document.getElementById('history-summary').style.display = filtered.length ? 'grid' : 'none';
 
       renderHistory(filtered);
@@ -167,7 +176,7 @@
 
       let user = null;
       try {
-        user = await Auth.init();
+        user = await Auth.init({ waitProfile: false });
       } catch (err) {
         console.error('[history] Auth error:', err);
         Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
@@ -198,15 +207,20 @@
         applyFilter();
       }, 300));
 
-      // Load history
-      try {
-        const res = await AMApp.apiCall('GET', '/api/generator/history');
-        allHistory = res.data || [];
-        applyFilter();
-      } catch (err) {
-        Toast.error('Gagal memuat history');
-        document.getElementById('history-list').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div><div>${Utils.escapeHtml(err.message)}</div></div>`;
+      // Load history: tampil dari cache seketika, lalu segarkan di belakang layar
+      async function loadHistory() {
+        try {
+          await Cache.swr(
+            'history:' + user.uid,
+            async () => (await AMApp.apiCall('GET', '/api/generator/history')).data || [],
+            (data) => { allHistory = data; applyFilter(); }
+          );
+        } catch (err) {
+          Toast.error('Gagal memuat history');
+          Utils.renderError(document.getElementById('history-list'), err.message, loadHistory);
+        }
       }
+      loadHistory();
     });
   </script>
 </body>

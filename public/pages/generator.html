@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
   <title>Generator - AM Premium Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/main.css">
@@ -146,6 +153,8 @@
 
   <nav id="bottom-nav"></nav>
 
+  <script src="/assets/js/boot.js"></script>
+
   <script src="/assets/js/theme.js"></script>
   <script>Theme.init();</script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -264,7 +273,7 @@
 
       let user = null;
       try {
-        user = await Auth.init();
+        user = await Auth.init({ waitProfile: false });
       } catch (err) {
         console.error('[generator] Auth error:', err);
         Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
@@ -273,13 +282,18 @@
       if (!user) { window.location.href = '/pages/login.html'; return; }
       renderProgressSteps();
 
-      // Load limit
-      try {
-        const limRes = await AMApp.apiCall('GET', '/api/generator/limit');
-        document.getElementById('limit-display').textContent = limRes.data.remaining;
-      } catch (e) { document.getElementById('limit-display').textContent = '-'; }
+      // Role badge: pakai data yang ada dulu, perbarui begitu profil dari server tiba
+      const paintRole = () => { document.getElementById('role-badge').innerHTML = Utils.getRoleBadge((Auth.userData && Auth.userData.role) || 'user'); };
+      paintRole();
+      Auth.profilePromise.then(paintRole).catch(() => {});
 
-      document.getElementById('role-badge').innerHTML = Utils.getRoleBadge((Auth.userData && Auth.userData.role) || 'user');
+      // Load limit (cache dulu, segarkan di belakang layar)
+      Cache.swr(
+        'limit:' + user.uid,
+        async () => (await AMApp.apiCall('GET', '/api/generator/limit')).data,
+        (d) => { document.getElementById('limit-display').textContent = d.remaining; },
+        5 * 60 * 1000
+      ).catch(() => { document.getElementById('limit-display').textContent = '-'; });
 
       // Method tabs
       document.querySelectorAll('.method-tab').forEach(tab => {
