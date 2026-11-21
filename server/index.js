@@ -21,10 +21,20 @@ const { initFirebase } = require('./config/firebase');
 const { generalLimiter } = require('./middleware/rateLimiter');
 const { sanitizeBody, secureHeaders } = require('./middleware/security');
 
-// Initialize Firebase Admin
-initFirebase();
+// Initialize Firebase Admin.
+// Jangan sampai crash saat load: kalau env belum benar, function tetap hidup dan
+// endpoint yang butuh database akan membalas JSON error (bukan halaman 500 HTML).
+try {
+  initFirebase();
+} catch (err) {
+  console.error('[Firebase] Init gagal:', err.message);
+}
 
 const app = express();
+
+// Di Vercel / reverse proxy lain: wajib agar req.ip = IP asli pengunjung.
+// Tanpa ini SEMUA user berbagi satu kuota rate-limit (IP proxy) dan cepat kena "Terlalu banyak request".
+app.set('trust proxy', 1);
 
 // Security headers
 app.use(secureHeaders());
@@ -90,7 +100,17 @@ app.get('*', (req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error('[Error]', err.stack);
+  if (res.headersSent) return next(err);
+
+  // Body JSON rusak / terlalu besar -> 400/413, bukan 500
+  if (err && err.type === 'entity.parse.failed') {
+    return res.status(400).json({ success: false, message: 'Format JSON tidak valid' });
+  }
+  if (err && err.type === 'entity.too.large') {
+    return res.status(413).json({ success: false, message: 'Data terlalu besar' });
+  }
+
+  console.error('[Error]', err && err.stack ? err.stack : err);
   res.status(500).json({ success: false, message: 'Terjadi kesalahan server' });
 });
 
