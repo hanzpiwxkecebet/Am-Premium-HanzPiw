@@ -226,8 +226,16 @@
       Nav.init('home');
       Theme.updateToggleBtn();
 
-      const ud = Auth.userData;
-      if (!ud) { Toast.error('Gagal memuat data profil'); return; }
+      // Gunakan data backend jika ada, fallback ke Firebase Auth user
+      const ud = Auth.userData || {
+        name: user.displayName || user.email || 'Pengguna',
+        username: user.email ? user.email.split('@')[0] : 'user',
+        role: 'user',
+        status: 'active',
+        photoURL: user.photoURL || null,
+        totalUsage: 0,
+        totalSuccess: 0,
+      };
 
       // Populate user info
       const avatarEl = document.getElementById('user-avatar');
