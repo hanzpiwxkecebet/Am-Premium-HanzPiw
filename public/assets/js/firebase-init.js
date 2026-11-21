@@ -1,7 +1,7 @@
 // Firebase Client Initialization
 let firebaseApp = null;
 let firebaseAuth = null;
-let firebaseDb = null;
+let firebaseInitPromise = null;
 
 // Fallback config publik (aman di-expose di frontend)
 const FIREBASE_FALLBACK_CONFIG = {
@@ -13,16 +13,57 @@ const FIREBASE_FALLBACK_CONFIG = {
   appId: "1:1020253139262:web:cfef138198dbbd7497bc6f"
 };
 
-async function initFirebaseClient() {
-  if (firebaseApp) return { app: firebaseApp, auth: firebaseAuth, db: firebaseDb };
+const CONFIG_TIMEOUT_MS = 3000;   // ambil config dari server
+const API_TIMEOUT_MS = 15000;     // request API biasa
+
+/**
+ * fetch + parse JSON dengan timeout, supaya halaman TIDAK pernah menggantung
+ * selamanya kalau server lambat / tidak merespons.
+ * Mengembalikan { res, data } — data = null kalau respons bukan JSON.
+ */
+async function requestJson(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    const text = await res.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
+    return { res, data };
+  } catch (err) {
+    if (err && err.name === 'AbortError') {
+      throw new Error('Server terlalu lama merespons. Coba lagi.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function initFirebaseClient() {
+  // Satu promise untuk semua pemanggil (tidak ada init ganda / race)
+  if (!firebaseInitPromise) {
+    firebaseInitPromise = doInitFirebaseClient().catch((err) => {
+      firebaseInitPromise = null; // boleh dicoba lagi
+      throw err;
+    });
+  }
+  return firebaseInitPromise;
+}
+
+async function doInitFirebaseClient() {
+  if (typeof firebase === 'undefined') {
+    throw new Error('Firebase SDK gagal dimuat. Periksa koneksi internet lalu refresh halaman.');
+  }
 
   let config = null;
 
-  // Coba ambil config dari server
+  // Coba ambil config dari server (dengan timeout)
   try {
-    const res = await fetch('/api/firebase-config');
-    const json = await res.json();
-    if (json.success && json.data) config = json.data;
+    const { res, data } = await requestJson('/api/firebase-config', {}, CONFIG_TIMEOUT_MS);
+    if (res.ok && data && data.success && data.data && data.data.apiKey && data.data.projectId) {
+      config = data.data;
+    }
   } catch (err) {
     console.warn('[Firebase] Gagal ambil config dari server, pakai fallback:', err.message);
   }
@@ -34,7 +75,7 @@ async function initFirebaseClient() {
   }
 
   try {
-    firebaseApp = firebase.initializeApp(config);
+    firebaseApp = firebase.apps && firebase.apps.length ? firebase.app() : firebase.initializeApp(config);
   } catch (err) {
     if (err.code === 'app/duplicate-app') {
       firebaseApp = firebase.app();
@@ -51,21 +92,18 @@ async function initFirebaseClient() {
     throw err;
   }
 
-  // Database client tidak dipakai — semua data lewat API backend
-  firebaseDb = null;
-
   console.log('[Firebase] Client initialized');
   return { app: firebaseApp, auth: firebaseAuth, db: null };
 }
 
 async function getIdToken() {
-  const user = firebaseAuth?.currentUser;
+  const user = firebaseAuth && firebaseAuth.currentUser;
   if (!user) throw new Error('Belum login');
   return await user.getIdToken(false);
 }
 
-async function apiCall(method, endpoint, body = null, extraHeaders = {}) {
-  let token;
+async function apiCall(method, endpoint, body = null, extraHeaders = {}, timeoutMs = API_TIMEOUT_MS) {
+  let token = null;
   try { token = await getIdToken(); } catch (e) { token = null; }
 
   const headers = {
@@ -78,17 +116,19 @@ async function apiCall(method, endpoint, body = null, extraHeaders = {}) {
   const options = { method, headers };
   if (body && method !== 'GET') options.body = JSON.stringify(body);
 
-  const res = await fetch(endpoint, options);
-  const data = await res.json();
+  const { res, data } = await requestJson(endpoint, options, timeoutMs);
 
-  if (!res.ok && !data.success) {
+  if (!data) {
+    throw new Error(res.ok ? 'Respons server tidak valid' : `Server bermasalah (HTTP ${res.status})`);
+  }
+  if (!res.ok || data.success === false) {
     throw new Error(data.message || `HTTP ${res.status}`);
   }
   return data;
 }
 
 function generateRequestId() {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
-window.AMApp = { initFirebaseClient, getIdToken, apiCall };
+window.AMApp = { initFirebaseClient, getIdToken, apiCall, requestJson };
