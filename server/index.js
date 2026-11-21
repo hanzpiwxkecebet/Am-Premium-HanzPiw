@@ -69,11 +69,13 @@ app.use('/api/public', require('./routes/public'));
 
 // Health check
 app.get('/api/health', (req, res) => {
+  res.set('Cache-Control', 'no-store');
   res.json({ status: 'ok', version: process.env.APP_VERSION || '2.0.0-beta', ts: Date.now() });
 });
 
 // Firebase config for client (public keys only - never private keys)
 app.get('/api/firebase-config', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400');
   const config = {
     apiKey: process.env.FIREBASE_API_KEY,
     authDomain: process.env.FIREBASE_AUTH_DOMAIN,
