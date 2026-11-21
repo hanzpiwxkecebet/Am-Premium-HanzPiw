@@ -4,11 +4,14 @@ const windowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000; /
 
 const generalLimiter = rateLimit({
   windowMs,
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
+  // Operator seluler Indonesia memakai CGNAT: banyak user berbagi 1 IP, jadi batas dibuat longgar
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 400,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Terlalu banyak request. Coba lagi nanti.' },
   skipSuccessfulRequests: false,
+  // Endpoint ringan/publik tidak ikut dihitung
+  skip: (req) => req.path === '/health' || req.path === '/firebase-config' || req.path.startsWith('/public/'),
 });
 
 const authLimiter = rateLimit({

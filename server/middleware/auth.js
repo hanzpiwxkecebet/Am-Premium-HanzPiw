@@ -1,5 +1,26 @@
 const { getAuth, getDb } = require('../config/firebase');
 
+// Cache profil user di memori (per instance serverless) supaya tiap request tidak
+// selalu membaca database. Pendek (15 dtk) agar suspend/ubah role cepat berlaku.
+const USER_CACHE_TTL_MS = 15 * 1000;
+const userCache = new Map();
+
+function readUserCache(uid) {
+  const hit = userCache.get(uid);
+  if (!hit) return null;
+  if (Date.now() - hit.t > USER_CACHE_TTL_MS) { userCache.delete(uid); return null; }
+  return hit.v;
+}
+
+function writeUserCache(uid, value) {
+  if (userCache.size > 500) userCache.clear();
+  userCache.set(uid, { t: Date.now(), v: value });
+}
+
+function invalidateUser(uid) {
+  if (uid) userCache.delete(uid);
+}
+
 /**
  * Verifies Firebase ID token from Authorization header.
  * Attaches { uid, role, status, name, email } to req.user
@@ -15,16 +36,22 @@ async function verifyToken(req, res, next) {
     const decoded = await getAuth().verifyIdToken(token);
     const uid = decoded.uid;
 
-    // Fetch role and status from database (source of truth)
-    const snap = await getDb().ref(`users/${uid}`).once('value');
-    if (!snap.exists()) {
-      return res.status(401).json({ success: false, message: 'Akun tidak ditemukan' });
+    // Role & status dari database (source of truth), dengan cache pendek
+    let userData = readUserCache(uid);
+    if (!userData) {
+      const snap = await getDb().ref(`users/${uid}`).once('value');
+      if (!snap.exists()) {
+        return res.status(401).json({ success: false, message: 'Akun tidak ditemukan' });
+      }
+      const raw = snap.val();
+      userData = { role: raw.role, status: raw.status, name: raw.name, email: raw.email };
+      writeUserCache(uid, userData);
     }
-    const userData = snap.val();
 
     // Bootstrap owner: akun dengan UID = OWNER_UID otomatis jadi owner
     if (process.env.OWNER_UID && uid === process.env.OWNER_UID && userData.role !== 'owner') {
-      userData.role = 'owner';
+      userData = { ...userData, role: 'owner' };
+      writeUserCache(uid, userData);
       await getDb().ref(`users/${uid}/role`).set('owner');
     }
 
@@ -100,4 +127,4 @@ function requireMinRole(minRole) {
   };
 }
 
-module.exports = { verifyToken, verifyTokenOnly, requireRole, requireMinRole };
+module.exports = { verifyToken, verifyTokenOnly, requireRole, requireMinRole, invalidateUser };
