@@ -5,13 +5,12 @@ let firebaseDb = null;
 
 // Fallback config publik (aman di-expose di frontend)
 const FIREBASE_FALLBACK_CONFIG = {
-  apiKey: "AIzaSyDCaHmXntMiEq-lYuCxeGynzR88C95rIE8",
-  authDomain: "am-premium-genetator-hanzpiw.firebaseapp.com",
-  databaseURL: "https://am-premium-genetator-hanzpiw-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "am-premium-genetator-hanzpiw",
-  storageBucket: "am-premium-genetator-hanzpiw.firebasestorage.app",
-  messagingSenderId: "953528347047",
-  appId: "1:953528347047:web:26cf70f7279b6080f8ee82"
+  apiKey: "AIzaSyC0NvbOa6C_ZbSG2EZnlDEV7KbhuCz6uCc",
+  authDomain: "alight-motion-hanzpiw.firebaseapp.com",
+  projectId: "alight-motion-hanzpiw",
+  storageBucket: "alight-motion-hanzpiw.firebasestorage.app",
+  messagingSenderId: "1020253139262",
+  appId: "1:1020253139262:web:cfef138198dbbd7497bc6f"
 };
 
 async function initFirebaseClient() {
@@ -36,21 +35,27 @@ async function initFirebaseClient() {
 
   try {
     firebaseApp = firebase.initializeApp(config);
-    firebaseAuth = firebase.auth();
-    firebaseDb = firebase.database ? firebase.database() : null;
-    console.log('[Firebase] Client initialized');
-    return { app: firebaseApp, auth: firebaseAuth, db: firebaseDb };
   } catch (err) {
-    // Mungkin sudah diinisialisasi sebelumnya
     if (err.code === 'app/duplicate-app') {
       firebaseApp = firebase.app();
-      firebaseAuth = firebase.auth();
-      firebaseDb = firebase.database ? firebase.database() : null;
-      return { app: firebaseApp, auth: firebaseAuth, db: firebaseDb };
+    } else {
+      console.error('[Firebase] Init error:', err.message);
+      throw err;
     }
-    console.error('[Firebase] Init error:', err.message);
+  }
+
+  try {
+    firebaseAuth = firebase.auth();
+  } catch (err) {
+    console.error('[Firebase] Auth init error:', err.message);
     throw err;
   }
+
+  // Database client tidak dipakai — semua data lewat API backend
+  firebaseDb = null;
+
+  console.log('[Firebase] Client initialized');
+  return { app: firebaseApp, auth: firebaseAuth, db: null };
 }
 
 async function getIdToken() {
