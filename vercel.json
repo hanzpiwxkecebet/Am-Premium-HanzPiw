@@ -17,48 +17,18 @@
       "destination": "/api/index.js"
     },
     {
-      "source": "/login",
-      "destination": "/pages/login.html"
+      "source": "/:page(login|register|dashboard|generator|history|redeem|updates|profile|admin|owner|maintenance)",
+      "has": [
+        {
+          "type": "query",
+          "key": "_embed"
+        }
+      ],
+      "destination": "/pages/:page.html"
     },
     {
-      "source": "/register",
-      "destination": "/pages/register.html"
-    },
-    {
-      "source": "/dashboard",
-      "destination": "/pages/dashboard.html"
-    },
-    {
-      "source": "/generator",
-      "destination": "/pages/generator.html"
-    },
-    {
-      "source": "/history",
-      "destination": "/pages/history.html"
-    },
-    {
-      "source": "/redeem",
-      "destination": "/pages/redeem.html"
-    },
-    {
-      "source": "/updates",
-      "destination": "/pages/updates.html"
-    },
-    {
-      "source": "/profile",
-      "destination": "/pages/profile.html"
-    },
-    {
-      "source": "/admin",
-      "destination": "/pages/admin.html"
-    },
-    {
-      "source": "/owner",
-      "destination": "/pages/owner.html"
-    },
-    {
-      "source": "/maintenance",
-      "destination": "/pages/maintenance.html"
+      "source": "/:page(login|register|dashboard|generator|history|redeem|updates|profile|admin|owner|maintenance)",
+      "destination": "/shell.html"
     },
     {
       "source": "/menu-tidak-ditemukan",

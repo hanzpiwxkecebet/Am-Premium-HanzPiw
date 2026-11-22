@@ -32,3 +32,10 @@ Buka `https://DOMAIN-KAMU/api/health?deep=1` — hasilnya langsung bilang bagian
 - **Updates & Dashboard**: link di teks pengumuman otomatis jadi link yang bisa diklik (tab baru). Preview tidak lagi memotong URL di tengah.
 - **Bug Updates**: kartu pengumuman tidak bisa diklik sampai proses login selesai (listener baru dipasang setelah `Auth.init`); sekarang aktif langsung. Tombol "Tutup" di modal (Updates, History, Redeem) tidak berfungsi; sekarang menutup modal.
 - CSP Express: ditambah `mediaSrc` supaya audio dari domain luar tidak diblokir saat dijalankan lewat Express.
+
+## Update: backsound tanpa putus (Nov 2026)
+- Penyebab musik putus: tiap pindah menu browser memuat ulang halaman, sehingga audio ikut berhenti.
+- Solusi: **shell** (`public/shell.html` + `assets/js/shell.js`). Alamat menu (`/dashboard`, `/generator`, dst.) kini membuka shell yang tidak pernah reload; isi menu dimuat di iframe (`/dashboard?_embed=1`). Backsound hidup di shell, jadi lanjut terus saat pindah menu. Address bar tetap bersih dan tombol back/forward tetap jalan.
+- `vercel.json`: `/login`, `/dashboard`, dll. -> `shell.html`; kalau ada `?_embed` -> halaman asli di `pages/`. Express (`server/index.js`) memakai aturan yang sama.
+- Login Google mode redirect tidak bisa di iframe (Google melarang di-iframe), jadi `auth.js` keluar ke halaman login penuh dulu (`/login?_embed=1`), lalu `login.html` melanjutkan redirect.
+- Halaman `/` (splash) dan 404 tetap halaman biasa; musik hanya mulai ulang sekali saat masuk dari sana (posisi lagu dilanjutkan).

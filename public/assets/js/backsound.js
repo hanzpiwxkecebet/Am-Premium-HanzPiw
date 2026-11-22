@@ -8,6 +8,12 @@
 //  - Pindah halaman memuat ulang halaman, jadi posisi lagu disimpan & dilanjutkan.
 (function () {
   'use strict';
+  // Di dalam iframe (halaman menu di dalam shell): audio dipegang halaman induk supaya tidak putus
+  // saat pindah menu. Halaman ini cukup memakai objek Backsound milik induk (mis. owner.html -> refresh()).
+  if (window.top !== window) {
+    try { if (window.top.Backsound) window.Backsound = window.top.Backsound; } catch (e) { /* induk beda origin */ }
+    return;
+  }
   if (window.Backsound) return;
 
   var DEFAULT_URL = 'https://u.pone.rs/lgqzjhof.mp3';
@@ -130,19 +136,34 @@
     unbindGesture();
     if (isEnabled()) play();
   }
+  var GESTURE_EVENTS = ['pointerdown', 'touchstart', 'keydown', 'click'];
+  var extraDocs = []; // dokumen iframe (halaman menu) yang ikut dipantau
+
+  function gestureDocs() {
+    extraDocs = extraDocs.filter(function (d) { try { return !!d.defaultView; } catch (e) { return false; } });
+    return [document].concat(extraDocs);
+  }
   function bindGesture() {
     if (gestureBound) return;
     gestureBound = true;
-    ['pointerdown', 'touchstart', 'keydown', 'click'].forEach(function (ev) {
-      document.addEventListener(ev, onFirstGesture, { capture: true, passive: true });
+    gestureDocs().forEach(function (d) {
+      GESTURE_EVENTS.forEach(function (ev) { d.addEventListener(ev, onFirstGesture, { capture: true, passive: true }); });
     });
   }
   function unbindGesture() {
     if (!gestureBound) return;
     gestureBound = false;
-    ['pointerdown', 'touchstart', 'keydown', 'click'].forEach(function (ev) {
-      document.removeEventListener(ev, onFirstGesture, { capture: true });
+    gestureDocs().forEach(function (d) {
+      GESTURE_EVENTS.forEach(function (ev) { d.removeEventListener(ev, onFirstGesture, { capture: true }); });
     });
+  }
+  // Dipanggil shell setiap halaman di iframe selesai dimuat
+  function attachGestureTo(doc) {
+    if (!doc || extraDocs.indexOf(doc) !== -1) return;
+    extraDocs.push(doc);
+    if (gestureBound) {
+      GESTURE_EVENTS.forEach(function (ev) { doc.addEventListener(ev, onFirstGesture, { capture: true, passive: true }); });
+    }
   }
 
   function play() {
@@ -259,6 +280,7 @@
     toggle: toggle,
     refresh: refresh,
     isEnabled: isEnabled,
+    attachGestureTo: attachGestureTo,
     defaultUrl: DEFAULT_URL,
   };
 

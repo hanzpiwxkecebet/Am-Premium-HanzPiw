@@ -102,8 +102,14 @@ const sendNotFound = (req, res) => res.status(404).sendFile(NOT_FOUND_PAGE);
 app.use('/pages', sendNotFound);
 app.get(['/404', '/404.html', '/menu-tidak-ditemukan'], sendNotFound);
 
+// Menu dibuka lewat shell (halaman induk yang memegang backsound supaya musik tidak putus saat pindah menu).
+// Isi menu sebenarnya dimuat shell di iframe dengan ?_embed=1.
+const SHELL_PAGE = path.join(__dirname, '../public/shell.html');
 CLEAN_PAGES.forEach((name) => {
-  app.get('/' + name, (req, res) => res.sendFile(path.join(__dirname, '../public/pages/' + name + '.html')));
+  app.get('/' + name, (req, res) => {
+    if (req.query._embed !== undefined) return res.sendFile(path.join(__dirname, '../public/pages/' + name + '.html'));
+    return res.sendFile(SHELL_PAGE);
+  });
 });
 
 // Serve static files

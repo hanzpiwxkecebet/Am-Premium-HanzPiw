@@ -170,11 +170,23 @@ const Auth = {
       // Popup diblokir browser (sering di HP) -> pakai redirect
       if (err && (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment')) {
         this.markLogin('google');
+        // Redirect ke Google tidak bisa di dalam iframe (Google melarang di-iframe): keluar dulu ke halaman login penuh
+        if (window.top !== window) {
+          try { sessionStorage.setItem('am_google_redirect', '1'); window.top.location.href = '/login?_embed=1'; } catch (e) { throw err; }
+          return null;
+        }
         await firebase.auth().signInWithRedirect(provider);
         return null;
       }
       throw err;
     }
+  },
+
+  /** Dipakai login.html saat halaman dibuka penuh (bukan iframe) setelah popup diblokir */
+  async loginGoogleRedirect() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    this.markLogin('google');
+    await firebase.auth().signInWithRedirect(provider);
   },
 
   async logout() {

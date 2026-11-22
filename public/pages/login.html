@@ -130,6 +130,13 @@
         firebase.auth().onAuthStateChanged(user => {
           if (user) window.location.href = '/dashboard';
         });
+        // Lanjutan login Google (redirect) setelah keluar dari iframe shell
+        try {
+          if (window.top === window && sessionStorage.getItem('am_google_redirect') === '1') {
+            sessionStorage.removeItem('am_google_redirect');
+            Auth.loginGoogleRedirect().catch(e => { const m = Auth.friendlyError(e); if (m) Toast.error(m); });
+          }
+        } catch (e) { /* abaikan */ }
       } catch (err) {
         console.error('[Login] Firebase init error:', err.message);
         Toast.error('Koneksi bermasalah. Coba refresh halaman.');
