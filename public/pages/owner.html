@@ -476,7 +476,7 @@
           <td style="font-size:0.75rem;color:var(--text-secondary);max-width:120px;overflow:hidden;text-overflow:ellipsis">${Utils.escapeHtml(u.email || '-')}</td>
           <td>${Utils.getRoleBadge(u.role)}</td>
           <td>${u.status === 'active' ? '<span class="badge badge-active">Aktif</span>' : '<span class="badge badge-suspended">Suspended</span>'}</td>
-          <td style="font-family:var(--font-mono);font-size:0.78rem">${u.usedToday||0}/${u.dailyLimit||0}</td>
+          <td style="font-family:var(--font-mono);font-size:0.78rem">${u.role === 'owner' ? '∞' : (u.usedToday||0) + '/' + (u.dailyLimit||0)}</td>
           <td>
             <div style="display:flex;gap:4px">
               ${u.role !== 'owner' ? `<button class="action-btn" style="color:var(--neon-blue);border-color:var(--border-neon-blue)" onclick="manageStaff('${Utils.escapeHtml(u.uid)}')">Role</button>` : ''}
@@ -602,21 +602,21 @@
     function renderEmails(list) {
       const tbody = document.getElementById('emails-tbody');
       const cnt = { available: 0, in_use: 0, disabled: 0 };
-      list.forEach(e => { const k = e.status === 'in_use' ? 'in_use' : (!e.status || e.status === 'available') && e.authorized !== false ? 'available' : 'disabled'; cnt[k]++; });
+      list.forEach(e => { const k = (e.status === 'in_use' || e.status === 'used') ? 'in_use' : (!e.status || e.status === 'available') && e.authorized !== false ? 'available' : 'disabled'; cnt[k]++; });
       document.getElementById('emails-summary').textContent = list.length ? `${cnt.available} tersedia · ${cnt.in_use} dipakai · ${cnt.disabled} nonaktif` : '';
       if (!list.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">Belum ada email sistem</td></tr>'; return; }
       tbody.innerHTML = list.map(em => {
         const id = Utils.escapeHtml(em.id);
-        const inUse = em.status === 'in_use';
+        const inUse = em.status === 'in_use' || em.status === 'used';
         const disabled = !inUse && (em.status === 'disabled' || em.authorized === false);
-        const label = inUse ? 'Sedang dipakai' : disabled ? 'Nonaktif' : 'Tersedia';
+        const label = inUse ? 'Telah Digunakan' : disabled ? 'Nonaktif' : 'Tersedia';
         const cls = inUse ? 'inuse' : disabled ? 'disabled' : 'available';
         return `<tr>
           <td style="font-family:var(--font-mono);font-size:0.78rem">${Utils.escapeHtml(em.email)}</td>
           <td>${Utils.escapeHtml(em.label || '-')}</td>
-          <td><span class="email-status-dot email-${cls}"></span>${label}${inUse && em.lockedAt ? `<div class="text-muted text-xs">sejak ${Utils.formatDate(em.lockedAt)}</div>` : ''}</td>
+          <td><span class="email-status-dot email-${cls}"></span>${label}${inUse && (em.usedAt || em.lockedAt) ? `<div class="text-muted text-xs">${em.status === 'used' ? 'selesai' : 'sejak'} ${Utils.formatDate(em.usedAt || em.lockedAt)}</div>` : ''}</td>
           <td><div class="btn-row">
-            ${inUse ? `<button class="action-btn" style="color:var(--text-warning);border-color:rgba(255,170,0,0.3)" onclick="setEmailStatus('${id}','available')">Bebaskan</button>` : ''}
+            ${inUse ? `<button class="action-btn" style="color:var(--text-warning);border-color:rgba(255,170,0,0.3)" onclick="setEmailStatus('${id}','available')">Reset</button>` : ''}
             ${!inUse ? `<button class="action-btn" style="color:var(--neon-blue);border-color:var(--border-neon-blue)" onclick="setEmailStatus('${id}','${disabled ? 'available' : 'disabled'}')">${disabled ? 'Aktifkan' : 'Nonaktifkan'}</button>` : ''}
             <button class="action-btn" style="color:var(--text-error);border-color:rgba(255,34,68,0.3)" onclick="deleteEmail('${id}','${Utils.escapeHtml(em.email)}')">Hapus</button>
           </div></td>

@@ -50,7 +50,7 @@ router.get('/emails', verifyToken, async (req, res) => {
   snap.forEach(child => {
     const e = child.val();
     if (!e.authorized) return;
-    if (e.status === 'in_use') emails.push({ id: child.key, email: e.email, status: 'in_use', inUse: true });
+    if (e.status === 'in_use' || e.status === 'used') emails.push({ id: child.key, email: e.email, status: e.status, inUse: true });
     else if (!e.status || e.status === 'available') emails.push({ id: child.key, email: e.email, status: 'available', inUse: false });
   });
   // yang tersedia di atas, yang sedang dipakai di bawah

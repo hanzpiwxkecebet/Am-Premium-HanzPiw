@@ -301,6 +301,8 @@ async function updateEmailStatus(req, res) {
     updates.status = status;
     updates.lockedBy = null;
     updates.lockedAt = null;
+    updates.usedBy = null;
+    updates.usedAt = null;
   }
   await db.ref(`emails/${id}`).update(updates);
   return res.json({ success: true, message: 'Status email diperbarui' });
@@ -475,8 +477,8 @@ async function getAdminStats(req, res) {
   const emails = { available: 0, in_use: 0, disabled: 0 };
   emailsSnap.forEach(child => {
     const e = child.val();
-    if (!e.authorized || (e.status && !['available', 'in_use'].includes(e.status))) emails.disabled++;
-    else if (e.status === 'in_use') emails.in_use++;
+    if (!e.authorized || (e.status && !['available', 'in_use', 'used'].includes(e.status))) emails.disabled++;
+    else if (e.status === 'in_use' || e.status === 'used') emails.in_use++;
     else emails.available++;
   });
 

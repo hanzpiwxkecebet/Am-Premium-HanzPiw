@@ -273,7 +273,7 @@
           </td>
           <td>${Utils.getRoleBadge(u.role)}</td>
           <td>${u.status === 'active' ? '<span class="badge badge-active">Aktif</span>' : '<span class="badge badge-suspended">Suspended</span>'}</td>
-          <td style="font-family:var(--font-mono);font-size:0.78rem">${u.usedToday || 0}/${u.dailyLimit || 0}</td>
+          <td style="font-family:var(--font-mono);font-size:0.78rem">${u.role === 'owner' ? '∞' : (u.usedToday || 0) + '/' + (u.dailyLimit || 0)}</td>
           <td>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
               <button class="action-btn" style="color:var(--neon-blue);border-color:var(--border-neon-blue)" onclick="manageUser('${Utils.escapeHtml(u.uid)}')">Edit</button>
@@ -449,8 +449,8 @@
           <td style="font-family:var(--font-mono);font-size:0.78rem">${Utils.escapeHtml(em.email)}</td>
           <td>${Utils.escapeHtml(em.label || '-')}</td>
           <td>
-            <span class="email-status-dot email-${em.status==='in_use'?'inuse':(!em.status||em.status==='available')?'available':'disabled'}"></span>
-            ${em.status === 'in_use' ? 'Sedang dipakai' : (!em.status || em.status === 'available') ? 'Tersedia' : 'Nonaktif'}
+            <span class="email-status-dot email-${(em.status==='in_use'||em.status==='used')?'inuse':(!em.status||em.status==='available')?'available':'disabled'}"></span>
+            ${(em.status === 'in_use' || em.status === 'used') ? 'Telah Digunakan' : (!em.status || em.status === 'available') ? 'Tersedia' : 'Nonaktif'}
           </td>
           <td>
             <button class="action-btn" style="color:var(--text-error);border-color:rgba(255,34,68,0.3)" onclick="deleteEmail('${Utils.escapeHtml(em.id)}','${Utils.escapeHtml(em.email)}')">Hapus</button>

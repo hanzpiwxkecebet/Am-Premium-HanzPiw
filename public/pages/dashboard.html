@@ -289,11 +289,18 @@
 
     function paintLimit(lim) {
       const numEl = $('limit-num');
+      const used = Number(lim.used) || 0;
+      numEl.classList.remove('skeleton');
+      if (lim.unlimited || Number(lim.limit) < 0) {
+        numEl.textContent = '∞';
+        $('limit-bar').style.width = '100%';
+        $('limit-used').textContent = `${used} dipakai hari ini`;
+        $('limit-total').textContent = 'Unlimited';
+        return;
+      }
       const total = Number(lim.limit) || 0;
       const remaining = Number(lim.remaining) || 0;
-      const used = Number(lim.used) || 0;
       const pct = total > 0 ? Math.round((remaining / total) * 100) : 0;
-      numEl.classList.remove('skeleton');
       numEl.textContent = remaining;
       $('limit-bar').style.width = pct + '%';
       $('limit-used').textContent = `${used} dipakai`;

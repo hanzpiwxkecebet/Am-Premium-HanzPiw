@@ -48,8 +48,8 @@ async function sendVerify(req, res) {
     if (!emailData.authorized) {
       return res.status(403).json({ success: false, message: 'Email sistem tidak diotorisasi' });
     }
-    if (emailData.status === 'in_use') {
-      return res.status(409).json({ success: false, message: 'Email sedang digunakan oleh pengguna lain' });
+    if (emailData.status === 'in_use' || emailData.status === 'used') {
+      return res.status(409).json({ success: false, message: 'Email ini telah digunakan, pilih email lain' });
     }
     if (emailData.status && emailData.status !== 'available') {
       return res.status(403).json({ success: false, message: 'Email sistem sedang dinonaktifkan' });
@@ -58,14 +58,14 @@ async function sendVerify(req, res) {
     // Lock email secara atomik (cegah dua user mengunci email yang sama bersamaan)
     const lockResult = await db.ref(`emails/${emailKey}`).transaction(cur => {
       if (!cur) return cur;
-      if (cur.status === 'in_use' || cur.authorized !== true) return; // abort
+      if (cur.status === 'in_use' || cur.status === 'used' || cur.authorized !== true) return; // abort
       cur.status = 'in_use';
       cur.lockedBy = uid;
       cur.lockedAt = Date.now();
       return cur;
     });
     if (!lockResult.committed) {
-      return res.status(409).json({ success: false, message: 'Email sedang digunakan oleh pengguna lain' });
+      return res.status(409).json({ success: false, message: 'Email ini telah digunakan, pilih email lain' });
     }
     emailLocked = true;
   }
@@ -116,6 +116,7 @@ async function sendVerify(req, res) {
       message: 'Verifikasi dikirim. Cek email kamu dan masukkan link verifikasi.',
       requestId,
       remaining: limitResult.remaining,
+      unlimited: !!limitResult.unlimited,
     });
   } catch (err) {
     // Error tak terduga (mis. database): kembalikan limit & kunci email, lalu biarkan error handler membalas
@@ -184,9 +185,10 @@ async function submitVerify(req, res) {
 
   await updateStats(uid, isSuccess);
 
-  // Unlock system email
+  // Email sistem: sukses -> ditandai "Telah Digunakan" (tidak dipakai lagi); gagal -> dibuka kembali
   if (method === 'system') {
-    await unlockSystemEmail(email, db);
+    if (isSuccess) await markSystemEmailUsed(email, db, uid);
+    else await unlockSystemEmail(email, db);
   }
 
   // Update global stats
@@ -198,6 +200,15 @@ async function submitVerify(req, res) {
     result: isSuccess,
     data: { duration, requestId },
   });
+}
+
+async function markSystemEmailUsed(email, db, uid) {
+  const emailsSnap = await db.ref('emails').orderByChild('email').equalTo(email).once('value');
+  const updates = [];
+  emailsSnap.forEach(child => {
+    updates.push(db.ref(`emails/${child.key}`).update({ status: 'used', usedBy: uid, usedAt: Date.now(), lockedBy: null, lockedAt: null }));
+  });
+  await Promise.all(updates);
 }
 
 async function unlockSystemEmail(email, db) {

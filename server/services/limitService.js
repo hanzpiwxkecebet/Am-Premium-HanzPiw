@@ -20,6 +20,11 @@ async function checkLimit(uid) {
   if (!snap.exists()) throw new Error('User tidak ditemukan');
   const data = snap.val();
 
+  // Owner: limit tak terbatas
+  if (data.role === 'owner') {
+    return { remaining: -1, limit: -1, used: data.lastResetDate === today ? (data.usedToday ?? 0) : 0, needsReset: false, unlimited: true };
+  }
+
   const dailyLimit = data.dailyLimit ?? DEFAULT_LIMIT;
   const usedToday = data.usedToday ?? 0;
   const lastResetDate = data.lastResetDate ?? '';
@@ -43,10 +48,19 @@ async function consumeLimit(uid) {
   const userRef = db.ref(`users/${uid}`);
 
   let consumed = false;
+  let unlimited = false;
   let remaining = 0;
 
   await userRef.transaction(currentData => {
     if (!currentData) return currentData;
+
+    // Owner: tidak ada batas, tidak memakai kuota harian
+    if (currentData.role === 'owner') {
+      currentData.totalUsage = (currentData.totalUsage ?? 0) + 1;
+      consumed = true;
+      unlimited = true;
+      return currentData;
+    }
 
     const dailyLimit = currentData.dailyLimit ?? DEFAULT_LIMIT;
     const lastResetDate = currentData.lastResetDate ?? '';
@@ -76,6 +90,7 @@ async function consumeLimit(uid) {
     return { success: false, message: 'Limit harian habis', remaining: 0, limit: d.dailyLimit ?? DEFAULT_LIMIT };
   }
 
+  if (unlimited) return { success: true, remaining: -1, unlimited: true, message: 'Limit owner tidak terbatas' };
   return { success: true, remaining, message: 'Limit berhasil dikonsumsi' };
 }
 
@@ -89,6 +104,10 @@ async function refundLimit(uid) {
 
   await userRef.transaction(currentData => {
     if (!currentData) return currentData;
+    if (currentData.role === 'owner') {
+      currentData.totalUsage = Math.max(0, (currentData.totalUsage ?? 0) - 1);
+      return currentData;
+    }
     if (currentData.lastResetDate !== today) return currentData; // already reset, no refund needed
 
     const usedToday = currentData.usedToday ?? 0;

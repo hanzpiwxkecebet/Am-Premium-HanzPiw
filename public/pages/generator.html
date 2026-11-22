@@ -331,7 +331,7 @@
       Cache.swr(
         'limit:' + user.uid,
         async () => (await AMApp.apiCall('GET', '/api/generator/limit')).data,
-        (d) => { document.getElementById('limit-display').textContent = d.remaining; },
+        (d) => { document.getElementById('limit-display').textContent = (d.unlimited || d.remaining < 0) ? '∞' : d.remaining; },
         5 * 60 * 1000
       ).catch(() => { document.getElementById('limit-display').textContent = '-'; });
 
@@ -362,7 +362,7 @@
         container.innerHTML = list.map(e => e.inUse ? `
             <div class="email-select-item in-use" data-email="${Utils.escapeHtml(e.email)}" aria-disabled="true">
               <span style="font-family:var(--font-mono);font-size:0.8rem">${Utils.escapeHtml(e.email)}</span>
-              <span class="badge badge-pending">Sedang dipakai</span>
+              <span class="badge badge-suspended">Telah Digunakan</span>
             </div>` : `
             <div class="email-select-item${hidden.value === e.email ? ' selected' : ''}" data-email="${Utils.escapeHtml(e.email)}" onclick="selectSystemEmail(this)">
               <span style="font-family:var(--font-mono);font-size:0.8rem">${Utils.escapeHtml(e.email)}</span>
@@ -444,7 +444,7 @@
           logTerminal('Menunggu link verifikasi dari pengguna...', 'info');
 
           if (res.remaining !== undefined) {
-            document.getElementById('limit-display').textContent = res.remaining;
+            document.getElementById('limit-display').textContent = (res.unlimited || res.remaining < 0) ? '∞' : res.remaining;
           }
 
           Utils.setButtonLoading(btn, false);
