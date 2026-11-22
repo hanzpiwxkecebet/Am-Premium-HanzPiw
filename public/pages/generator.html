@@ -16,21 +16,21 @@
   <style>
     .method-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
     .method-tab { flex: 1; padding: 12px; border: 1px solid var(--border-glass); border-radius: var(--radius-md); background: var(--bg-glass); cursor: pointer; text-align: center; transition: var(--transition); font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); }
-    .method-tab.active { border-color: var(--neon-red-dim); background: rgba(255,34,68,0.08); color: var(--text-primary); }
+    .method-tab.active { border-color: var(--neon-red-dim); background: rgba(150,140,255,0.08); color: var(--text-primary); }
     .step-indicator { display: flex; align-items: center; margin-bottom: 24px; }
     .step-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border-glass); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; transition: var(--transition); background: var(--bg-glass); }
-    .step-dot.active { border-color: var(--neon-red); background: rgba(255,34,68,0.15); color: var(--neon-red); }
+    .step-dot.active { border-color: var(--neon-red); background: rgba(150,140,255,0.15); color: var(--neon-red); }
     .step-dot.done { border-color: var(--text-success); background: rgba(0,255,136,0.15); color: var(--text-success); }
     .step-line { flex: 1; height: 2px; background: var(--border-glass); margin: 0 6px; border-radius: 9999px; transition: var(--transition); }
     .step-line.done { background: var(--gradient-primary); }
     .progress-steps { margin: 16px 0; }
     .progress-step { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.82rem; font-weight: 500; color: var(--text-muted); transition: var(--transition); }
-    .progress-step.active { color: var(--text-primary); background: rgba(255,34,68,0.06); }
+    .progress-step.active { color: var(--text-primary); background: rgba(150,140,255,0.06); }
     .progress-step.done { color: var(--text-success); }
     .progress-step.failed { color: var(--text-error); }
     .step-icon { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; flex-shrink: 0; }
     .step-icon.spinning { animation: spin 0.8s linear infinite; border-top-color: transparent; }
-    .terminal-box { background: #0a0a0a; border: 1px solid rgba(255,34,68,0.2); border-radius: var(--radius-md); padding: 14px 16px; font-family: var(--font-mono); font-size: 0.75rem; height: 140px; overflow-y: auto; margin-top: 12px; }
+    .terminal-box { background: #0a0a0a; border: 1px solid rgba(150,140,255,0.2); border-radius: var(--radius-md); padding: 14px 16px; font-family: var(--font-mono); font-size: 0.75rem; height: 140px; overflow-y: auto; margin-top: 12px; }
     .terminal-line { color: #aaa; line-height: 1.6; }
     .terminal-line.ok { color: #00ff88; }
     .terminal-line.err { color: #ff4455; }
@@ -41,8 +41,8 @@
     .result-card.failed { background: rgba(255,34,68,0.05); border: 1px solid rgba(255,34,68,0.2); }
     .result-icon { font-size: 3rem; margin-bottom: 12px; }
     .email-select-item { padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); cursor: pointer; transition: var(--transition); font-size: 0.88rem; display: flex; align-items: center; justify-content: space-between; }
-    .email-select-item:hover { border-color: var(--border-neon-red); background: rgba(255,34,68,0.05); }
-    .email-select-item.selected { border-color: var(--neon-red-dim); background: rgba(255,34,68,0.1); }
+    .email-select-item:hover { border-color: var(--border-neon-red); background: rgba(150,140,255,0.05); }
+    .email-select-item.selected { border-color: var(--neon-red-dim); background: rgba(150,140,255,0.1); }
   </style>
 </head>
 <body>

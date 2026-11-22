@@ -15,7 +15,7 @@
   <style>
     .loading-screen {
       position: fixed; inset: 0;
-      background: #0a0a0f;
+      background: radial-gradient(60% 45% at 85% 8%, rgba(66,110,255,.9), transparent 70%), radial-gradient(55% 40% at 8% 55%, rgba(98,72,255,.75), transparent 70%), linear-gradient(170deg,#040a3a,#0b1470 55%,#14106f);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       z-index: 99999;
@@ -49,7 +49,7 @@
     }
     .loading-bar-fill {
       height: 100%;
-      background: linear-gradient(90deg, #ff2244, #2255ff);
+      background: linear-gradient(90deg, #82aaff, #b392ff);
       border-radius: 9999px;
       width: 0%;
       transition: width 0.3s ease;
@@ -63,8 +63,8 @@
     .loading-ring {
       width: 60px; height: 60px;
       border-radius: 50%;
-      border: 3px solid rgba(255,34,68,0.1);
-      border-top-color: #ff2244;
+      border: 3px solid rgba(150,140,255,0.1);
+      border-top-color: #9d8cff;
       border-right-color: #2255ff;
       animation: spin 1.2s linear infinite;
       margin-bottom: 24px;

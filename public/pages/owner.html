@@ -14,12 +14,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/main.css">
   <style>
-    .owner-header { background: linear-gradient(135deg, rgba(255,34,68,0.15) 0%, rgba(34,85,255,0.15) 100%); border: 1px solid rgba(255,34,68,0.3); border-radius: var(--radius-xl); padding: 20px; margin-bottom: 16px; }
+    .owner-header { background: linear-gradient(135deg, rgba(150,140,255,0.15) 0%, rgba(34,85,255,0.15) 100%); border: 1px solid rgba(150,140,255,0.3); border-radius: var(--radius-xl); padding: 20px; margin-bottom: 16px; }
     .owner-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--gradient-primary); padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
     .owner-tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px; scrollbar-width: none; }
     .owner-tabs::-webkit-scrollbar { display: none; }
     .owner-tab { flex-shrink: 0; padding: 8px 16px; border-radius: var(--radius-full); border: 1px solid var(--border-glass); background: var(--bg-glass); font-size: 0.82rem; font-weight: 600; cursor: pointer; color: var(--text-secondary); transition: var(--transition); white-space: nowrap; }
-    .owner-tab.active { background: rgba(255,34,68,0.15); border-color: var(--border-neon-red); color: var(--text-primary); box-shadow: 0 0 10px rgba(255,34,68,0.1); }
+    .owner-tab.active { background: rgba(150,140,255,0.15); border-color: var(--border-neon-red); color: var(--text-primary); box-shadow: 0 0 10px rgba(150,140,255,0.1); }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
     .admin-table { width: 100%; border-collapse: collapse; }
@@ -291,7 +291,7 @@
             <option value="admin" ${user.role==='admin'?'selected':''}>Admin</option>
           </select>
         </div>
-        <div style="font-size:0.78rem;color:var(--text-secondary);background:rgba(255,34,68,0.06);padding:10px;border-radius:var(--radius-md)">
+        <div style="font-size:0.78rem;color:var(--text-secondary);background:rgba(150,140,255,0.06);padding:10px;border-radius:var(--radius-md)">
           ⚠️ Mengubah role admin/moderator mempengaruhi akses mereka ke panel ini secara langsung.
         </div>
       `, [

@@ -771,3 +771,248 @@ tr:hover td { background: var(--bg-glass); }
   }
   #particles-canvas { display: none; }
 }
+
+
+/* ═══════════════════════════════════════════════════════════
+   LIQUID GLASS THEME  (lapisan terakhir: menimpa tema neon lama)
+   Palet biru-violet, kaca tembus pandang dengan sorot cahaya (specular),
+   tepi terang, dan blur + saturasi seperti iOS "Liquid Glass".
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --bg-primary: #060b3f;
+  --bg-secondary: rgba(22, 30, 110, 0.55);
+  --bg-card: rgba(255, 255, 255, 0.08);
+  --bg-glass: rgba(255, 255, 255, 0.09);
+  --bg-glass-hover: rgba(255, 255, 255, 0.16);
+
+  /* aksen: merah neon -> violet-biru (nama variabel dipertahankan supaya semua halaman ikut berubah) */
+  --neon-red: #a893ff;
+  --neon-red-dim: rgba(168, 147, 255, 0.65);
+  --neon-red-glow: rgba(168, 147, 255, 0.25);
+  --neon-blue: #6ea0ff;
+  --neon-blue-dim: rgba(110, 160, 255, 0.65);
+  --neon-blue-glow: rgba(110, 160, 255, 0.25);
+
+  --gradient-primary: linear-gradient(135deg, #82aaff, #b392ff);
+  --gradient-card: linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04));
+
+  --text-secondary: rgba(226, 231, 255, 0.78);
+  --text-muted: rgba(214, 221, 255, 0.52);
+
+  --border-glass: rgba(255, 255, 255, 0.2);
+  --border-neon-red: rgba(168, 147, 255, 0.45);
+  --border-neon-blue: rgba(110, 160, 255, 0.45);
+
+  --shadow-card: 0 10px 32px rgba(3, 6, 50, 0.4);
+  --shadow-neon-red: 0 0 22px rgba(168, 147, 255, 0.35);
+  --shadow-neon-blue: 0 0 22px rgba(110, 160, 255, 0.35);
+  --shadow-neon-mixed: 0 12px 36px rgba(40, 50, 220, 0.35);
+
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 30px;
+  --bottom-nav-height: 96px;
+
+  /* bahan kaca */
+  --lg-blur: 18px;
+  --lg-fill: linear-gradient(145deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.08) 34%, rgba(255,255,255,0.04) 62%, rgba(255,255,255,0.13) 100%);
+  --lg-fill-soft: linear-gradient(145deg, rgba(255,255,255,0.16), rgba(255,255,255,0.05));
+  --lg-edge: rgba(255, 255, 255, 0.24);
+  --lg-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    inset 0 -1px 0 rgba(255,255,255,0.08),
+    inset 0 0 24px rgba(255,255,255,0.05),
+    0 12px 32px rgba(3, 6, 50, 0.38);
+}
+@media (min-width: 768px) { :root { --lg-blur: 28px; } }
+
+[data-theme="light"] {
+  --bg-primary: #dfe6ff;
+  --bg-secondary: rgba(255, 255, 255, 0.7);
+  --bg-card: rgba(255, 255, 255, 0.5);
+  --bg-glass: rgba(255, 255, 255, 0.5);
+  --bg-glass-hover: rgba(255, 255, 255, 0.72);
+  --text-primary: #0d1440;
+  --text-secondary: #38426e;
+  --text-muted: #6b75a3;
+  --border-glass: rgba(255, 255, 255, 0.75);
+  --lg-fill: linear-gradient(145deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.45) 40%, rgba(255,255,255,0.35) 100%);
+  --lg-fill-soft: linear-gradient(145deg, rgba(255,255,255,0.7), rgba(255,255,255,0.4));
+  --lg-edge: rgba(255, 255, 255, 0.9);
+  --lg-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    inset 0 -1px 0 rgba(120,130,200,0.15),
+    0 10px 30px rgba(80, 95, 190, 0.22);
+  --neon-red: #6a4cf0;
+  --neon-blue: #2f63ff;
+}
+
+/* ─── Latar: gelombang cahaya biru-violet ─────────────────── */
+body { background: var(--bg-primary); }
+body::before {
+  background:
+    radial-gradient(60% 45% at 88% 6%,  rgba(66, 110, 255, 0.95) 0%, rgba(66, 110, 255, 0) 70%),
+    radial-gradient(55% 40% at 6% 48%,  rgba(98, 72, 255, 0.78) 0%, rgba(98, 72, 255, 0) 70%),
+    radial-gradient(52% 38% at 64% 98%, rgba(165, 135, 255, 0.62) 0%, rgba(165, 135, 255, 0) 72%),
+    radial-gradient(42% 26% at 46% 30%, rgba(196, 182, 255, 0.30) 0%, rgba(196, 182, 255, 0) 70%),
+    linear-gradient(170deg, #040a3a 0%, #0b1470 52%, #14106f 100%);
+  background-size: 100% 100%;
+  animation: none;
+}
+[data-theme="light"] body::before {
+  background:
+    radial-gradient(60% 45% at 88% 6%,  rgba(130, 165, 255, 0.9) 0%, rgba(130, 165, 255, 0) 70%),
+    radial-gradient(55% 40% at 6% 50%,  rgba(180, 160, 255, 0.85) 0%, rgba(180, 160, 255, 0) 70%),
+    radial-gradient(52% 38% at 64% 98%, rgba(150, 200, 255, 0.8) 0%, rgba(150, 200, 255, 0) 72%),
+    linear-gradient(170deg, #e8edff 0%, #d6defd 55%, #e6dcff 100%);
+}
+/* Gerak lambat hanya di desktop (di HP tetap statis supaya hemat baterai & tidak patah-patah) */
+@media (min-width: 768px) and (hover: hover) {
+  body::before { inset: -15%; animation: lgDrift 40s ease-in-out infinite alternate; }
+}
+@keyframes lgDrift {
+  from { transform: translate3d(-2%, -1%, 0) rotate(0deg) scale(1); }
+  to   { transform: translate3d(2%, 2%, 0) rotate(6deg) scale(1.08); }
+}
+#particles-canvas { opacity: 0.28; }
+
+/* ─── Permukaan kaca utama (pakai blur) ───────────────────── */
+body .glass-card, body .welcome-card, body .limit-card, body .stat-card, body .stat-mini,
+body .quick-btn, body .community-btn, body .api-status-card, body .profile-hero,
+body .redeem-card, body .type-card, body .tab-switcher, body .login-card, body .auth-card {
+  background: var(--lg-fill);
+  backdrop-filter: blur(var(--lg-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(180%);
+  border: 1px solid var(--lg-edge);
+  box-shadow: var(--lg-shadow);
+}
+body .glass-card:hover, body .quick-btn:hover, body .community-btn:hover {
+  background: var(--lg-fill);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: var(--lg-shadow), 0 0 30px rgba(120, 140, 255, 0.28);
+}
+
+/* ─── Item daftar (tanpa blur: bisa puluhan, dijaga ringan) ─ */
+body .history-item, body .ann-card, body .announcement-item, body .email-select-item,
+body .redeem-history-item, body .log-entry, body .maint-message, body .profile-row, body .info-row,
+body .method-tab, body .filter-btn, body .admin-tab, body .owner-tab, body .req-item {
+  background: var(--lg-fill-soft);
+  border: 1px solid var(--lg-edge);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 14px rgba(3, 6, 50, 0.22);
+}
+body .method-tab.active, body .filter-btn.active, body .admin-tab.active, body .owner-tab.active,
+body .email-select-item.selected {
+  background: linear-gradient(145deg, rgba(150,175,255,0.5), rgba(170,140,255,0.32));
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), 0 6px 18px rgba(70, 90, 255, 0.4);
+  color: #fff;
+}
+body .history-item:hover, body .ann-card:hover, body .email-select-item:hover {
+  background: var(--lg-fill);
+  border-color: rgba(255,255,255,0.4);
+}
+
+/* ─── Bottom nav: kapsul kaca melayang ────────────────────── */
+body #bottom-nav {
+  left: 12px; right: 12px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  height: 68px;
+  padding: 0 6px;
+  border-radius: 34px;
+  background: var(--lg-fill);
+  backdrop-filter: blur(var(--lg-blur)) saturate(190%);
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(190%);
+  border: 1px solid var(--lg-edge);
+  box-shadow: var(--lg-shadow), 0 18px 40px rgba(2, 4, 40, 0.45);
+  max-width: 560px;
+  margin: 0 auto;
+}
+body .nav-item { padding: 5px 2px; margin: 8px 3px; justify-content: center; border-radius: 24px; color: var(--text-muted); }
+body .nav-item:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+body .nav-item.active {
+  color: #fff;
+  background: linear-gradient(145deg, rgba(255,255,255,0.34), rgba(255,255,255,0.1));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(255,255,255,0.12), 0 6px 18px rgba(70, 90, 255, 0.45);
+}
+body .nav-item.active::before { display: none; }
+body .nav-item.active .nav-icon { filter: drop-shadow(0 0 8px rgba(190, 200, 255, 0.9)); }
+[data-theme="light"] body .nav-item.active { color: #0d1440; }
+
+/* ─── Tombol ──────────────────────────────────────────────── */
+body .btn { border-radius: 18px; }
+body .btn-primary {
+  background: linear-gradient(145deg, rgba(130,170,255,0.92), rgba(160,120,255,0.88));
+  border: 1px solid rgba(255,255,255,0.45);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -2px 6px rgba(60,40,200,0.25), 0 8px 22px rgba(70, 90, 255, 0.45);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(20, 20, 90, 0.35);
+}
+body .btn-primary:hover {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.75), 0 10px 28px rgba(90, 110, 255, 0.6);
+}
+body .btn-secondary {
+  background: var(--lg-fill-soft);
+  border: 1px solid var(--lg-edge);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+}
+body .btn-danger { background: rgba(255, 80, 110, 0.22); color: #ff8fa3; border: 1px solid rgba(255, 130, 150, 0.5); box-shadow: inset 0 1px 0 rgba(255,255,255,0.3); }
+body .btn-success { background: rgba(60, 230, 160, 0.2); border: 1px solid rgba(120, 255, 200, 0.45); box-shadow: inset 0 1px 0 rgba(255,255,255,0.3); }
+
+/* ─── Form: kaca cekung ───────────────────────────────────── */
+body .form-input, body .form-select, body .form-textarea, body .input-sm {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 2px 8px rgba(2, 4, 40, 0.28), inset 0 1px 0 rgba(255,255,255,0.12);
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+body .form-input:focus, body .form-select:focus, body .form-textarea:focus {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(200, 215, 255, 0.8);
+  box-shadow: inset 0 2px 8px rgba(2, 4, 40, 0.2), 0 0 0 3px rgba(130, 160, 255, 0.28), 0 0 22px rgba(130, 160, 255, 0.3);
+}
+body .form-select option { background: #101a6a; color: #fff; }
+[data-theme="light"] body .form-select option { background: #fff; color: #0d1440; }
+
+/* ─── Modal & toast ───────────────────────────────────────── */
+body .modal-overlay { background: rgba(4, 8, 45, 0.5); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+body .modal {
+  background: linear-gradient(145deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08) 45%, rgba(255,255,255,0.14));
+  backdrop-filter: blur(34px) saturate(190%);
+  -webkit-backdrop-filter: blur(34px) saturate(190%);
+  border: 1px solid rgba(255,255,255,0.35);
+  box-shadow: var(--lg-shadow), 0 24px 60px rgba(2, 4, 40, 0.55);
+}
+body .toast {
+  border-radius: 20px;
+  backdrop-filter: blur(22px) saturate(190%);
+  -webkit-backdrop-filter: blur(22px) saturate(190%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 12px 32px rgba(2, 4, 40, 0.45);
+}
+body .toast-success { background: linear-gradient(145deg, rgba(60,230,160,0.32), rgba(10,60,60,0.35)); border-color: rgba(120,255,200,0.5); }
+body .toast-error   { background: linear-gradient(145deg, rgba(255,80,110,0.34), rgba(60,10,50,0.4));  border-color: rgba(255,140,160,0.5); }
+body .toast-warning { background: linear-gradient(145deg, rgba(255,190,70,0.32), rgba(60,40,10,0.38)); border-color: rgba(255,210,120,0.5); }
+body .toast-info    { background: linear-gradient(145deg, rgba(110,160,255,0.36), rgba(20,30,90,0.4)); border-color: rgba(170,200,255,0.55); }
+
+/* ─── Detail kecil ────────────────────────────────────────── */
+body .badge-user { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.4); }
+body .progress-bar { background: rgba(255,255,255,0.12); box-shadow: inset 0 1px 3px rgba(2,4,40,0.35); }
+body .progress-fill, body #limit-bar { box-shadow: 0 0 12px rgba(130, 160, 255, 0.6), inset 0 1px 0 rgba(255,255,255,0.5); }
+body .terminal-box { background: rgba(4, 8, 45, 0.55); border: 1px solid var(--lg-edge); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+body .avatar, body .profile-avatar { border: 2px solid rgba(255,255,255,0.55); box-shadow: 0 0 22px rgba(130,160,255,0.55), inset 0 1px 0 rgba(255,255,255,0.6); }
+body .admin-fab { background: linear-gradient(145deg, rgba(130,170,255,0.92), rgba(160,120,255,0.88)); border: 1px solid rgba(255,255,255,0.45); box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 22px rgba(70, 90, 255, 0.5); }
+body .welcome-card::before { background: radial-gradient(circle, rgba(190, 200, 255, 0.3) 0%, transparent 70%) !important; }
+#top-progress { box-shadow: 0 0 12px rgba(130,160,255,0.9), 0 0 4px rgba(180,150,255,0.9); }
+::-webkit-scrollbar-thumb { background: rgba(190, 200, 255, 0.4); }
+::-webkit-scrollbar-track { background: transparent; }
+table { background: transparent; }
+th, td { border-bottom-color: rgba(255,255,255,0.12); }
+
+/* Browser lama tanpa backdrop-filter: pakai kaca lebih pekat supaya teks tetap terbaca */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body .glass-card, body .welcome-card, body .limit-card, body .stat-card, body .quick-btn,
+  body .community-btn, body .api-status-card, body .modal, body #bottom-nav { background: rgba(22, 30, 120, 0.82); }
+}

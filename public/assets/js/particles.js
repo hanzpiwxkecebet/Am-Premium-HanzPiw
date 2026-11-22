@@ -20,7 +20,7 @@ function initParticles() {
       vy: (Math.random() - 0.5) * 0.4,
       size: Math.random() * 1.5 + 0.5,
       opacity: Math.random() * 0.4 + 0.1,
-      color: Math.random() > 0.5 ? '255, 34, 68' : '34, 85, 255',
+      color: Math.random() > 0.5 ? '190, 200, 255' : '140, 160, 255',
       pulse: Math.random() * Math.PI * 2,
     };
   }
@@ -41,7 +41,7 @@ function initParticles() {
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 120) {
           const alpha = (1 - dist / 120) * 0.08;
-          ctx.strokeStyle = `rgba(255, 34, 68, ${alpha})`;
+          ctx.strokeStyle = `rgba(190, 200, 255, ${alpha})`;
           ctx.lineWidth = 0.5;
           ctx.beginPath();
           ctx.moveTo(particles[i].x, particles[i].y);
