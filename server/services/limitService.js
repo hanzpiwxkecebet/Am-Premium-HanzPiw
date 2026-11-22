@@ -3,6 +3,21 @@ const { v4: uuidv4 } = require('uuid');
 
 const DEFAULT_LIMIT = parseInt(process.env.DEFAULT_DAILY_LIMIT) || 20;
 
+// Limit default = pengaturan "Limit Default Harian" (system/defaultDailyLimit); env/20 hanya cadangan
+let defaultCache = { v: null, t: 0 };
+async function getDefaultLimit() {
+  if (defaultCache.v !== null && Date.now() - defaultCache.t < 10000) return defaultCache.v;
+  let v = DEFAULT_LIMIT;
+  try {
+    const snap = await getDb().ref('system/defaultDailyLimit').once('value');
+    const n = Number(snap.val());
+    if (snap.exists() && Number.isFinite(n) && n >= 0) v = n;
+  } catch (e) { /* pakai cadangan */ }
+  defaultCache = { v, t: Date.now() };
+  return v;
+}
+function clearDefaultLimitCache() { defaultCache = { v: null, t: 0 }; }
+
 /**
  * Get today's date string in Asia/Jakarta timezone
  */
@@ -25,7 +40,7 @@ async function checkLimit(uid) {
     return { remaining: -1, limit: -1, used: data.lastResetDate === today ? (data.usedToday ?? 0) : 0, needsReset: false, unlimited: true };
   }
 
-  const dailyLimit = data.dailyLimit ?? DEFAULT_LIMIT;
+  const dailyLimit = data.dailyLimit ?? await getDefaultLimit();
   const usedToday = data.usedToday ?? 0;
   const lastResetDate = data.lastResetDate ?? '';
 
@@ -47,6 +62,7 @@ async function consumeLimit(uid) {
   const db = getDb();
   const userRef = db.ref(`users/${uid}`);
 
+  const fallbackLimit = await getDefaultLimit();
   let consumed = false;
   let unlimited = false;
   let remaining = 0;
@@ -62,7 +78,7 @@ async function consumeLimit(uid) {
       return currentData;
     }
 
-    const dailyLimit = currentData.dailyLimit ?? DEFAULT_LIMIT;
+    const dailyLimit = currentData.dailyLimit ?? fallbackLimit;
     const lastResetDate = currentData.lastResetDate ?? '';
 
     // Reset if new day
@@ -87,7 +103,7 @@ async function consumeLimit(uid) {
   if (!consumed) {
     const snap = await userRef.once('value');
     const d = snap.val() || {};
-    return { success: false, message: 'Limit harian habis', remaining: 0, limit: d.dailyLimit ?? DEFAULT_LIMIT };
+    return { success: false, message: 'Limit harian habis', remaining: 0, limit: d.dailyLimit ?? fallbackLimit };
   }
 
   if (unlimited) return { success: true, remaining: -1, unlimited: true, message: 'Limit owner tidak terbatas' };
@@ -164,4 +180,4 @@ async function bumpGlobalStat(field, delta = 1) {
   }
 }
 
-module.exports = { checkLimit, consumeLimit, refundLimit, recordUsage, updateStats, getTodayJakarta, bumpGlobalStat };
+module.exports = { checkLimit, consumeLimit, refundLimit, recordUsage, updateStats, getTodayJakarta, bumpGlobalStat, getDefaultLimit, clearDefaultLimitCache };

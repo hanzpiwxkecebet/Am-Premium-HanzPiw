@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 
 const DEFAULT_LIMIT = parseInt(process.env.DEFAULT_DAILY_LIMIT) || 20;
 const OWNER_UID = process.env.OWNER_UID;
+const { getDefaultLimit } = require('../services/limitService');
 
 const ROLE_HIERARCHY = { user: 0, premium: 1, moderator: 2, admin: 3, owner: 4 };
 
@@ -23,7 +24,7 @@ async function createProfile(db, { uid, name, username, email }) {
     status: 'active',
     photoURL: '',
     createdAt: Date.now(),
-    dailyLimit: DEFAULT_LIMIT,
+    dailyLimit: await getDefaultLimit(),
     usedToday: 0,
     lastResetDate: '',
     totalUsage: 0,

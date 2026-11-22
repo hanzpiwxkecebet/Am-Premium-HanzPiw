@@ -51,5 +51,6 @@ update('/system', ...isAdmin, ctrl.updateSystemSettings);
 // Danger zone (owner)
 router.post('/system/reset-stats', ...isOwner, ctrl.resetGlobalStats);
 router.post('/system/reset-limits', ...isOwner, ctrl.resetAllLimits);
+router.post('/system/apply-default-limit', ...isOwner, ctrl.applyDefaultLimit);
 
 module.exports = router;

@@ -238,8 +238,8 @@
           <input type="text" class="form-input" id="owner-maint-msg" placeholder="Sistem sedang dalam pemeliharaan">
         </div>
         <div class="form-group">
-          <label class="form-label">Limit Default Harian (semua user baru)</label>
-          <input type="number" class="form-input" id="owner-default-limit" min="1" max="100">
+          <label class="form-label">Limit Default Harian (user baru; saat simpan ditanya apakah diterapkan ke user lama)</label>
+          <input type="number" class="form-input" id="owner-default-limit" min="0" max="9999">
         </div>
         <div class="form-group">
           <label class="form-label">Versi Aplikasi</label>
@@ -714,7 +714,7 @@
         const d = res.data;
         document.getElementById('owner-maint').value = d.maintenance ? 'true' : 'false';
         document.getElementById('owner-maint-msg').value = d.maintenanceMessage || '';
-        document.getElementById('owner-default-limit').value = d.defaultDailyLimit || 10;
+        document.getElementById('owner-default-limit').value = d.defaultDailyLimit ?? 20;
         document.getElementById('owner-version').value = d.version || '';
         document.getElementById('owner-welcome-msg').value = d.welcomeMessage || '';
       } catch (e) { Toast.error('Gagal muat pengaturan'); }
@@ -727,11 +727,17 @@
         await AMApp.apiCall('PUT', '/api/admin/system', {
           maintenance: document.getElementById('owner-maint').value === 'true',
           maintenanceMessage: document.getElementById('owner-maint-msg').value.trim(),
-          defaultDailyLimit: parseInt(document.getElementById('owner-default-limit').value) || 10,
+          defaultDailyLimit: Number.isFinite(parseInt(document.getElementById('owner-default-limit').value)) ? parseInt(document.getElementById('owner-default-limit').value) : 10,
           version: document.getElementById('owner-version').value.trim(),
           welcomeMessage: document.getElementById('owner-welcome-msg').value.trim()
         });
         Toast.success('Pengaturan disimpan');
+        const newLim = parseInt(document.getElementById('owner-default-limit').value) || 10;
+        if (confirm(`Terapkan limit ${newLim}/hari ke SEMUA user yang sudah ada? (Owner tetap unlimited. Limit custom per user akan ditimpa.)\n\nOK = terapkan ke semua, Batal = hanya untuk user baru.`)) {
+          const r = await AMApp.apiCall('POST', '/api/admin/system/apply-default-limit');
+          Toast.success(r.message || 'Limit diterapkan');
+          if (typeof loadAllUsers === 'function') loadAllUsers();
+        }
       } catch (e) { Toast.error(e.message); } finally { Utils.setButtonLoading(btn, false); }
     });
 

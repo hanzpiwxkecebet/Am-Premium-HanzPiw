@@ -1,7 +1,7 @@
 const { getDb, getAuth } = require('../config/firebase');
 const { invalidateUser } = require('../middleware/auth');
 const { logAction } = require('../services/auditService');
-const { getTodayJakarta } = require('../services/limitService');
+const { getTodayJakarta, clearDefaultLimitCache } = require('../services/limitService');
 const { checkApiStatus } = require('../services/apiService');
 const { v4: uuidv4 } = require('uuid');
 
@@ -401,6 +401,7 @@ async function updateSystemSettings(req, res) {
   if (apiStatus !== undefined) updates['system/apiStatus'] = apiStatus;
   if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, message: 'Tidak ada setting yang diubah' });
   await db.ref('/').update(updates);
+  clearDefaultLimitCache();
   await logAction({ actorUID: actor.uid, actorRole: actor.role, action: 'update_system', summary: `Updated: ${Object.keys(updates).join(', ')}` });
   return res.json({ success: true, message: 'Pengaturan sistem diperbarui' });
 }
@@ -419,6 +420,28 @@ async function resetGlobalStats(req, res) {
   if (Object.keys(updates).length) await db.ref('/').update(updates);
   await logAction({ actorUID: actor.uid, actorRole: actor.role, action: 'reset_stats', summary: 'Global stats direset' });
   return res.json({ success: true, message: 'Statistik global direset' });
+}
+
+// Terapkan limit default ke SEMUA user yang sudah ada (kecuali owner)
+async function applyDefaultLimit(req, res) {
+  const actor = req.user;
+  const db = getDb();
+  const sysSnap = await db.ref('system/defaultDailyLimit').once('value');
+  const lim = Number(sysSnap.val());
+  if (!sysSnap.exists() || !Number.isFinite(lim) || lim < 0) {
+    return res.status(400).json({ success: false, message: 'Limit default belum diatur' });
+  }
+  const usersSnap = await db.ref('users').once('value');
+  const updates = {};
+  let count = 0;
+  usersSnap.forEach(child => {
+    if (child.val().role === 'owner') return;
+    updates[`users/${child.key}/dailyLimit`] = lim;
+    count++;
+  });
+  if (count) await db.ref('/').update(updates);
+  await logAction({ actorUID: actor.uid, actorRole: actor.role, action: 'apply_default_limit', summary: `Limit ${lim} diterapkan ke ${count} user` });
+  return res.json({ success: true, message: `Limit ${lim} diterapkan ke ${count} user`, data: { limit: lim, count } });
 }
 
 async function resetAllLimits(req, res) {
@@ -551,5 +574,5 @@ module.exports = {
   getEmails, addEmail, deleteEmail, updateEmailStatus,
   getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement,
   getSystemSettings, updateSystemSettings, getAdminStats, getAdminLogs,
-  resetGlobalStats, resetAllLimits,
+  resetGlobalStats, resetAllLimits, applyDefaultLimit,
 };
