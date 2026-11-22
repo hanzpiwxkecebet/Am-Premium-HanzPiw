@@ -14,7 +14,7 @@ const FIREBASE_FALLBACK_CONFIG = {
 };
 
 const CONFIG_TIMEOUT_MS = 3000;   // ambil config dari server
-const API_TIMEOUT_MS = 15000;     // request API biasa
+const API_TIMEOUT_MS = 10000;     // request API biasa
 
 /**
  * fetch + parse JSON dengan timeout, supaya halaman TIDAK pernah menggantung
@@ -43,10 +43,12 @@ async function requestJson(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
         try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
         return { res, data };
       } catch (err) {
-        lastErr = err && err.name === 'AbortError'
+        const timedOut = err && err.name === 'AbortError';
+        lastErr = timedOut
           ? new Error('Server terlalu lama merespons. Coba lagi.')
           : err;
-        if (attempt >= maxAttempts) throw lastErr;
+        // Timeout TIDAK diulang (hanya bikin user menunggu 2x lebih lama); error jaringan boleh
+        if (timedOut || attempt >= maxAttempts) throw lastErr;
         await new Promise((r) => setTimeout(r, 400));
       } finally {
         clearTimeout(timer);

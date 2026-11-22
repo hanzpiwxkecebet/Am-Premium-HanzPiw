@@ -54,6 +54,23 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 // Sanitize all inputs
 app.use(sanitizeBody);
 
+// Batas waktu per request API: kalau database menggantung, balas JSON jelas
+// (bukan menunggu sampai Vercel memutus dengan halaman 504 kosong)
+app.use('/api/', (req, res, next) => {
+  const timer = setTimeout(() => {
+    if (!res.headersSent) {
+      console.error('[Timeout]', req.method, req.originalUrl);
+      res.status(504).json({
+        success: false,
+        message: 'Database tidak merespons. Buka /api/health?deep=1 untuk diagnosa.',
+      });
+    }
+  }, 8000);
+  res.on('finish', () => clearTimeout(timer));
+  res.on('close', () => clearTimeout(timer));
+  next();
+});
+
 // Apply general rate limit
 app.use('/api/', generalLimiter);
 
@@ -67,10 +84,34 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/redeem', require('./routes/redeem'));
 app.use('/api/public', require('./routes/public'));
 
-// Health check
-app.get('/api/health', (req, res) => {
+// Health check. ?deep=1 = diagnosa koneksi database (hanya menampilkan true/false & waktu, TIDAK pernah nilai secret)
+app.get('/api/health', async (req, res) => {
   res.set('Cache-Control', 'no-store');
-  res.json({ status: 'ok', version: process.env.APP_VERSION || '2.0.0-beta', ts: Date.now() });
+  const base = { status: 'ok', version: process.env.APP_VERSION || '2.0.0-beta', ts: Date.now() };
+  if (req.query.deep !== '1') return res.json(base);
+
+  const env = {};
+  ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_DATABASE_URL',
+   'FIREBASE_API_KEY', 'OWNER_UID', 'APP_URL'].forEach((k) => { env[k] = !!process.env[k]; });
+
+  const report = { ...base, env, region: process.env.VERCEL_REGION || null, database: {} };
+  try {
+    const { getDb, resolvedDatabaseURL } = require('./config/firebase');
+    const url = resolvedDatabaseURL();
+    report.database.host = url ? url.replace(/^https?:\/\//, '') : null;
+    const t0 = Date.now();
+    await Promise.race([
+      getDb().ref('system/maintenance').once('value'),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('TIMEOUT 6 detik: koneksi ke Realtime Database tidak terbentuk')), 6000)),
+    ]);
+    report.database.ok = true;
+    report.database.ms = Date.now() - t0;
+  } catch (err) {
+    report.status = 'error';
+    report.database.ok = false;
+    report.database.error = String(err && err.message ? err.message : err).slice(0, 300);
+  }
+  res.status(report.status === 'ok' ? 200 : 503).json(report);
 });
 
 // Firebase config for client (public keys only - never private keys)

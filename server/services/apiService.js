@@ -80,25 +80,21 @@ async function verifyLink(email, link) {
 }
 
 /**
- * Adapter to determine if verify response indicates success.
- * IMPORTANT: Adjust based on actual API response structure.
- * Currently checks common patterns.
+ * Determine if verify response indicates success.
+ * API format: {"author":"ellreyxml","success":bool,"why":"..."}
  */
 function determineVerifySuccess(data) {
   if (!data) return false;
 
-  // Check common success indicators
+  // Primary: explicit boolean field (ellreyxml API format)
   if (typeof data.success === 'boolean') return data.success;
-  if (data.status === 'success' || data.status === 'ok' || data.status === 200) return true;
-  if (data.message && typeof data.message === 'string') {
-    const msg = data.message.toLowerCase();
-    if (msg.includes('success') || msg.includes('berhasil')) return true;
-    if (msg.includes('failed') || msg.includes('gagal') || msg.includes('error')) return false;
-  }
-  if (data.code && (data.code === 200 || data.code === 0)) return true;
 
-  // If HTTP 200 and no explicit error field, assume success
-  return !data.error;
+  // Fallback: status string
+  if (typeof data.status === 'string') {
+    return data.status === 'success' || data.status === 'ok';
+  }
+
+  return false;
 }
 
 /**

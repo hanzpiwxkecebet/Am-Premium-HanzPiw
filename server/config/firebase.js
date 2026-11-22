@@ -62,4 +62,4 @@ function getAuth() {
   return auth;
 }
 
-module.exports = { initFirebase, getDb, getAuth, admin };
+module.exports = { initFirebase, getDb, getAuth, admin, resolvedDatabaseURL: resolveDatabaseURL };
