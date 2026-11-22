@@ -16,7 +16,8 @@ const generalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  // Operator seluler memakai CGNAT (banyak user 1 IP): 20 terlalu kecil dan memblokir user yang tidak bersalah
+  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX) || 80,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.' },

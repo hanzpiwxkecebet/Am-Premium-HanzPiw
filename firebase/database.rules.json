@@ -87,9 +87,20 @@
     // redeemCodes/
     // Hanya server yang bisa baca/tulis
     // ----------------------------------------------------------------
-    "redeemCodes": {
+    "redeem": {
       ".read": false,
       ".write": false
+    },
+
+    // ----------------------------------------------------------------
+    // emails/
+    // Email sistem. Server (Admin SDK) memfilter dengan orderByChild:
+    // tanpa .indexOn, seluruh node diunduh dulu lalu difilter di server (lambat).
+    // ----------------------------------------------------------------
+    "emails": {
+      ".read": false,
+      ".write": false,
+      ".indexOn": ["email", "authorized"]
     },
 
     // ----------------------------------------------------------------
@@ -100,9 +111,7 @@
     "announcements": {
       ".read": "auth !== null",
       ".write": false,
-      "$id": {
-        ".read": "auth !== null && data.child('isActive').val() === true"
-      }
+      ".indexOn": ["active"]
     },
 
     // ----------------------------------------------------------------
@@ -111,7 +120,8 @@
     // ----------------------------------------------------------------
     "adminLogs": {
       ".read": false,
-      ".write": false
+      ".write": false,
+      ".indexOn": ["createdAt"]
     },
 
     // ----------------------------------------------------------------

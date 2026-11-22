@@ -52,7 +52,8 @@ router.get('/emails', verifyToken, async (req, res) => {
   return res.json({ success: true, data: emails });
 });
 
-router.get('/api-status', verifyToken, async (req, res) => {
+// Tanpa verifyToken: tidak butuh database (verifyToken membaca users/{uid}). Kompatibel dengan klien lama.
+router.get('/api-status', async (req, res) => {
   const status = await checkApiStatus();
   return res.json({ success: true, data: status });
 });

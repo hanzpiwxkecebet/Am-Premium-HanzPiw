@@ -1,7 +1,16 @@
 const axios = require('axios');
 
-const BASE_URL = process.env.API_BASE_URL || 'https://ellreyxml.web.id/alight-motion';
-const TIMEOUT = parseInt(process.env.API_TIMEOUT) || 60000;
+/** Buang spasi, tanda kutip pembungkus, dan "/" di akhir (supaya tidak jadi "//send"). */
+function cleanBaseUrl(raw) {
+  let v = String(raw || '').trim();
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1).trim();
+  return v.replace(/\/+$/, '');
+}
+
+const BASE_URL = cleanBaseUrl(process.env.API_BASE_URL) || 'https://ellreyxml.web.id/alight-motion';
+const TIMEOUT = parseInt(process.env.API_TIMEOUT) || 40000;
+// Total waktu maksimal untuk satu panggilan (harus di bawah maxDuration function Vercel = 60 dtk)
+const TOTAL_BUDGET_MS = 50000;
 const MAX_RETRIES = 2;
 
 const API_HEADERS = {
@@ -18,13 +27,16 @@ async function sendVerification(email) {
   email = String(email || '').trim();
   if (!email) throw new Error('Email wajib diisi');
 
+  const startedAt = Date.now();
   let lastError;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const remaining = TOTAL_BUDGET_MS - (Date.now() - startedAt);
+    if (remaining < 5000) break;
     try {
       const response = await axios.get(`${BASE_URL}/send`, {
         params: { email },
         headers: API_HEADERS,
-        timeout: TIMEOUT,
+        timeout: Math.min(TIMEOUT, remaining - 500),
       });
       return { success: true, data: response.data, attempt };
     } catch (error) {
@@ -60,7 +72,7 @@ async function verifyLink(email, link) {
     const response = await axios.get(`${BASE_URL}/verify`, {
       params: { email, link },
       headers: API_HEADERS,
-      timeout: TIMEOUT,
+      timeout: Math.min(TIMEOUT, TOTAL_BUDGET_MS),
     });
 
     // Determine success from response
@@ -97,19 +109,32 @@ function determineVerifySuccess(data) {
   return false;
 }
 
+// Hasil cek status disimpan 30 detik: dashboard dibuka banyak user, API pihak ketiga tidak perlu dipukul tiap kali
+let statusCache = { t: 0, v: null };
+
 /**
- * Check API availability
+ * Check API availability.
+ * "Online" = server pihak ketiga MEMBALAS (HTTP < 500). Root URL biasanya 404/400 karena
+ * memang tidak punya halaman, itu tetap artinya server hidup — jangan dianggap offline.
  */
 async function checkApiStatus() {
+  if (statusCache.v && Date.now() - statusCache.t < 30000) return statusCache.v;
+
+  const t0 = Date.now();
+  let result;
   try {
     const response = await axios.get(BASE_URL, {
       headers: API_HEADERS,
-      timeout: 10000,
+      timeout: 8000,
+      validateStatus: () => true,
+      maxRedirects: 3,
     });
-    return { online: true, statusCode: response.status };
+    result = { online: response.status < 500, statusCode: response.status, latency: Date.now() - t0 };
   } catch (error) {
-    return { online: false, error: error.message };
+    result = { online: false, error: error.code || error.message, latency: Date.now() - t0 };
   }
+  statusCache = { t: Date.now(), v: result };
+  return result;
 }
 
 function delay(ms) {

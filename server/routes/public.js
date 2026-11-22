@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getDb } = require('../config/firebase');
+const { checkApiStatus } = require('../services/apiService');
 
 // Public announcements (active only) — di-cache di edge Vercel supaya tidak kena cold start
 router.get('/announcements', async (req, res) => {
@@ -14,6 +15,14 @@ router.get('/announcements', async (req, res) => {
   });
   items.sort((a, b) => (b.priority || 0) - (a.priority || 0) || (b.createdAt || 0) - (a.createdAt || 0));
   return res.json({ success: true, data: items });
+});
+
+// Status API pihak ketiga. TIDAK memakai database/token: status layanan harus tetap
+// bisa diperiksa walau database sedang bermasalah. Hasil di-cache 30 dtk (apiService) & di edge Vercel.
+router.get('/api-status', async (req, res) => {
+  res.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
+  const status = await checkApiStatus();
+  return res.json({ success: true, data: status });
 });
 
 // System status (maintenance, version)

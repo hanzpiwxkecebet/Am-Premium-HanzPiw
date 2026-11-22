@@ -310,11 +310,13 @@
       const dot = $('api-dot');
       const txt = $('api-status-text');
       try {
-        const apiRes = await AMApp.apiCall('GET', '/api/generator/api-status');
+        // Endpoint publik (tanpa login & tanpa database) -> bisa dipanggil langsung saat halaman dibuka
+        const { res, data: apiRes } = await AMApp.requestJson('/api/public/api-status', {}, 12000);
+        if (!res.ok || !apiRes || !apiRes.data) throw new Error('Respons tidak valid');
         dot.classList.remove('warning', 'animate-pulse');
-        if (apiRes.data && apiRes.data.online) {
+        if (apiRes.data.online) {
           dot.classList.add('online');
-          txt.textContent = 'Online';
+          txt.textContent = apiRes.data.latency ? `Online · ${apiRes.data.latency} ms` : 'Online';
         } else {
           dot.classList.add('offline');
           txt.textContent = 'Offline / Tidak dapat dijangkau';
@@ -360,8 +362,9 @@
       Nav.init('home');
       Theme.updateToggleBtn();
 
-      // Pengumuman bersifat publik: langsung dimuat paralel
+      // Pengumuman & status API bersifat publik: langsung dimuat paralel, tidak menunggu login
       loadAnnouncements();
+      const apiStatusTask = loadApiStatus();
 
       let user = null;
       try {
@@ -371,7 +374,6 @@
         console.error('[Dashboard] Auth error:', err);
         $('user-name').textContent = 'Gagal memuat';
         $('limit-num').classList.remove('skeleton');
-        $('api-status-text').textContent = 'Tidak dapat diperiksa';
         Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
         return;
       }
@@ -394,7 +396,7 @@
         renderStats(ud);
       })();
       if (!cachedProfile) await profileTask;
-      await Promise.allSettled([profileTask, loadLimit(user), loadApiStatus()]);
+      await Promise.allSettled([profileTask, loadLimit(user), apiStatusTask]);
     }
 
     if (document.readyState === 'loading') {

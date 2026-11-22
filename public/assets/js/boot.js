@@ -11,7 +11,8 @@
   // ─── 1) Warm-up ──────────────────────────────────────────────
   // Bangunkan serverless function selagi SDK Firebase & script lain masih diunduh.
   try {
-    fetch('/api/health', { cache: 'no-store', keepalive: true, priority: 'low' }).catch(function () {});
+    // warm=1: sekalian membuka koneksi ke Realtime Database (bukan cuma membangunkan function)
+    fetch('/api/health?warm=1', { cache: 'no-store', keepalive: true, priority: 'low' }).catch(function () {});
   } catch (e) { /* abaikan */ }
 
   // ─── 2) Cache ────────────────────────────────────────────────

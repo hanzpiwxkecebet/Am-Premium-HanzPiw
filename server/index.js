@@ -17,7 +17,7 @@ Layer.prototype.handle_request = function (req, res, next) {
   }
 };
 
-const { initFirebase } = require('./config/firebase');
+const { initFirebase, resetConnection } = require('./config/firebase');
 const { generalLimiter } = require('./middleware/rateLimiter');
 const { sanitizeBody, secureHeaders } = require('./middleware/security');
 
@@ -55,17 +55,30 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(sanitizeBody);
 
 // Batas waktu per request API: kalau database menggantung, balas JSON jelas
-// (bukan menunggu sampai Vercel memutus dengan halaman 504 kosong)
+// (bukan menunggu sampai Vercel memutus dengan halaman 504 kosong).
+// Pengecualian:
+//  - /api/health punya timeout sendiri per tahap diagnosa
+//  - /api/generator/send & /verify memanggil API pihak ketiga yang memang bisa makan puluhan detik
+const LONG_ROUTES = ['/api/generator/send', '/api/generator/verify'];
 app.use('/api/', (req, res, next) => {
+  const path = req.originalUrl.split('?')[0].replace(/\/+$/, '');
+  if (path === '/api/health') return next();
+
+  const isLong = LONG_ROUTES.includes(path);
   const timer = setTimeout(() => {
-    if (!res.headersSent) {
-      console.error('[Timeout]', req.method, req.originalUrl);
-      res.status(504).json({
-        success: false,
-        message: 'Database tidak merespons. Buka /api/health?deep=1 untuk diagnosa.',
-      });
+    if (res.headersSent) return;
+    console.error('[Timeout]', req.method, req.originalUrl);
+    if (isLong) {
+      res.status(504).json({ success: false, message: 'API pihak ketiga terlalu lama merespons. Coba lagi.' });
+      return;
     }
-  }, 8000);
+    // Koneksi database kemungkinan mati: buat ulang supaya request berikutnya tidak ikut menggantung
+    resetConnection();
+    res.status(504).json({
+      success: false,
+      message: 'Database tidak merespons. Buka /api/health?deep=1 untuk diagnosa.',
+    });
+  }, isLong ? 55000 : 8000);
   res.on('finish', () => clearTimeout(timer));
   res.on('close', () => clearTimeout(timer));
   next();
@@ -88,31 +101,63 @@ app.use('/api/public', require('./routes/public'));
 app.get('/api/health', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   const base = { status: 'ok', version: process.env.APP_VERSION || '2.0.0-beta', ts: Date.now() };
+
+  // ?warm=1 dipanggil otomatis oleh browser (boot.js): bangunkan function SEKALIGUS buka koneksi database
+  // selagi SDK Firebase & script lain masih diunduh, supaya request pertama user tidak kena cold start penuh.
+  if (req.query.warm === '1') {
+    try {
+      const { getDb, withTimeout } = require('./config/firebase');
+      await withTimeout(getDb().ref('system/maintenance').once('value'), 4000, 'warm timeout');
+      base.db = true;
+    } catch (e) {
+      base.db = false;
+    }
+    return res.json(base);
+  }
+
   if (req.query.deep !== '1') return res.json(base);
 
   const env = {};
   ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_DATABASE_URL',
    'FIREBASE_API_KEY', 'OWNER_UID', 'APP_URL'].forEach((k) => { env[k] = !!process.env[k]; });
 
-  const report = { ...base, env, region: process.env.VERCEL_REGION || null, database: {} };
+  const report = { ...base, env, region: process.env.VERCEL_REGION || null };
   try {
-    const { getDb, resolvedDatabaseURL } = require('./config/firebase');
-    const url = resolvedDatabaseURL();
-    report.database.host = url ? url.replace(/^https?:\/\//, '') : null;
-    const t0 = Date.now();
-    await Promise.race([
-      getDb().ref('system/maintenance').once('value'),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('TIMEOUT 6 detik: koneksi ke Realtime Database tidak terbentuk')), 6000)),
-    ]);
-    report.database.ok = true;
-    report.database.ms = Date.now() - t0;
+    const { diagnose } = require('./config/firebase');
+    const d = await diagnose();
+    report.database = d;
+    const ok = d.credential.ok !== false && d.rest.ok !== false && d.websocket.ok !== false;
+    if (!ok) report.status = 'error';
+    report.hint = diagnoseHint(d);
   } catch (err) {
     report.status = 'error';
-    report.database.ok = false;
-    report.database.error = String(err && err.message ? err.message : err).slice(0, 300);
+    report.database = { error: String(err && err.message ? err.message : err).slice(0, 300) };
   }
   res.status(report.status === 'ok' ? 200 : 503).json(report);
 });
+
+// Terjemahkan hasil diagnosa jadi saran langsung
+function diagnoseHint(d) {
+  if (d.credential.ok === false) {
+    return 'Credential Firebase ditolak: FIREBASE_PRIVATE_KEY / FIREBASE_CLIENT_EMAIL salah, kunci sudah dihapus/diganti, atau jam server bermasalah. Buat service account key BARU di Firebase Console > Project settings > Service accounts, lalu isi ulang kedua env itu persis dari file JSON dan Redeploy.';
+  }
+  if (d.credential.emailMatchesProject === false) {
+    return 'FIREBASE_CLIENT_EMAIL bukan dari project yang sama dengan FIREBASE_PROJECT_ID.';
+  }
+  if (d.rest.ok === false && d.rest.status === 404) {
+    return 'Alamat database tidak ditemukan. Cek FIREBASE_DATABASE_URL (salin persis dari Firebase Console > Realtime Database, termasuk region mis. .asia-southeast1.firebasedatabase.app).';
+  }
+  if (d.rest.ok === false && (d.rest.status === 401 || d.rest.status === 403)) {
+    return 'Token ditolak oleh database: service account bukan dari project database ini.';
+  }
+  if (d.rest.ok === false) {
+    return 'Server Vercel tidak bisa menjangkau database lewat HTTPS: ' + (d.rest.error || 'tidak ada detail');
+  }
+  if (d.websocket.ok === false) {
+    return 'REST berhasil tapi WebSocket gagal. Biasanya koneksi basi setelah function idle; coba lagi, atau pindahkan Function Region Vercel dekat region database.';
+  }
+  return 'Semua normal.';
+}
 
 // Firebase config for client (public keys only - never private keys)
 app.get('/api/firebase-config', (req, res) => {

@@ -365,10 +365,11 @@
             logTerminal(`${steps[i].charAt(0).toUpperCase() + steps[i].slice(1)}...`, 'info');
           }
 
+          // Server memanggil API pihak ketiga (bisa puluhan detik) -> timeout klien harus lebih panjang dari default 10 dtk
           const res = await AMApp.apiCall('POST', '/api/generator/send', {
             email,
             method: currentMethod,
-          });
+          }, {}, 60000);
 
           currentEmail = email;
           currentRequestId = res.requestId;
@@ -411,7 +412,7 @@
             link,
             requestId: currentRequestId,
             method: currentMethod,
-          });
+          }, {}, 60000);
 
           const duration = startTime ? Date.now() - startTime : 0;
 
