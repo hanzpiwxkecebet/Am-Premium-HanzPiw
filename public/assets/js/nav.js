@@ -1,12 +1,12 @@
 // Bottom Navigation & Desktop Sidebar Manager
 const Nav = {
   items: [
-    { id: 'home', label: 'Home', icon: '⌂', href: '/pages/dashboard.html' },
-    { id: 'generator', label: 'Generator', icon: '⚡', href: '/pages/generator.html' },
-    { id: 'history', label: 'History', icon: '◷', href: '/pages/history.html' },
-    { id: 'redeem', label: 'Redeem', icon: '🎟', href: '/pages/redeem.html' },
-    { id: 'updates', label: 'Updates', icon: '🔔', href: '/pages/updates.html' },
-    { id: 'profile', label: 'Profile', icon: '👤', href: '/pages/profile.html' },
+    { id: 'home', label: 'Home', icon: '<i class="ic ic-home"></i>', href: '/pages/dashboard.html' },
+    { id: 'generator', label: 'Generator', icon: '<i class="ic ic-bolt"></i>', href: '/pages/generator.html' },
+    { id: 'history', label: 'History', icon: '<i class="ic ic-clock"></i>', href: '/pages/history.html' },
+    { id: 'redeem', label: 'Redeem', icon: '<i class="ic ic-ticket"></i>', href: '/pages/redeem.html' },
+    { id: 'updates', label: 'Updates', icon: '<i class="ic ic-bell"></i>', href: '/pages/updates.html' },
+    { id: 'profile', label: 'Profile', icon: '<i class="ic ic-user"></i>', href: '/pages/profile.html' },
   ],
 
   init(activeId) {

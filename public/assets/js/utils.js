@@ -58,7 +58,7 @@ function createModal(title, content, buttons = []) {
     <div class="modal">
       <div class="modal-header">
         <h3>${title}</h3>
-        <button class="modal-close" aria-label="Close">✕</button>
+        <button class="modal-close" aria-label="Close"><i class="ic ic-x"></i></button>
       </div>
       <div class="modal-body">${content}</div>
       ${buttons.length ? `<div class="modal-footer">${btnHtml}</div>` : ''}
@@ -113,9 +113,9 @@ function renderError(container, message, onRetry) {
   if (!container) return;
   container.innerHTML = `
     <div class="empty-state error-state">
-      <div class="empty-icon">⚠</div>
+      <div class="empty-icon"><i class="ic ic-alert"></i></div>
       <div style="margin-bottom:14px">${escapeHtml(message || 'Gagal memuat data')}</div>
-      ${onRetry ? '<button class="btn btn-secondary btn-sm" data-retry>↻ Coba lagi</button>' : ''}
+      ${onRetry ? '<button class="btn btn-secondary btn-sm" data-retry><i class="ic ic-refresh"></i> Coba lagi</button>' : ''}
     </div>`;
   const btn = container.querySelector('[data-retry]');
   if (btn && onRetry) btn.addEventListener('click', onRetry);

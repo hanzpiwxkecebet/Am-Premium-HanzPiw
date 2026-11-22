@@ -15,26 +15,26 @@
 
 ---
 
-## ✨ Fitur Utama
+## Fitur Utama
 
 | Fitur | Keterangan |
 |-------|-----------|
-| 🔐 **Multi-Auth** | Email/password + Google OAuth |
-| 👤 **Username Login** | Login pakai username, bukan hanya email |
-| 📊 **Daily Limit** | Limit harian reset otomatis jam 00:00 WIB |
-| 🎟 **Redeem Code** | Kode untuk limit/premium/special access |
-| 👑 **5 Level Role** | user → premium → moderator → admin → owner |
-| 📧 **System Emails** | Pool email sistem dengan locking concurrent |
-| 🛡 **Admin Panel** | Kelola user, kode, email, pengumuman, sistem |
-| 👑 **Owner Panel** | Full control + danger zone + activity logs |
-| 🔔 **Announcements** | Pengumuman prioritas tinggi/normal |
-| 🛠 **Maintenance Mode** | Blokir akses saat maintenance |
-| 🌙 **Dark/Light Mode** | Tema otomatis sesuai preferensi |
-| 🎨 **Dark Neon Fusion** | Desain glassmorphism + partikel animasi |
+| **Multi-Auth** | Email/password + Google OAuth |
+| **Username Login** | Login pakai username, bukan hanya email |
+| **Daily Limit** | Limit harian reset otomatis jam 00:00 WIB |
+| **Redeem Code** | Kode untuk limit/premium/special access |
+| **5 Level Role** | user → premium → moderator → admin → owner |
+| **System Emails** | Pool email sistem dengan locking concurrent |
+| **Admin Panel** | Kelola user, kode, email, pengumuman, sistem |
+| **Owner Panel** | Full control + danger zone + activity logs |
+| **Announcements** | Pengumuman prioritas tinggi/normal |
+| **Maintenance Mode** | Blokir akses saat maintenance |
+| **Dark/Light Mode** | Tema otomatis sesuai preferensi |
+| **Dark Neon Fusion** | Desain glassmorphism + partikel animasi |
 
 ---
 
-## 🏗 Struktur Project
+## Struktur Project
 
 ```
 am-premium-generator/
@@ -107,7 +107,7 @@ am-premium-generator/
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Install
 
@@ -148,7 +148,7 @@ npm start      # production
 
 ---
 
-## 🌐 Deploy ke Vercel
+## Deploy ke Vercel
 
 ```bash
 # 1. Push ke GitHub
@@ -163,7 +163,7 @@ Panduan lengkap: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)
 
 ---
 
-## 🛡 Keamanan
+## Keamanan
 
 | Lapisan | Implementasi |
 |---------|-------------|
@@ -180,7 +180,7 @@ Panduan keamanan lengkap: [docs/SECURITY.md](./docs/SECURITY.md)
 
 ---
 
-## 🎨 Desain
+## Desain
 
 **Dark Neon Fusion** — perpaduan Deep Black + Dark Red Neon + Dark Blue Neon
 
@@ -194,28 +194,28 @@ Panduan keamanan lengkap: [docs/SECURITY.md](./docs/SECURITY.md)
 
 ---
 
-## 📡 API Backend
+## API Backend
 
 Base URL: `/api`
 
 | Method | Endpoint | Auth | Keterangan |
 |--------|----------|------|-----------|
-| `POST` | `/auth/register` | ❌ | Daftar akun baru |
-| `POST` | `/auth/login` | ❌ | (via Firebase Client) |
-| `GET` | `/auth/profile` | ✅ | Data profil |
-| `POST` | `/generator/send` | ✅ | Kirim verifikasi |
-| `POST` | `/generator/verify` | ✅ | Verifikasi link |
-| `GET` | `/generator/limit` | ✅ | Cek sisa limit |
-| `GET` | `/generator/history` | ✅ | Riwayat penggunaan |
-| `POST` | `/redeem` | ✅ | Redeem kode |
-| `GET` | `/admin/users` | 🛡 Admin | Daftar user |
-| `GET` | `/admin/stats` | 🛡 Admin | Statistik |
-| `POST` | `/admin/redeem` | 🛡 Admin | Buat kode |
-| `GET` | `/public/status` | ❌ | Status sistem |
+| `POST` | `/auth/register` | | Daftar akun baru |
+| `POST` | `/auth/login` | | (via Firebase Client) |
+| `GET` | `/auth/profile` | | Data profil |
+| `POST` | `/generator/send` | | Kirim verifikasi |
+| `POST` | `/generator/verify` | | Verifikasi link |
+| `GET` | `/generator/limit` | | Cek sisa limit |
+| `GET` | `/generator/history` | | Riwayat penggunaan |
+| `POST` | `/redeem` | | Redeem kode |
+| `GET` | `/admin/users` | Admin | Daftar user |
+| `GET` | `/admin/stats` | Admin | Statistik |
+| `POST` | `/admin/redeem` | Admin | Buat kode |
+| `GET` | `/public/status` | | Status sistem |
 
 ---
 
-## 📄 Dokumentasi
+## Dokumentasi
 
 - [Instalasi Lokal](./docs/INSTALLATION.md)
 - [Setup Firebase](./docs/FIREBASE_SETUP.md)
@@ -225,7 +225,7 @@ Base URL: `/api`
 
 ---
 
-## 📦 Dependencies
+## Dependencies
 
 ```json
 {
@@ -244,7 +244,7 @@ Base URL: `/api`
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 > Aplikasi ini dibuat untuk tujuan edukasi dan penggunaan pribadi.
 > Gunakan sesuai Terms of Service Alight Motion.
@@ -254,7 +254,7 @@ Base URL: `/api`
 
 <div align="center">
 
-Made with ❤️ by **HanzPiw Official**
+Made with by **HanzPiw Official**
 
 [![Instagram](https://img.shields.io/badge/@itshanzpiw-E4405F?style=flat&logo=instagram&logoColor=white)](https://instagram.com/itshanzpiw)
 

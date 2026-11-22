@@ -15,8 +15,8 @@
   <link rel="stylesheet" href="/assets/css/main.css">
   <style>
     .profile-hero { text-align: center; padding: 24px 20px; border-radius: var(--radius-xl); background: var(--gradient-card); border: 1px solid var(--border-glass); margin-bottom: 16px; position: relative; overflow: hidden; }
-    .profile-hero::before { content: ''; position: absolute; top: -40px; left: 50%; transform: translateX(-50%); width: 200px; height: 200px; background: radial-gradient(circle, rgba(150,140,255,0.15) 0%, transparent 70%); pointer-events: none; }
-    .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; margin: 0 auto 12px; border: 3px solid rgba(150,140,255,0.4); object-fit: cover; }
+    .profile-hero::before { content: ''; position: absolute; top: -40px; left: 50%; transform: translateX(-50%); width: 200px; height: 200px; background: radial-gradient(circle, rgba(156, 156, 156,0.15) 0%, transparent 70%); pointer-events: none; }
+    .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; margin: 0 auto 12px; border: 3px solid rgba(156, 156, 156,0.4); object-fit: cover; }
     .profile-name { font-size: 1.3rem; font-weight: 800; margin-bottom: 4px; }
     .profile-username { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px; }
     .profile-badges { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
@@ -44,7 +44,7 @@
   <div class="page-content">
     <div class="page-header">
       <div>
-        <div class="page-title gradient-text">Profil 👤</div>
+        <div class="page-title gradient-text">Profil <i class="ic ic-user"></i></div>
         <div class="page-subtitle">Informasi dan pengaturan akun</div>
       </div>
     </div>
@@ -79,15 +79,15 @@
     <!-- Settings -->
     <div class="glass-card" style="padding:4px 20px;margin-bottom:12px">
       <div class="settings-item" id="edit-name-btn">
-        <div><span class="settings-icon">✏️</span><span class="settings-label">Edit Nama</span></div>
+        <div><span class="settings-icon"><i class="ic ic-pencil"></i></span><span class="settings-label">Edit Nama</span></div>
         <span class="settings-arrow">›</span>
       </div>
       <div class="settings-item" id="change-pass-btn">
-        <div><span class="settings-icon">🔒</span><span class="settings-label">Ganti Password</span></div>
+        <div><span class="settings-icon"><i class="ic ic-lock"></i></span><span class="settings-label">Ganti Password</span></div>
         <span class="settings-arrow">›</span>
       </div>
       <div class="settings-item" id="reset-pass-btn">
-        <div><span class="settings-icon">📧</span><span class="settings-label">Reset Password via Email</span></div>
+        <div><span class="settings-icon"><i class="ic ic-mail"></i></span><span class="settings-label">Reset Password via Email</span></div>
         <span class="settings-arrow">›</span>
       </div>
     </div>
@@ -95,13 +95,13 @@
     <!-- Preferences -->
     <div class="glass-card" style="padding:4px 20px;margin-bottom:12px">
       <div class="settings-item">
-        <div><span class="settings-icon">🌙</span><span class="settings-label">Dark Mode</span></div>
+        <div><span class="settings-icon"><i class="ic ic-moon"></i></span><span class="settings-label">Dark Mode</span></div>
         <div class="toggle-switch on" id="theme-toggle-sw" onclick="toggleTheme(this)">
           <div class="toggle-thumb"></div>
         </div>
       </div>
       <div class="settings-item">
-        <div><span class="settings-icon">🔔</span><span class="settings-label">Suara Notifikasi</span></div>
+        <div><span class="settings-icon"><i class="ic ic-bell"></i></span><span class="settings-label">Suara Notifikasi</span></div>
         <div class="toggle-switch on" id="sound-toggle" onclick="toggleSound(this)">
           <div class="toggle-thumb"></div>
         </div>
@@ -111,7 +111,7 @@
     <!-- Logout -->
     <button class="btn btn-danger btn-full btn-lg" id="logout-btn" style="margin-bottom:24px">
       <div class="btn-loader"></div>
-      <span class="btn-text">🚪 Keluar</span>
+      <span class="btn-text"><i class="ic ic-logout"></i> Keluar</span>
     </button>
 
     <!-- Social Links -->
@@ -119,17 +119,17 @@
       <div class="section-title">Komunitas & Kontak</div>
       <div style="display:flex;flex-direction:column;gap:8px">
         <a href="https://whatsapp.com/channel/0029VbDvpID7oQhXPaT1ar1B" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:rgba(37,211,102,0.07);border:1px solid rgba(37,211,102,0.2);text-decoration:none;color:var(--text-primary)">
-          <span style="font-size:1.2rem;flex-shrink:0">📢</span>
+          <span style="font-size:1.2rem;flex-shrink:0"><i class="ic ic-megaphone"></i></span>
           <div style="flex:1"><div style="font-size:0.82rem;font-weight:700">Channel WA Info</div><div style="font-size:0.7rem;color:var(--text-secondary)">Info website AM Premium</div></div>
           <span style="color:#25D366;font-weight:700;font-size:0.72rem">Follow</span>
         </a>
         <a href="https://t.me/abouthanzpiww" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:rgba(34,158,217,0.07);border:1px solid rgba(34,158,217,0.2);text-decoration:none;color:var(--text-primary)">
-          <span style="font-size:1.2rem;flex-shrink:0">✈️</span>
+          <span style="font-size:1.2rem;flex-shrink:0"><i class="ic ic-send"></i></span>
           <div style="flex:1"><div style="font-size:0.82rem;font-weight:700">Channel Telegram Utama</div><div style="font-size:0.7rem;color:var(--text-secondary)">@abouthanzpiww</div></div>
           <span style="color:#229ED9;font-weight:700;font-size:0.72rem">Join</span>
         </a>
-        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:rgba(150,140,255,0.06);border:1px solid rgba(150,140,255,0.2)">
-          <span style="font-size:1.2rem;flex-shrink:0">👑</span>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:rgba(156, 156, 156,0.06);border:1px solid rgba(156, 156, 156,0.2)">
+          <span style="font-size:1.2rem;flex-shrink:0"><i class="ic ic-crown"></i></span>
           <div style="flex:1"><div style="font-size:0.82rem;font-weight:700">Hubungi Owner</div>
             <div style="display:flex;gap:6px;margin-top:5px">
               <a href="https://wa.me/6285191782145" target="_blank" rel="noopener" style="padding:3px 10px;border-radius:6px;font-size:0.72rem;font-weight:700;background:rgba(37,211,102,0.15);color:#25D366;border:1px solid rgba(37,211,102,0.3);text-decoration:none">WhatsApp</a>
@@ -141,7 +141,7 @@
     </div>
 
     <div style="text-align:center;color:var(--text-muted);font-size:0.72rem;padding-bottom:8px">
-      Developed with ❤️ by HanzPiw Official<br>AM Premium Generator V2.0 Beta
+      Developed with <i class="ic ic-heart"></i> by HanzPiw Official<br>AM Premium Generator V2.0 Beta
     </div>
   </div>
 

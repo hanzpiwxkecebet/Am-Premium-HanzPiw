@@ -38,14 +38,14 @@
   <div class="page-content">
     <div class="page-header">
       <div>
-        <div class="page-title gradient-text">Redeem 🎟</div>
+        <div class="page-title gradient-text">Redeem <i class="ic ic-ticket"></i></div>
         <div class="page-subtitle">Gunakan kode redeem kamu</div>
       </div>
     </div>
 
     <!-- Redeem card -->
     <div class="redeem-card glass-card">
-      <div class="redeem-icon">🎟</div>
+      <div class="redeem-icon"><i class="ic ic-ticket"></i></div>
       <div style="font-weight:700;font-size:1.1rem;margin-bottom:4px">Masukkan Kode Redeem</div>
       <div class="text-secondary text-sm mb-3">Dapatkan limit tambahan, premium, atau akses khusus</div>
 
@@ -57,7 +57,7 @@
 
       <button class="btn btn-primary btn-full btn-lg" id="redeem-btn">
         <div class="btn-loader"></div>
-        <span class="btn-text">🎟 Redeem Sekarang</span>
+        <span class="btn-text"><i class="ic ic-ticket"></i> Redeem Sekarang</span>
       </button>
     </div>
 
@@ -65,17 +65,17 @@
     <div class="section-title">Jenis Kode</div>
     <div class="type-info">
       <div class="type-card">
-        <div class="type-card-icon">📊</div>
+        <div class="type-card-icon"><i class="ic ic-chart"></i></div>
         <div class="type-card-name" style="color:var(--text-success)">Limit</div>
         <div class="type-card-desc">Tambah limit harian</div>
       </div>
       <div class="type-card">
-        <div class="type-card-icon">⭐</div>
+        <div class="type-card-icon"><i class="ic ic-star"></i></div>
         <div class="type-card-name" style="background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Premium</div>
         <div class="type-card-desc">Akses Premium</div>
       </div>
       <div class="type-card">
-        <div class="type-card-icon">🔑</div>
+        <div class="type-card-icon"><i class="ic ic-key"></i></div>
         <div class="type-card-name" style="color:#ffaa44">Special</div>
         <div class="type-card-desc">Akses khusus</div>
       </div>
@@ -166,9 +166,9 @@
             // Show reward modal
             const typeLabel = Utils.escapeHtml(TYPE_LABELS[res.data && res.data.type] || (res.data && res.data.type) || '');
             const val = res.data ? res.data.value : '';
-            Utils.createModal('🎉 Redeem Berhasil!',
+            Utils.createModal('<i class="ic ic-sparkles"></i> Redeem Berhasil!',
               `<div style="text-align:center;padding:8px 0">
-                <div style="font-size:2.5rem;margin-bottom:12px">🎊</div>
+                <div style="font-size:2.5rem;margin-bottom:12px"><i class="ic ic-sparkles"></i></div>
                 <div class="text-secondary" style="font-size:0.9rem">Kamu mendapatkan:</div>
                 <div style="font-size:1.5rem;font-weight:800;margin:8px 0" class="gradient-text">+${Utils.escapeHtml(String(val))} ${typeLabel}</div>
               </div>`,

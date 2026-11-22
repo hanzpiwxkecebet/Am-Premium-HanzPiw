@@ -41,7 +41,7 @@ function initParticles() {
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 120) {
           const alpha = (1 - dist / 120) * 0.08;
-          ctx.strokeStyle = `rgba(190, 200, 255, ${alpha})`;
+          ctx.strokeStyle = `rgba(203, 203, 203, ${alpha})`;
           ctx.lineWidth = 0.5;
           ctx.beginPath();
           ctx.moveTo(particles[i].x, particles[i].y);

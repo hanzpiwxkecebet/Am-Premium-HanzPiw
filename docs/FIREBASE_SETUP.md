@@ -39,7 +39,7 @@
 
 ## Langkah 4: Buat Service Account (Backend)
 
-1. Firebase Console → ⚙️ **Project Settings** → tab **Service accounts**
+1. Firebase Console → **Project Settings** → tab **Service accounts**
 2. Klik **Generate new private key**
 3. Klik **Generate key** — file JSON akan terdownload
 4. **JANGAN commit file ini ke Git!**
@@ -64,7 +64,7 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvAIBADA...\n-----END PRIV
 
 ## Langkah 5: Ambil Web Config (Frontend)
 
-1. Firebase Console → ⚙️ **Project Settings** → tab **General**
+1. Firebase Console → **Project Settings** → tab **General**
 2. Scroll ke bawah → **Your apps** → klik ikon **</>** (Web)
 3. Daftarkan app (nama bebas, misal `am-premium-web`)
 4. Salin `firebaseConfig`:
@@ -128,7 +128,7 @@ Jika response `200 OK` → Firebase berhasil terhubung.
 
 ## Catatan Keamanan
 
-- ❌ **JANGAN** commit file `serviceAccountKey.json` ke Git
-- ❌ **JANGAN** expose `FIREBASE_PRIVATE_KEY` ke frontend
-- ✅ Hanya `FIREBASE_API_KEY`, `AUTH_DOMAIN`, `APP_ID` dll (web config) yang aman di frontend
-- ✅ Private key hanya ada di server via environment variables
+- **JANGAN** commit file `serviceAccountKey.json` ke Git
+- **JANGAN** expose `FIREBASE_PRIVATE_KEY` ke frontend
+- Hanya `FIREBASE_API_KEY`, `AUTH_DOMAIN`, `APP_ID` dll (web config) yang aman di frontend
+- Private key hanya ada di server via environment variables

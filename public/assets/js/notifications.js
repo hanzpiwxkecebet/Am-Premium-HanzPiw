@@ -7,10 +7,10 @@ const ToastTypes = {
 };
 
 const ToastIcons = {
-  success: '✓',
-  error: '✕',
-  warning: '⚠',
-  info: 'ℹ',
+  success: '<i class="ic ic-check"></i>',
+  error: '<i class="ic ic-x"></i>',
+  warning: '<i class="ic ic-alert"></i>',
+  info: '<i class="ic ic-info"></i>',
 };
 
 function readSoundSetting() {
@@ -34,7 +34,7 @@ function showToast(message, type = 'info', title = null, duration = 4000) {
   const displayTitle = title || defaultTitles[type] || 'Notifikasi';
 
   toast.innerHTML = `
-    <span class="toast-icon">${ToastIcons[type] || 'ℹ'}</span>
+    <span class="toast-icon">${ToastIcons[type] || '<i class="ic ic-info"></i>'}</span>
     <div class="toast-body">
       <div class="toast-title">${escapeHtml(displayTitle)}</div>
       <div class="toast-message">${escapeHtml(message)}</div>

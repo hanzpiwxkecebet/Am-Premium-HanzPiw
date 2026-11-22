@@ -14,12 +14,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/main.css">
   <style>
-    .owner-header { background: linear-gradient(135deg, rgba(150,140,255,0.15) 0%, rgba(34,85,255,0.15) 100%); border: 1px solid rgba(150,140,255,0.3); border-radius: var(--radius-xl); padding: 20px; margin-bottom: 16px; }
+    .owner-header { background: linear-gradient(135deg, rgba(156, 156, 156,0.15) 0%, rgba(89, 89, 89,0.15) 100%); border: 1px solid rgba(156, 156, 156,0.3); border-radius: var(--radius-xl); padding: 20px; margin-bottom: 16px; }
     .owner-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--gradient-primary); padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
     .owner-tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px; scrollbar-width: none; }
     .owner-tabs::-webkit-scrollbar { display: none; }
     .owner-tab { flex-shrink: 0; padding: 8px 16px; border-radius: var(--radius-full); border: 1px solid var(--border-glass); background: var(--bg-glass); font-size: 0.82rem; font-weight: 600; cursor: pointer; color: var(--text-secondary); transition: var(--transition); white-space: nowrap; }
-    .owner-tab.active { background: rgba(150,140,255,0.15); border-color: var(--border-neon-red); color: var(--text-primary); box-shadow: 0 0 10px rgba(150,140,255,0.1); }
+    .owner-tab.active { background: rgba(156, 156, 156,0.15); border-color: var(--border-neon-red); color: var(--text-primary); box-shadow: 0 0 10px rgba(156, 156, 156,0.1); }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
     .admin-table { width: 100%; border-collapse: collapse; }
@@ -50,19 +50,19 @@
   <div class="page-content">
     <!-- Owner Header -->
     <div class="owner-header">
-      <div class="owner-badge">👑 Owner Panel</div>
+      <div class="owner-badge"><i class="ic ic-crown"></i> Owner Panel</div>
       <div style="font-size:1.1rem;font-weight:800;margin-bottom:4px">Kontrol Penuh</div>
       <div style="font-size:0.82rem;color:var(--text-secondary)">Kelola semua aspek sistem dengan tanggung jawab penuh</div>
     </div>
 
     <!-- Owner Tabs -->
     <div class="owner-tabs">
-      <button class="owner-tab active" data-tab="overview">📊 Overview</button>
-      <button class="owner-tab" data-tab="staff">👮 Staff</button>
-      <button class="owner-tab" data-tab="allusers">👥 Semua User</button>
-      <button class="owner-tab" data-tab="system">⚙️ Sistem</button>
-      <button class="owner-tab" data-tab="logs">📋 Log Lengkap</button>
-      <button class="owner-tab" data-tab="danger">⚠️ Danger Zone</button>
+      <button class="owner-tab active" data-tab="overview"><i class="ic ic-chart"></i> Overview</button>
+      <button class="owner-tab" data-tab="staff"><i class="ic ic-usercheck"></i> Staff</button>
+      <button class="owner-tab" data-tab="allusers"><i class="ic ic-users"></i> Semua User</button>
+      <button class="owner-tab" data-tab="system"><i class="ic ic-settings"></i> Sistem</button>
+      <button class="owner-tab" data-tab="logs"><i class="ic ic-clipboard"></i> Log Lengkap</button>
+      <button class="owner-tab" data-tab="danger"><i class="ic ic-alert"></i> Danger Zone</button>
     </div>
 
     <!-- OVERVIEW -->
@@ -87,7 +87,7 @@
     <div class="tab-panel" id="tab-staff">
       <div class="glass-card" style="margin-bottom:16px;padding:16px 20px">
         <div style="font-size:0.9rem;color:var(--text-secondary);line-height:1.6">
-          🛡 Kelola admin dan moderator. Owner tidak dapat diubah via panel ini — hanya via env <code>OWNER_UID</code>.
+          <i class="ic ic-shield"></i> Kelola admin dan moderator. Owner tidak dapat diubah via panel ini — hanya via env <code>OWNER_UID</code>.
         </div>
       </div>
       <div class="table-tools">
@@ -157,7 +157,7 @@
           <label class="form-label">Pesan Selamat Datang (optional)</label>
           <input type="text" class="form-input" id="owner-welcome-msg" placeholder="Selamat datang di AM Premium Generator!">
         </div>
-        <button class="btn btn-primary btn-full" id="owner-save-sys">💾 Simpan Semua Pengaturan</button>
+        <button class="btn btn-primary btn-full" id="owner-save-sys"><i class="ic ic-save"></i> Simpan Semua Pengaturan</button>
       </div>
     </div>
 
@@ -171,7 +171,7 @@
           <option value="moderator">Moderator</option>
           <option value="owner">Owner</option>
         </select>
-        <button class="btn btn-secondary" style="padding:7px 12px;font-size:0.82rem" id="refresh-logs-btn">↻</button>
+        <button class="btn btn-secondary" style="padding:7px 12px;font-size:0.82rem" id="refresh-logs-btn"><i class="ic ic-refresh"></i></button>
       </div>
       <div id="owner-logs-list">
         <div class="skeleton" style="height:60px;border-radius:var(--radius-md);margin-bottom:8px"></div>
@@ -182,7 +182,7 @@
     <!-- DANGER ZONE -->
     <div class="tab-panel" id="tab-danger">
       <div class="danger-zone">
-        <div class="danger-zone-title">⚠️ Danger Zone</div>
+        <div class="danger-zone-title"><i class="ic ic-alert"></i> Danger Zone</div>
         <div class="danger-zone-desc">Tindakan-tindakan berikut bersifat permanen dan tidak dapat dibatalkan. Pastikan Anda benar-benar memahami konsekuensinya.</div>
 
         <div style="display:flex;flex-direction:column;gap:12px">
@@ -250,7 +250,7 @@
         `;
         document.getElementById('server-status-info').innerHTML = `
           <div style="display:flex;justify-content:space-between"><span>Status API</span>${d.apiOnline ? '<span class="badge badge-active">Online</span>' : '<span class="badge badge-suspended">Offline</span>'}</div>
-          <div style="display:flex;justify-content:space-between"><span>Maintenance</span><span style="color:${d.maintenance?'var(--text-error)':'var(--text-success)'}">${d.maintenance ? '⚠️ Aktif' : '✅ Nonaktif'}</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Maintenance</span><span style="color:${d.maintenance?'var(--text-error)':'var(--text-success)'}">${d.maintenance ? '<i class="ic ic-alert"></i> Aktif' : '<i class="ic ic-check"></i> Nonaktif'}</span></div>
           <div style="display:flex;justify-content:space-between"><span>Versi</span><span style="font-family:var(--font-mono)">${d.version || '-'}</span></div>
           <div style="display:flex;justify-content:space-between"><span>Total Redeem Codes</span><span>${d.totalCodes || 0}</span></div>
           <div style="display:flex;justify-content:space-between"><span>System Emails</span><span>${d.totalEmails || 0}</span></div>
@@ -291,8 +291,8 @@
             <option value="admin" ${user.role==='admin'?'selected':''}>Admin</option>
           </select>
         </div>
-        <div style="font-size:0.78rem;color:var(--text-secondary);background:rgba(150,140,255,0.06);padding:10px;border-radius:var(--radius-md)">
-          ⚠️ Mengubah role admin/moderator mempengaruhi akses mereka ke panel ini secara langsung.
+        <div style="font-size:0.78rem;color:var(--text-secondary);background:rgba(156, 156, 156,0.06);padding:10px;border-radius:var(--radius-md)">
+          <i class="ic ic-alert"></i> Mengubah role admin/moderator mempengaruhi akses mereka ke panel ini secara langsung.
         </div>
       `, [
         { label: 'Batal', action: 'cancel', class: 'btn-secondary' },
@@ -425,7 +425,7 @@
       container.innerHTML = list.map(l => `
         <div class="log-entry">
           <div class="log-entry-action">${Utils.escapeHtml(l.action)}</div>
-          <div class="log-entry-meta">[${Utils.escapeHtml(l.actorRole)}] UID:${Utils.escapeHtml(l.actorUID||'').substring(0,10)} → ${Utils.escapeHtml(l.targetUsername||l.targetUID||'-')} · ${Utils.formatDate(l.timestamp || l.createdAt)}</div>
+          <div class="log-entry-meta">[${Utils.escapeHtml(l.actorRole)}] UID:${Utils.escapeHtml(l.actorUID||'').substring(0,10)} <i class="ic ic-arrow"></i> ${Utils.escapeHtml(l.targetUsername||l.targetUID||'-')} · ${Utils.formatDate(l.timestamp || l.createdAt)}</div>
           ${l.summary ? `<div style="font-size:0.76rem;color:var(--text-secondary);margin-top:4px">${Utils.escapeHtml(l.summary)}</div>` : ''}
         </div>
       `).join('');

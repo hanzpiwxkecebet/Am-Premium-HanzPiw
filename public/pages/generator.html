@@ -16,33 +16,33 @@
   <style>
     .method-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
     .method-tab { flex: 1; padding: 12px; border: 1px solid var(--border-glass); border-radius: var(--radius-md); background: var(--bg-glass); cursor: pointer; text-align: center; transition: var(--transition); font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); }
-    .method-tab.active { border-color: var(--neon-red-dim); background: rgba(150,140,255,0.08); color: var(--text-primary); }
+    .method-tab.active { border-color: var(--neon-red-dim); background: rgba(156, 156, 156,0.08); color: var(--text-primary); }
     .step-indicator { display: flex; align-items: center; margin-bottom: 24px; }
     .step-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border-glass); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; transition: var(--transition); background: var(--bg-glass); }
-    .step-dot.active { border-color: var(--neon-red); background: rgba(150,140,255,0.15); color: var(--neon-red); }
+    .step-dot.active { border-color: var(--neon-red); background: rgba(156, 156, 156,0.15); color: var(--neon-red); }
     .step-dot.done { border-color: var(--text-success); background: rgba(0,255,136,0.15); color: var(--text-success); }
     .step-line { flex: 1; height: 2px; background: var(--border-glass); margin: 0 6px; border-radius: 9999px; transition: var(--transition); }
     .step-line.done { background: var(--gradient-primary); }
     .progress-steps { margin: 16px 0; }
     .progress-step { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.82rem; font-weight: 500; color: var(--text-muted); transition: var(--transition); }
-    .progress-step.active { color: var(--text-primary); background: rgba(150,140,255,0.06); }
+    .progress-step.active { color: var(--text-primary); background: rgba(156, 156, 156,0.06); }
     .progress-step.done { color: var(--text-success); }
     .progress-step.failed { color: var(--text-error); }
     .step-icon { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; flex-shrink: 0; }
     .step-icon.spinning { animation: spin 0.8s linear infinite; border-top-color: transparent; }
-    .terminal-box { background: #0a0a0a; border: 1px solid rgba(150,140,255,0.2); border-radius: var(--radius-md); padding: 14px 16px; font-family: var(--font-mono); font-size: 0.75rem; height: 140px; overflow-y: auto; margin-top: 12px; }
+    .terminal-box { background: #0a0a0a; border: 1px solid rgba(156, 156, 156,0.2); border-radius: var(--radius-md); padding: 14px 16px; font-family: var(--font-mono); font-size: 0.75rem; height: 140px; overflow-y: auto; margin-top: 12px; }
     .terminal-line { color: #aaa; line-height: 1.6; }
     .terminal-line.ok { color: #00ff88; }
     .terminal-line.err { color: #ff4455; }
-    .terminal-line.info { color: #44aaff; }
+    .terminal-line.info { color: #959595; }
     .timer-display { font-family: var(--font-mono); font-size: 1.1rem; color: var(--text-secondary); }
     .result-card { text-align: center; padding: 24px; border-radius: var(--radius-xl); animation: fadeInUp 0.4s ease; }
     .result-card.success { background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.2); }
     .result-card.failed { background: rgba(255,34,68,0.05); border: 1px solid rgba(255,34,68,0.2); }
     .result-icon { font-size: 3rem; margin-bottom: 12px; }
     .email-select-item { padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); cursor: pointer; transition: var(--transition); font-size: 0.88rem; display: flex; align-items: center; justify-content: space-between; }
-    .email-select-item:hover { border-color: var(--border-neon-red); background: rgba(150,140,255,0.05); }
-    .email-select-item.selected { border-color: var(--neon-red-dim); background: rgba(150,140,255,0.1); }
+    .email-select-item:hover { border-color: var(--border-neon-red); background: rgba(156, 156, 156,0.05); }
+    .email-select-item.selected { border-color: var(--neon-red-dim); background: rgba(156, 156, 156,0.1); }
   </style>
 </head>
 <body>
@@ -52,7 +52,7 @@
   <div class="page-content">
     <div class="page-header">
       <div>
-        <div class="page-title gradient-text">Generator ⚡</div>
+        <div class="page-title gradient-text">Generator <i class="ic ic-bolt"></i></div>
         <div class="page-subtitle">Generate akun Alight Motion Premium</div>
       </div>
       <div class="timer-display" id="timer">00:00</div>
@@ -80,8 +80,8 @@
         <div class="form-group">
           <label class="form-label">Metode Email</label>
           <div class="method-tabs">
-            <div class="method-tab active" data-method="custom" id="tab-custom">📧 Email Sendiri</div>
-            <div class="method-tab" data-method="system" id="tab-system">🔖 Email Sistem</div>
+            <div class="method-tab active" data-method="custom" id="tab-custom"><i class="ic ic-mail"></i> Email Sendiri</div>
+            <div class="method-tab" data-method="system" id="tab-system"><i class="ic ic-bookmark"></i> Email Sistem</div>
           </div>
         </div>
 
@@ -103,7 +103,7 @@
 
         <button class="btn btn-primary btn-full btn-lg" id="send-btn" style="margin-top:8px">
           <div class="btn-loader"></div>
-          <span class="btn-text">⚡ Mulai Generate</span>
+          <span class="btn-text"><i class="ic ic-bolt"></i> Mulai Generate</span>
         </button>
       </div>
     </div>
@@ -111,7 +111,7 @@
     <!-- Step 2: Verification -->
     <div id="step-2-content" class="hidden">
       <div class="glass-card" style="padding:20px;margin-bottom:12px">
-        <div style="font-weight:700;margin-bottom:4px">📬 Cek Email Kamu</div>
+        <div style="font-weight:700;margin-bottom:4px"><i class="ic ic-inbox"></i> Cek Email Kamu</div>
         <div class="text-secondary text-sm mb-2">Link verifikasi sudah dikirim. Buka email dan copy link verifikasinya.</div>
 
         <div class="form-group">
@@ -123,7 +123,7 @@
           <button class="btn btn-secondary" id="cancel-btn" style="flex:1">Batalkan</button>
           <button class="btn btn-primary" id="verify-btn" style="flex:2">
             <div class="btn-loader"></div>
-            <span class="btn-text">✓ Submit Verifikasi</span>
+            <span class="btn-text"><i class="ic ic-check"></i> Submit Verifikasi</span>
           </button>
         </div>
       </div>
@@ -146,7 +146,7 @@
         <div style="font-size:1.3rem;font-weight:800;margin-bottom:8px" id="result-title"></div>
         <div class="text-secondary text-sm" id="result-desc"></div>
         <div style="margin-top:12px;font-size:0.8rem;color:var(--text-muted)" id="result-meta"></div>
-        <button class="btn btn-primary btn-full mt-2" onclick="resetGenerator()">🔄 Generate Lagi</button>
+        <button class="btn btn-primary btn-full mt-2" onclick="resetGenerator()"><i class="ic ic-refresh"></i> Generate Lagi</button>
       </div>
     </div>
   </div>
@@ -190,13 +190,13 @@
         const isActive = s.id === activeStep;
         const isFailed = failed && isActive;
         let cls = isFailed ? 'failed' : isDone ? 'done' : isActive ? 'active' : '';
-        let iconContent = isDone ? '✓' : isFailed ? '✕' : i + 1;
+        let iconContent = isDone ? '<i class="ic ic-check"></i>' : isFailed ? '<i class="ic ic-x"></i>' : i + 1;
         let iconClass = isActive && !isFailed ? 'spinning' : '';
         return `<div class="progress-step ${cls}">
           <div class="step-icon ${iconClass}" style="border-style:${isActive&&!isFailed?'dashed':'solid'}">${iconContent}</div>
           <span>${s.label}</span>
           ${isFailed ? '<span style="margin-left:auto;font-size:0.72rem">FAILED</span>' : ''}
-          ${isDone ? '<span style="margin-left:auto;font-size:0.72rem">✓</span>' : ''}
+          ${isDone ? '<span style="margin-left:auto;font-size:0.72rem"><i class="ic ic-check"></i></span>' : ''}
         </div>`;
       }).join('');
     }
@@ -234,7 +234,7 @@
       ['sdot-1','sdot-2','sdot-3'].forEach((id, i) => {
         const dot = document.getElementById(id);
         dot.className = 'step-dot';
-        if (i + 1 < step) { dot.classList.add('done'); dot.textContent = '✓'; }
+        if (i + 1 < step) { dot.classList.add('done'); dot.innerHTML = '<i class="ic ic-check"></i>'; }
         else if (i + 1 === step) { dot.classList.add('active'); dot.textContent = i + 1; }
         else { dot.textContent = i + 1; }
       });
@@ -248,7 +248,7 @@
       stopTimer();
       const card = document.getElementById('result-card');
       card.className = 'result-card ' + (success ? 'success' : 'failed');
-      document.getElementById('result-icon').textContent = success ? '✅' : '❌';
+      document.getElementById('result-icon').innerHTML = success ? '<i class="ic ic-check"></i>' : '<i class="ic ic-x"></i>';
       document.getElementById('result-title').textContent = success ? 'Generate Berhasil!' : 'Generate Gagal';
       document.getElementById('result-desc').textContent = success
         ? 'Akun Alight Motion Premium berhasil dibuat. Cek email kamu.'

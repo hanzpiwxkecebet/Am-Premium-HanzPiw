@@ -16,13 +16,13 @@
   <style>
     .ann-card { padding: 18px 16px; border-radius: var(--radius-lg); border: 1px solid var(--border-glass); background: var(--bg-glass); margin-bottom: 12px; cursor: pointer; transition: var(--transition); }
     .ann-card:hover { background: var(--bg-glass-hover); border-color: var(--border-neon-blue); }
-    .ann-card.priority-high { border-color: var(--border-neon-red); background: rgba(150,140,255,0.04); }
+    .ann-card.priority-high { border-color: var(--border-neon-red); background: rgba(156, 156, 156,0.04); }
     .ann-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
     .ann-title { font-weight: 700; font-size: 0.95rem; flex: 1; }
     .ann-content-preview { font-size: 0.84rem; color: var(--text-secondary); line-height: 1.6; }
     .ann-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
     .ann-date { font-size: 0.72rem; color: var(--text-muted); }
-    .new-badge { background: rgba(150,140,255,0.15); color: var(--neon-red); font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: var(--radius-full); border: 1px solid var(--border-neon-red); letter-spacing: 0.5px; text-transform: uppercase; }
+    .new-badge { background: rgba(156, 156, 156,0.15); color: var(--neon-red); font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: var(--radius-full); border: 1px solid var(--border-neon-red); letter-spacing: 0.5px; text-transform: uppercase; }
     .ann-detail-modal .modal-body { font-size: 0.88rem; line-height: 1.8; color: var(--text-secondary); white-space: pre-wrap; }
   </style>
 </head>
@@ -33,7 +33,7 @@
   <div class="page-content">
     <div class="page-header">
       <div>
-        <div class="page-title gradient-text">Updates 🔔</div>
+        <div class="page-title gradient-text">Updates <i class="ic ic-bell"></i></div>
         <div class="page-subtitle">Pengumuman terbaru dari admin</div>
       </div>
     </div>
@@ -86,7 +86,7 @@
     function renderAnnouncements(list) {
       const container = document.getElementById('ann-list');
       if (!list || list.length === 0) {
-        container.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--text-muted)"><div style="font-size:3rem;margin-bottom:12px;opacity:0.5">🔔</div><div>Belum ada pengumuman</div></div>`;
+        container.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--text-muted)"><div style="font-size:3rem;margin-bottom:12px;opacity:0.5"><i class="ic ic-bell"></i></div><div>Belum ada pengumuman</div></div>`;
         return;
       }
       annMap = {};
@@ -106,7 +106,7 @@
             <div class="ann-content-preview">${Utils.escapeHtml(preview)}</div>
             <div class="ann-footer">
               <span class="ann-date">${Utils.formatDateShort(ann.createdAt)}</span>
-              <span class="text-xs text-muted">Baca selengkapnya →</span>
+              <span class="text-xs text-muted">Baca selengkapnya <i class="ic ic-arrow"></i></span>
             </div>
           </div>
         `;

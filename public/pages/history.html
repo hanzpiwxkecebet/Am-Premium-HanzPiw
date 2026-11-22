@@ -17,7 +17,7 @@
     .filter-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; scrollbar-width: none; }
     .filter-bar::-webkit-scrollbar { display: none; }
     .filter-btn { flex-shrink: 0; padding: 6px 14px; border-radius: var(--radius-full); border: 1px solid var(--border-glass); background: var(--bg-glass); font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-secondary); transition: var(--transition); white-space: nowrap; }
-    .filter-btn.active { background: rgba(150,140,255,0.1); border-color: var(--border-neon-red); color: var(--text-primary); }
+    .filter-btn.active { background: rgba(156, 156, 156,0.1); border-color: var(--border-neon-red); color: var(--text-primary); }
     .search-wrap { position: relative; margin-bottom: 16px; }
     .search-wrap input { padding-left: 36px; }
     .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem; pointer-events: none; }
@@ -43,14 +43,14 @@
   <div class="page-content">
     <div class="page-header">
       <div>
-        <div class="page-title gradient-text">History ◷</div>
+        <div class="page-title gradient-text">History <i class="ic ic-clock"></i></div>
         <div class="page-subtitle">Riwayat aktivitas generator</div>
       </div>
     </div>
 
     <!-- Search -->
     <div class="search-wrap">
-      <span class="search-icon">🔍</span>
+      <span class="search-icon"><i class="ic ic-search"></i></span>
       <input type="text" class="form-input" id="search-input" placeholder="Cari berdasarkan ID...">
     </div>
 
@@ -104,7 +104,7 @@
     function renderHistory(items) {
       const container = document.getElementById('history-list');
       if (items.length === 0) {
-        container.innerHTML = `<div class="empty-state"><div class="empty-icon">◷</div><div>Belum ada riwayat</div></div>`;
+        container.innerHTML = `<div class="empty-state"><div class="empty-icon"><i class="ic ic-clock"></i></div><div>Belum ada riwayat</div></div>`;
         return;
       }
 
@@ -112,7 +112,7 @@
 
       container.innerHTML = items.map(item => {
         const statusClass = `status-${item.status || 'pending'}`;
-        const methodLabel = item.method === 'system' ? '🔖 Sistem' : '📧 Custom';
+        const methodLabel = item.method === 'system' ? '<i class="ic ic-bookmark"></i> Sistem' : '<i class="ic ic-mail"></i> Custom';
         return `
           <div class="history-item" data-id="${Utils.escapeHtml(item.id)}">
             <div class="history-status-dot ${statusClass}"></div>

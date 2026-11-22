@@ -152,7 +152,7 @@ Jika menemukan celah keamanan, hubungi langsung via:
 
 ## Hal yang TIDAK Boleh Dilakukan
 
-| ❌ Jangan | ✅ Lakukan Ini |
+| Jangan | Lakukan Ini |
 |-----------|---------------|
 | Simpan role di localStorage | Validasi role dari DB via server |
 | Panggil API Alight Motion dari frontend | Panggil via backend proxy |

@@ -38,7 +38,7 @@ const Theme = {
   updateToggleBtn() {
     const btn = document.getElementById('theme-toggle');
     if (!btn) return;
-    btn.textContent = this.current === Theme.DARK ? '☀️' : '🌙';
+    btn.innerHTML = this.current === Theme.DARK ? '<i class="ic ic-sun"></i>' : '<i class="ic ic-moon"></i>';
     btn.title = this.current === Theme.DARK ? 'Switch to Light Mode' : 'Switch to Dark Mode';
   }
 };

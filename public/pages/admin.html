@@ -17,7 +17,7 @@
     .admin-tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px; scrollbar-width: none; }
     .admin-tabs::-webkit-scrollbar { display: none; }
     .admin-tab { flex-shrink: 0; padding: 8px 16px; border-radius: var(--radius-full); border: 1px solid var(--border-glass); background: var(--bg-glass); font-size: 0.82rem; font-weight: 600; cursor: pointer; color: var(--text-secondary); transition: var(--transition); white-space: nowrap; }
-    .admin-tab.active { background: rgba(150,140,255,0.1); border-color: var(--border-neon-red); color: var(--text-primary); }
+    .admin-tab.active { background: rgba(156, 156, 156,0.1); border-color: var(--border-neon-red); color: var(--text-primary); }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
     .admin-table { width: 100%; border-collapse: collapse; }
@@ -51,20 +51,20 @@
   <div class="page-content">
     <div class="page-header">
       <div>
-        <div class="page-title gradient-text">Admin Panel 🛡</div>
+        <div class="page-title gradient-text">Admin Panel <i class="ic ic-shield"></i></div>
         <div class="page-subtitle">Manajemen sistem & pengguna</div>
       </div>
     </div>
 
     <!-- Admin Tabs -->
     <div class="admin-tabs">
-      <button class="admin-tab active" data-tab="stats">📊 Stats</button>
-      <button class="admin-tab" data-tab="users">👥 Users</button>
-      <button class="admin-tab" data-tab="redeem">🎟 Redeem</button>
-      <button class="admin-tab" data-tab="emails">📧 Emails</button>
-      <button class="admin-tab" data-tab="announce">🔔 Pengumuman</button>
-      <button class="admin-tab" data-tab="system">⚙️ Sistem</button>
-      <button class="admin-tab" data-tab="logs">📋 Log</button>
+      <button class="admin-tab active" data-tab="stats"><i class="ic ic-chart"></i> Stats</button>
+      <button class="admin-tab" data-tab="users"><i class="ic ic-users"></i> Users</button>
+      <button class="admin-tab" data-tab="redeem"><i class="ic ic-ticket"></i> Redeem</button>
+      <button class="admin-tab" data-tab="emails"><i class="ic ic-mail"></i> Emails</button>
+      <button class="admin-tab" data-tab="announce"><i class="ic ic-bell"></i> Pengumuman</button>
+      <button class="admin-tab" data-tab="system"><i class="ic ic-settings"></i> Sistem</button>
+      <button class="admin-tab" data-tab="logs"><i class="ic ic-clipboard"></i> Log</button>
     </div>
 
     <!-- STATS TAB -->
@@ -163,7 +163,7 @@
             <option value="0">Normal</option>
             <option value="1">Penting</option>
           </select>
-          <button class="btn btn-primary" id="post-ann-btn" style="margin-left:auto">📢 Kirim</button>
+          <button class="btn btn-primary" id="post-ann-btn" style="margin-left:auto"><i class="ic ic-megaphone"></i> Kirim</button>
         </div>
       </div>
       <div id="ann-list-admin">
@@ -195,7 +195,7 @@
           <label class="form-label">Versi Aplikasi</label>
           <input type="text" class="form-input" id="set-version" placeholder="2.0.0">
         </div>
-        <button class="btn btn-primary btn-full" id="save-settings-btn">💾 Simpan Pengaturan</button>
+        <button class="btn btn-primary btn-full" id="save-settings-btn"><i class="ic ic-save"></i> Simpan Pengaturan</button>
       </div>
     </div>
 
@@ -511,7 +511,7 @@
           <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
             <div>
               <div class="log-entry-action">${Utils.escapeHtml(a.title)}</div>
-              <div class="log-entry-meta">${Utils.formatDateShort(a.createdAt)} · ${(a.isActive ?? a.active) ? 'Aktif' : 'Nonaktif'} · ${a.priority > 0 ? '🔴 Penting' : '🔵 Normal'}</div>
+              <div class="log-entry-meta">${Utils.formatDateShort(a.createdAt)} · ${(a.isActive ?? a.active) ? 'Aktif' : 'Nonaktif'} · ${a.priority > 0 ? '<i class="ic ic-dot hi"></i> Penting' : '<i class="ic ic-dot lo"></i> Normal'}</div>
             </div>
             <button class="action-btn" style="color:var(--text-error);border-color:rgba(255,34,68,0.3);flex-shrink:0" onclick="deleteAnn('${Utils.escapeHtml(a.id)}')">Hapus</button>
           </div>
@@ -585,7 +585,7 @@
       container.innerHTML = list.map(l => `
         <div class="log-entry">
           <div class="log-entry-action">${Utils.escapeHtml(l.action)}</div>
-          <div class="log-entry-meta">${Utils.escapeHtml(l.actorRole)} @${Utils.escapeHtml(l.actorUID||'').substring(0,8)} → ${Utils.escapeHtml(l.targetUsername||l.targetUID||'-')} · ${Utils.formatDate(l.timestamp || l.createdAt)}</div>
+          <div class="log-entry-meta">${Utils.escapeHtml(l.actorRole)} @${Utils.escapeHtml(l.actorUID||'').substring(0,8)} <i class="ic ic-arrow"></i> ${Utils.escapeHtml(l.targetUsername||l.targetUID||'-')} · ${Utils.formatDate(l.timestamp || l.createdAt)}</div>
           ${l.summary ? `<div style="font-size:0.76rem;color:var(--text-secondary);margin-top:4px">${Utils.escapeHtml(l.summary)}</div>` : ''}
         </div>
       `).join('');

@@ -62,7 +62,7 @@ GET /verify?email={email}&link={verif_link}
 }
 ```
 
-> ⚠️ **PENTING:** Sukses dihitung **HANYA** dari response endpoint `/verify`, bukan dari `/send`.
+> **PENTING:** Sukses dihitung **HANYA** dari response endpoint `/verify`, bukan dari `/send`.
 
 ---
 
