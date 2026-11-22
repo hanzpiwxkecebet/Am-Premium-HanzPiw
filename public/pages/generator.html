@@ -17,12 +17,10 @@
     .method-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
     .method-tab { flex: 1; padding: 12px; border: 1px solid var(--border-glass); border-radius: var(--radius-md); background: var(--bg-glass); cursor: pointer; text-align: center; transition: var(--transition); font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); }
     .method-tab.active { border-color: var(--neon-red-dim); background: rgba(156, 156, 156,0.08); color: var(--text-primary); }
-    .method-tab { font-size: 0.78rem; padding: 12px 6px; }
-    .temp-email-box { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border-glass); border-radius: var(--radius-md); background: var(--bg-glass); }
-    .temp-email-addr { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 0.8rem; word-break: break-all; }
-    .auto-wait { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px dashed var(--border-glass); border-radius: var(--radius-md); font-size: 0.82rem; }
-    .auto-wait .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-top-color: transparent; animation: spin 0.8s linear infinite; flex-shrink: 0; }
-    .auto-wait.stopped .spin { display: none; }
+    .inbox-box { padding: 14px; margin-bottom: 14px; border: 1px solid var(--border-glass); border-radius: var(--radius-md); background: var(--bg-glass); }
+    .inbox-steps { margin: 6px 0 12px 18px; padding: 0; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6; }
+    .inbox-addr { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 10px; border: 1px dashed var(--border-glass); border-radius: var(--radius-sm); }
+    .inbox-addr span { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 0.8rem; word-break: break-all; }
     .step-indicator { display: flex; align-items: center; margin-bottom: 24px; }
     .step-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border-glass); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; transition: var(--transition); background: var(--bg-glass); }
     .step-dot.active { border-color: var(--neon-red); background: rgba(156, 156, 156,0.15); color: var(--neon-red); }
@@ -88,7 +86,6 @@
           <div class="method-tabs">
             <div class="method-tab active" data-method="custom" id="tab-custom"><i class="ic ic-mail"></i> Email Sendiri</div>
             <div class="method-tab" data-method="system" id="tab-system"><i class="ic ic-bookmark"></i> Email Sistem</div>
-            <div class="method-tab" data-method="temp" id="tab-temp"><i class="ic ic-sparkles"></i> Otomatis</div>
           </div>
         </div>
 
@@ -108,18 +105,6 @@
           <input type="hidden" id="system-email-selected">
         </div>
 
-        <!-- Email otomatis (generator.email) -->
-        <div id="temp-email-wrap" class="form-group hidden">
-          <label class="form-label">Email Otomatis</label>
-          <div class="temp-email-box">
-            <span class="temp-email-addr" id="temp-email-address">Membuat email...</span>
-            <button class="btn btn-secondary btn-sm" id="temp-copy-btn" type="button" title="Salin"><i class="ic ic-clipboard"></i></button>
-            <button class="btn btn-secondary btn-sm" id="temp-new-btn" type="button" title="Buat email baru"><i class="ic ic-refresh"></i></button>
-          </div>
-          <div class="text-xs text-muted mt-1">Email sementara dibuat otomatis dan link verifikasinya dibaca otomatis. Kamu tidak perlu membuka inbox.</div>
-          <input type="hidden" id="temp-email-selected">
-        </div>
-
         <button class="btn btn-primary btn-full btn-lg" id="send-btn" style="margin-top:8px">
           <div class="btn-loader"></div>
           <span class="btn-text"><i class="ic ic-bolt"></i> Mulai Generate</span>
@@ -131,17 +116,25 @@
     <div id="step-2-content" class="hidden">
       <div class="glass-card" style="padding:20px;margin-bottom:12px">
         <div style="font-weight:700;margin-bottom:4px"><i class="ic ic-inbox"></i> Cek Email Kamu</div>
-        <div class="text-secondary text-sm mb-2">Link verifikasi sudah dikirim. Buka email dan copy link verifikasinya.</div>
+        <div class="text-secondary text-sm mb-2" id="step2-desc">Link verifikasi sudah dikirim. Buka email dan copy link verifikasinya.</div>
 
-        <div id="auto-wrap" class="hidden" style="margin-bottom:12px">
-          <div class="auto-wait" id="auto-wait"><div class="spin"></div><span id="auto-wait-text">Menunggu email masuk...</span></div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px" class="text-xs">
-            <a href="#" id="auto-inbox-link" target="_blank" rel="noopener noreferrer" class="text-secondary" style="text-decoration:underline">Buka inbox manual</a>
-            <a href="#" id="auto-manual-toggle" class="text-secondary" style="text-decoration:underline">Tempel link manual</a>
+        <div id="inbox-box" class="inbox-box hidden">
+          <div style="font-weight:600;font-size:0.9rem;margin-bottom:2px"><i class="ic ic-inbox"></i> Ambil link di inbox</div>
+          <ol class="inbox-steps">
+            <li>Tap <b>Buka Inbox</b> (terbuka di tab baru).</li>
+            <li>Tunggu email verifikasi masuk, lalu salin link verifikasinya.</li>
+            <li>Kembali ke sini, tempel link di kolom bawah, lalu Submit.</li>
+          </ol>
+          <div class="inbox-addr">
+            <span id="inbox-email"></span>
+            <button class="btn btn-secondary btn-sm" id="inbox-copy-btn" type="button" title="Salin email"><i class="ic ic-clipboard"></i></button>
           </div>
+          <a id="inbox-open-link" class="btn btn-primary btn-full" href="#" target="_blank" rel="noopener noreferrer" style="text-decoration:none"><i class="ic ic-globe"></i> Buka Inbox</a>
+          <div class="text-xs text-muted" id="inbox-url" style="word-break:break-all;margin-top:8px"></div>
+          <div class="text-xs text-muted" style="margin-top:8px">Email ini dikunci untukmu sampai kamu submit. Selesaikan dulu supaya bisa dipakai user lain.</div>
         </div>
 
-        <div class="form-group" id="manual-link-wrap">
+        <div class="form-group">
           <label class="form-label">Link Verifikasi</label>
           <input type="text" class="form-input" id="verify-link-input" placeholder="Paste link verifikasi dari email..." style="font-size:0.82rem">
         </div>
@@ -198,19 +191,23 @@
     let currentEmail = null;
     let timerInterval = null;
     let startTime = null;
-    let pollTimer = null;
-    let pollStopped = true;
+    const INBOX_BASE = 'https://generator.email/';
 
-    function stopPolling() { pollStopped = true; if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; } }
-
-    function showManualLink(show) {
-      document.getElementById('manual-link-wrap').classList.toggle('hidden', !show);
-      document.getElementById('verify-btn').classList.toggle('hidden', !show);
-    }
-
-    function setAutoStatus(text, stopped) {
-      document.getElementById('auto-wait-text').textContent = text;
-      document.getElementById('auto-wait').classList.toggle('stopped', !!stopped);
+    // Email sistem: arahkan user membuka inbox generator.email/<email>. Kirim null untuk menyembunyikan.
+    function showInboxHint(email) {
+      const box = document.getElementById('inbox-box');
+      const desc = document.getElementById('step2-desc');
+      if (!email) {
+        box.classList.add('hidden');
+        desc.textContent = 'Link verifikasi sudah dikirim. Buka email dan copy link verifikasinya.';
+        return;
+      }
+      const url = INBOX_BASE + encodeURI(email);
+      document.getElementById('inbox-email').textContent = email;
+      document.getElementById('inbox-open-link').href = url;
+      document.getElementById('inbox-url').textContent = url;
+      desc.textContent = 'Verifikasi dikirim ke email sistem. Buka inbox-nya untuk mengambil link verifikasi.';
+      box.classList.remove('hidden');
     }
 
     const PROGRESS_STEPS = [
@@ -299,9 +296,7 @@
 
     function resetGenerator() {
       currentRequestId = null; currentEmail = null;
-      stopPolling();
-      document.getElementById('auto-wrap').classList.add('hidden');
-      showManualLink(true);
+      showInboxHint(null);
       stopTimer();
       document.getElementById('timer').textContent = '00:00';
       document.getElementById('verify-link-input').value = '';
@@ -347,37 +342,8 @@
           currentMethod = tab.dataset.method;
           document.getElementById('custom-email-wrap').classList.toggle('hidden', currentMethod !== 'custom');
           document.getElementById('system-email-wrap').classList.toggle('hidden', currentMethod !== 'system');
-          document.getElementById('temp-email-wrap').classList.toggle('hidden', currentMethod !== 'temp');
           if (currentMethod === 'system') loadSystemEmails();
-          if (currentMethod === 'temp' && !document.getElementById('temp-email-selected').value) newTempEmail();
         });
-      });
-
-      async function newTempEmail() {
-        const addr = document.getElementById('temp-email-address');
-        const hidden = document.getElementById('temp-email-selected');
-        hidden.value = '';
-        addr.textContent = 'Membuat email...';
-        try {
-          const res = await AMApp.apiCall('POST', '/api/generator/temp-email', {});
-          hidden.value = res.data.email;
-          addr.textContent = res.data.email;
-        } catch (err) {
-          addr.textContent = 'Gagal membuat email';
-          Toast.error(err.message || 'Gagal membuat email otomatis');
-        }
-      }
-
-      document.getElementById('temp-new-btn').addEventListener('click', newTempEmail);
-      document.getElementById('temp-copy-btn').addEventListener('click', async () => {
-        const v = document.getElementById('temp-email-selected').value;
-        if (!v) return;
-        try { await navigator.clipboard.writeText(v); Toast.success('Email disalin'); }
-        catch (e) { Toast.info(v); }
-      });
-      document.getElementById('auto-manual-toggle').addEventListener('click', (e) => {
-        e.preventDefault();
-        showManualLink(true);
       });
 
       async function loadSystemEmails() {
@@ -415,9 +381,6 @@
             Toast.warning('Masukkan email yang valid');
             return;
           }
-        } else if (currentMethod === 'temp') {
-          email = document.getElementById('temp-email-selected').value;
-          if (!email) { Toast.warning('Tunggu email otomatis dibuat'); return; }
         } else {
           email = document.getElementById('system-email-selected').value;
           if (!email) { Toast.warning('Pilih email sistem terlebih dahulu'); return; }
@@ -452,7 +415,7 @@
 
           renderProgressSteps(['init','validating','checking','connecting','sending'], 'waiting');
           logTerminal(`Verifikasi dikirim ke ${email}`, 'ok');
-          logTerminal(currentMethod === 'temp' ? 'Menunggu email masuk, link dibaca otomatis...' : 'Menunggu link verifikasi dari pengguna...', 'info');
+          logTerminal('Menunggu link verifikasi dari pengguna...', 'info');
 
           if (res.remaining !== undefined) {
             document.getElementById('limit-display').textContent = res.remaining;
@@ -460,18 +423,8 @@
 
           Utils.setButtonLoading(btn, false);
 
-          if (currentMethod === 'temp') {
-            document.getElementById('auto-wrap').classList.remove('hidden');
-            document.getElementById('auto-inbox-link').href = 'https://generator.email/' + encodeURIComponent(email);
-            showManualLink(false);
-            setAutoStatus('Menunggu email masuk...', false);
-            Toast.info('Link verifikasi akan dibaca otomatis');
-            startAutoPolling();
-          } else {
-            document.getElementById('auto-wrap').classList.add('hidden');
-            showManualLink(true);
-            Toast.info('Cek email kamu dan paste link verifikasinya');
-          }
+          showInboxHint(currentMethod === 'system' ? email : null);
+          Toast.info(currentMethod === 'system' ? 'Buka inbox email sistem untuk ambil link verifikasi' : 'Cek email kamu dan paste link verifikasinya');
         } catch (err) {
           renderProgressSteps([], 'sending', true);
           logTerminal('ERROR: ' + err.message, 'err');
@@ -484,12 +437,11 @@
 
       let verifying = false;
 
-      // Dipakai tombol Submit (manual) dan polling otomatis
+      // Kirim link verifikasi ke server
       async function doVerify(link) {
         if (verifying) return;
         if (!currentEmail || !currentRequestId) { Toast.error('Session expired, mulai ulang'); return; }
         verifying = true;
-        stopPolling();
 
         const btn = document.getElementById('verify-btn');
         Utils.setButtonLoading(btn);
@@ -523,7 +475,6 @@
           logTerminal('ERROR: ' + err.message, 'err');
           Toast.error(err.message || 'Verifikasi gagal');
           Utils.setButtonLoading(btn, false);
-          if (currentMethod === 'temp') { setAutoStatus('Verifikasi gagal. Coba tempel link manual.', true); showManualLink(true); }
         } finally {
           verifying = false;
         }
@@ -535,62 +486,14 @@
         doVerify(link);
       });
 
-      // Polling inbox email otomatis: cek tiap ~5 dtk, maksimal 2,5 menit
-      function startAutoPolling() {
-        stopPolling();
-        pollStopped = false;
-        const began = Date.now();
-        const MAX_MS = 150000;
-        const reqId = currentRequestId;
-        let errors = 0;
-
-        const tick = async () => {
-          if (pollStopped || reqId !== currentRequestId) return;
-          if (Date.now() - began > MAX_MS) {
-            setAutoStatus('Email belum masuk. Buka inbox manual atau tempel link sendiri.', true);
-            logTerminal('Email belum masuk setelah 2,5 menit.', 'err');
-            showManualLink(true);
-            return;
-          }
-          try {
-            const r = await AMApp.apiCall('GET', '/api/generator/inbox/' + reqId, null, {}, 15000);
-            if (pollStopped || reqId !== currentRequestId) return;
-            const d = r.data || {};
-            if (d.status === 'found' && d.link) {
-              logTerminal('Email masuk. Link verifikasi ditemukan.', 'ok');
-              setAutoStatus('Link ditemukan, memverifikasi...', false);
-              document.getElementById('verify-link-input').value = d.link;
-              doVerify(d.link);
-              return;
-            }
-            if (d.status === 'blocked') {
-              logTerminal('Inbox tidak bisa dibaca otomatis: ' + (d.message || 'diblokir'), 'err');
-              setAutoStatus('Inbox tidak bisa dibaca otomatis. Buka inbox manual lalu tempel link.', true);
-              showManualLink(true);
-              return;
-            }
-            if (d.status === 'error') errors++; else errors = 0;
-            if (errors >= 5) {
-              setAutoStatus('Gagal membaca inbox. Buka inbox manual lalu tempel link.', true);
-              showManualLink(true);
-              return;
-            }
-          } catch (err) {
-            errors++;
-            if (errors >= 5) {
-              setAutoStatus('Gagal membaca inbox. Buka inbox manual lalu tempel link.', true);
-              showManualLink(true);
-              return;
-            }
-          }
-          pollTimer = setTimeout(tick, 5000);
-        };
-        pollTimer = setTimeout(tick, 4000);
-      }
+      document.getElementById('inbox-copy-btn').addEventListener('click', async () => {
+        const v = document.getElementById('inbox-email').textContent;
+        try { await navigator.clipboard.writeText(v); Toast.success('Email disalin'); }
+        catch (e) { Toast.info(v); }
+      });
 
       // Cancel button
       document.getElementById('cancel-btn').addEventListener('click', () => {
-        stopPolling();
         stopTimer();
         resetGenerator();
         Toast.info('Proses dibatalkan');

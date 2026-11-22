@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('../middleware/auth');
-const { generatorLimiter, tempMailLimiter, inboxLimiter } = require('../middleware/rateLimiter');
+const { generatorLimiter } = require('../middleware/rateLimiter');
 const { deduplicateRequest } = require('../middleware/security');
-const { sendVerify, submitVerify, createTempEmail, pollTempInbox } = require('../controllers/generatorController');
+const { sendVerify, submitVerify } = require('../controllers/generatorController');
 const { getDb } = require('../config/firebase');
 const { checkLimit } = require('../services/limitService');
 const { checkApiStatus } = require('../services/apiService');
@@ -23,9 +23,6 @@ async function checkMaintenance(req, res, next) {
 
 router.post('/send', verifyToken, generatorLimiter, deduplicateRequest, checkMaintenance, sendVerify);
 router.post('/verify', verifyToken, deduplicateRequest, checkMaintenance, submitVerify);
-
-router.post('/temp-email', verifyToken, tempMailLimiter, checkMaintenance, createTempEmail);
-router.get('/inbox/:requestId', verifyToken, inboxLimiter, checkMaintenance, pollTempInbox);
 
 router.get('/limit', verifyToken, async (req, res) => {
   const result = await checkLimit(req.user.uid);

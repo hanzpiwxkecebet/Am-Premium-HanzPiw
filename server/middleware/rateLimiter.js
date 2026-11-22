@@ -31,25 +31,6 @@ const generatorLimiter = rateLimit({
   message: { success: false, message: 'Terlalu cepat! Tunggu sebentar sebelum generate lagi.' },
 });
 
-// Dihitung per user (bukan per IP) karena banyak user seluler berbagi 1 IP. Wajib dipasang SETELAH verifyToken.
-const tempMailLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 20,
-  keyGenerator: (req) => (req.user && req.user.uid) || 'anon',
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Terlalu cepat! Tunggu sebentar.' },
-});
-
-const inboxLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 30, // polling tiap ~5 dtk = 12/menit
-  keyGenerator: (req) => (req.user && req.user.uid) || 'anon',
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Terlalu sering cek inbox. Tunggu sebentar.' },
-});
-
 const redeemLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 10,
@@ -58,4 +39,4 @@ const redeemLimiter = rateLimit({
   message: { success: false, message: 'Terlalu banyak percobaan redeem. Coba lagi nanti.' },
 });
 
-module.exports = { generalLimiter, authLimiter, generatorLimiter, tempMailLimiter, inboxLimiter, redeemLimiter };
+module.exports = { generalLimiter, authLimiter, generatorLimiter, redeemLimiter };
