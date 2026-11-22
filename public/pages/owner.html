@@ -249,6 +249,19 @@
           <label class="form-label">Pesan Selamat Datang (optional)</label>
           <input type="text" class="form-input" id="owner-welcome-msg" placeholder="Selamat datang di AM Premium Generator!">
         </div>
+        <div class="form-group">
+          <label class="form-label">Backsound Default</label>
+          <select class="form-input" id="owner-bgm-enabled">
+            <option value="true">Aktif (otomatis diputar)</option>
+            <option value="false">Nonaktif</option>
+          </select>
+          <div class="text-muted text-xs" style="margin-top:4px">Berlaku untuk user yang belum memilih sendiri lewat tombol speaker. Pilihan user selalu didahulukan.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">URL Audio Backsound</label>
+          <input type="url" class="form-input" id="owner-bgm-url" placeholder="https://u.pone.rs/lgqzjhof.mp3">
+          <div class="text-muted text-xs" style="margin-top:4px">Link langsung ke file audio (mp3/ogg/wav, https). Kosongkan untuk kembali ke audio bawaan.</div>
+        </div>
         <button class="btn btn-primary btn-full" id="owner-save-sys"><i class="ic ic-save"></i> Simpan Semua Pengaturan</button>
       </div>
     </div>
@@ -757,6 +770,9 @@
         document.getElementById('owner-default-limit').value = d.defaultDailyLimit ?? 20;
         document.getElementById('owner-version').value = d.version || '';
         document.getElementById('owner-welcome-msg').value = d.welcomeMessage || '';
+        document.getElementById('owner-bgm-enabled').value = d.backsoundEnabled === false ? 'false' : 'true';
+        const bgmUrl = d.backsoundUrl || '';
+        document.getElementById('owner-bgm-url').value = (window.Backsound && bgmUrl === window.Backsound.defaultUrl) ? '' : bgmUrl;
       } catch (e) { Toast.error('Gagal muat pengaturan'); }
     }
 
@@ -769,9 +785,12 @@
           maintenanceMessage: document.getElementById('owner-maint-msg').value.trim(),
           defaultDailyLimit: Number.isFinite(parseInt(document.getElementById('owner-default-limit').value)) ? parseInt(document.getElementById('owner-default-limit').value) : 10,
           version: document.getElementById('owner-version').value.trim(),
-          welcomeMessage: document.getElementById('owner-welcome-msg').value.trim()
+          welcomeMessage: document.getElementById('owner-welcome-msg').value.trim(),
+          backsoundEnabled: document.getElementById('owner-bgm-enabled').value === 'true',
+          backsoundUrl: document.getElementById('owner-bgm-url').value.trim()
         });
         Toast.success('Pengaturan disimpan');
+        if (window.Backsound) window.Backsound.refresh(); // terapkan langsung di halaman ini
         const newLim = parseInt(document.getElementById('owner-default-limit').value) || 10;
         if (confirm(`Terapkan limit ${newLim}/hari ke SEMUA user yang sudah ada? (Owner tetap unlimited. Limit custom per user akan ditimpa.)\n\nOK = terapkan ke semua, Batal = hanya untuk user baru.`)) {
           const r = await AMApp.apiCall('POST', '/api/admin/system/apply-default-limit');
@@ -885,5 +904,6 @@
       loadTab('overview');
     });
   </script>
+  <script src="/assets/js/backsound.js"></script>
 </body>
 </html>

@@ -24,3 +24,11 @@ Buka `https://DOMAIN-KAMU/api/health?deep=1` — hasilnya langsung bilang bagian
    `...firebaseio.com` = US → biarkan `iad1`; `...asia-southeast1...` = Singapore → pilih `sin1`.
 2. Setelah mengganti env var, wajib **Redeploy**.
 3. Firebase Console → Realtime Database → Rules → paste isi `firebase/database.rules.json` → Publish.
+
+## Update: URL, Backsound, Updates (Nov 2026)
+- **URL `/pages/xxx.html` dihapus.** Siapa pun yang membuka alamat lama itu diarahkan ke halaman "Menu tidak ditemukan" (`public/404.html`) dengan tombol *Kembali ke Dashboard*. URL tidak dikenal lain juga menampilkan halaman yang sama (status 404).
+- **Backsound** (`public/assets/js/backsound.js`, dimuat di semua halaman): default aktif, otomatis diputar. Browser memblokir autoplay sebelum ada interaksi, jadi musik mulai di sentuhan/klik pertama. Posisi lagu dilanjutkan saat pindah halaman. User bisa mematikan/menyalakan lewat tombol speaker (pilihan user mengalahkan default owner).
+- **Owner**: `/owner` -> tab *Sistem* -> *Backsound Default* (aktif/nonaktif) dan *URL Audio Backsound*. Disimpan di `system/backsoundEnabled` & `system/backsoundUrl`; dibaca publik lewat `/api/public/status` (`backsound`). Hanya role owner yang bisa mengubahnya.
+- **Updates & Dashboard**: link di teks pengumuman otomatis jadi link yang bisa diklik (tab baru). Preview tidak lagi memotong URL di tengah.
+- **Bug Updates**: kartu pengumuman tidak bisa diklik sampai proses login selesai (listener baru dipasang setelah `Auth.init`); sekarang aktif langsung. Tombol "Tutup" di modal (Updates, History, Redeem) tidak berfungsi; sekarang menutup modal.
+- CSP Express: ditambah `mediaSrc` supaya audio dari domain luar tidak diblokir saat dijalankan lewat Express.

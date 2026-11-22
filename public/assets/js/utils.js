@@ -70,7 +70,9 @@ function createModal(title, content, buttons = []) {
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
   for (const b of buttons) {
     const btn = overlay.querySelector(`[data-action="${b.action}"]`);
-    if (btn && b.onClick) btn.addEventListener('click', () => { b.onClick(); if (b.close !== false) close(); });
+    if (!btn) continue;
+    if (b.onClick) btn.addEventListener('click', () => { b.onClick(); if (b.close !== false) close(); });
+    else if (b.action === 'close') btn.addEventListener('click', close); // tombol "Tutup"
   }
 
   document.body.appendChild(overlay);
@@ -102,6 +104,57 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+// ─── Link otomatis ───────────────────────────────────────────
+// Teks di-escape DULU, baru URL (http://, https://, www.) dibungkus <a>. Aman dari XSS.
+// Tanda baca di ujung URL (. , ; : ! ? ) ] ") tidak ikut jadi bagian link.
+const URL_RE = /(?:https?:\/\/|www\.)[^\s<>"'`]+/gi;
+
+function linkify(text) {
+  const src = String(text === null || text === undefined ? '' : text);
+  let out = '';
+  let last = 0;
+  src.replace(URL_RE, (match, offset) => {
+    let url = match;
+    let tail = '';
+    const m = url.match(/[.,;:!?)\]}>]+$/);
+    if (m) { tail = m[0]; url = url.slice(0, -tail.length); }
+    // ")" yang berpasangan dengan "(" di dalam URL (mis. wikipedia) tetap bagian URL
+    if (tail.startsWith(')') && (url.match(/\(/g) || []).length > (url.match(/\)/g) || []).length) {
+      url += ')'; tail = tail.slice(1);
+    }
+    if (!/^(?:https?:\/\/|www\.)[^\s]+\.[^\s]+/i.test(url) && !/^https?:\/\/localhost/i.test(url)) return match;
+    const href = /^www\./i.test(url) ? 'https://' + url : url;
+    out += escapeHtml(src.slice(last, offset));
+    out += `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer nofollow" class="auto-link">${escapeHtml(url)}</a>`;
+    out += escapeHtml(tail);
+    last = offset + match.length;
+    return match;
+  });
+  out += escapeHtml(src.slice(last));
+  return out;
+}
+
+// Potong teks untuk preview tanpa memotong URL di tengah (link yang terpotong = link rusak)
+function truncateText(text, max) {
+  const src = String(text === null || text === undefined ? '' : text);
+  if (src.length <= max) return { text: src, truncated: false };
+  let end = max;
+  URL_RE.lastIndex = 0;
+  let m;
+  while ((m = URL_RE.exec(src)) !== null) {
+    const s = m.index, e = m.index + m[0].length;
+    if (s < max && e > max) { end = e; break; }
+    if (s >= max) break;
+  }
+  return { text: src.slice(0, end), truncated: end < src.length };
+}
+
+// Preview pengumuman: dipotong aman + link bisa diklik
+function linkifyPreview(text, max) {
+  const r = truncateText(text, max);
+  return linkify(r.text) + (r.truncated ? '...' : '');
 }
 
 // Logo metode daftar/login. Semua pakai logo custom (CSS), tanpa emoji:
@@ -159,4 +212,4 @@ function renderError(container, message, onRetry) {
   if (btn && onRetry) btn.addEventListener('click', onRetry);
 }
 
-window.Utils = { renderError, formatDate, formatDateShort, formatDuration, animateNumber, setButtonLoading, showElement, hideElement, createModal, getStatusBadge, getRoleBadge, escapeHtml, debounce, providerIcon, providerLabel, providerCell, avatarSm };
+window.Utils = { linkify, truncateText, linkifyPreview, renderError, formatDate, formatDateShort, formatDuration, animateNumber, setButtonLoading, showElement, hideElement, createModal, getStatusBadge, getRoleBadge, escapeHtml, debounce, providerIcon, providerLabel, providerCell, avatarSm };

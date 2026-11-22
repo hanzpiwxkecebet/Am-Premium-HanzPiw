@@ -59,118 +59,17 @@
     {
       "source": "/maintenance",
       "destination": "/pages/maintenance.html"
+    },
+    {
+      "source": "/menu-tidak-ditemukan",
+      "destination": "/404.html"
     }
   ],
   "redirects": [
     {
-      "source": "/pages/login.html",
-      "destination": "/login",
-      "permanent": true
-    },
-    {
-      "source": "/pages/login",
-      "destination": "/login",
-      "permanent": true
-    },
-    {
-      "source": "/pages/register.html",
-      "destination": "/register",
-      "permanent": true
-    },
-    {
-      "source": "/pages/register",
-      "destination": "/register",
-      "permanent": true
-    },
-    {
-      "source": "/pages/dashboard.html",
-      "destination": "/dashboard",
-      "permanent": true
-    },
-    {
-      "source": "/pages/dashboard",
-      "destination": "/dashboard",
-      "permanent": true
-    },
-    {
-      "source": "/pages/generator.html",
-      "destination": "/generator",
-      "permanent": true
-    },
-    {
-      "source": "/pages/generator",
-      "destination": "/generator",
-      "permanent": true
-    },
-    {
-      "source": "/pages/history.html",
-      "destination": "/history",
-      "permanent": true
-    },
-    {
-      "source": "/pages/history",
-      "destination": "/history",
-      "permanent": true
-    },
-    {
-      "source": "/pages/redeem.html",
-      "destination": "/redeem",
-      "permanent": true
-    },
-    {
-      "source": "/pages/redeem",
-      "destination": "/redeem",
-      "permanent": true
-    },
-    {
-      "source": "/pages/updates.html",
-      "destination": "/updates",
-      "permanent": true
-    },
-    {
-      "source": "/pages/updates",
-      "destination": "/updates",
-      "permanent": true
-    },
-    {
-      "source": "/pages/profile.html",
-      "destination": "/profile",
-      "permanent": true
-    },
-    {
-      "source": "/pages/profile",
-      "destination": "/profile",
-      "permanent": true
-    },
-    {
-      "source": "/pages/admin.html",
-      "destination": "/admin",
-      "permanent": true
-    },
-    {
-      "source": "/pages/admin",
-      "destination": "/admin",
-      "permanent": true
-    },
-    {
-      "source": "/pages/owner.html",
-      "destination": "/owner",
-      "permanent": true
-    },
-    {
-      "source": "/pages/owner",
-      "destination": "/owner",
-      "permanent": true
-    },
-    {
-      "source": "/pages/maintenance.html",
-      "destination": "/maintenance",
-      "permanent": true
-    },
-    {
-      "source": "/pages/maintenance",
-      "destination": "/maintenance",
-      "permanent": true
+      "source": "/pages/:path*",
+      "destination": "/menu-tidak-ditemukan",
+      "permanent": false
     }
   ]
 }

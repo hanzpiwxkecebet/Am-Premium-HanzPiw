@@ -454,13 +454,15 @@ async function getSystemSettings(req, res) {
       version: d.version || d.appVersion || '',
       welcomeMessage: d.welcomeMessage || '',
       apiStatus: d.apiStatus || 'unknown',
+      backsoundEnabled: d.backsoundEnabled !== false,
+      backsoundUrl: d.backsoundUrl || 'https://u.pone.rs/lgqzjhof.mp3',
     },
   });
 }
 
 async function updateSystemSettings(req, res) {
   const actor = req.user;
-  const { maintenance, maintenanceMessage, defaultDailyLimit, dailyLimit, version, welcomeMessage, apiStatus } = req.body;
+  const { maintenance, maintenanceMessage, defaultDailyLimit, dailyLimit, version, welcomeMessage, apiStatus, backsoundEnabled, backsoundUrl } = req.body;
   const db = getDb();
   const updates = {};
   if (maintenance !== undefined) updates['system/maintenance'] = maintenance === true || maintenance === 'true';
@@ -476,6 +478,22 @@ async function updateSystemSettings(req, res) {
   }
   if (welcomeMessage !== undefined) updates['system/welcomeMessage'] = String(welcomeMessage).substring(0, 300);
   if (apiStatus !== undefined) updates['system/apiStatus'] = apiStatus;
+
+  // Backsound: hanya owner
+  if (actor.role === 'owner') {
+    if (backsoundEnabled !== undefined) updates['system/backsoundEnabled'] = backsoundEnabled === true || backsoundEnabled === 'true';
+    if (backsoundUrl !== undefined) {
+      const url = String(backsoundUrl).trim();
+      if (url === '') {
+        updates['system/backsoundUrl'] = null; // kosong = kembali ke audio bawaan
+      } else {
+        if (url.length > 500 || !/^https?:\/\/[^\s]+$/i.test(url)) {
+          return res.status(400).json({ success: false, message: 'URL backsound harus diawali http:// atau https:// dan tanpa spasi' });
+        }
+        updates['system/backsoundUrl'] = url;
+      }
+    }
+  }
   if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, message: 'Tidak ada setting yang diubah' });
   await db.ref('/').update(updates);
   clearDefaultLimitCache();

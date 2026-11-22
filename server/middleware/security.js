@@ -36,6 +36,8 @@ function secureHeaders() {
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'https:'],
+        // Backsound: URL audio bisa diganti owner ke domain mana pun (https)
+        mediaSrc: ["'self'", 'https:', 'blob:', 'data:'],
         connectSrc: ["'self'", 'https://*.firebaseio.com', 'wss://*.firebaseio.com', 'https://*.firebasedatabase.app', 'wss://*.firebasedatabase.app', 'https://*.googleapis.com', 'https://identitytoolkit.googleapis.com', 'https://securetoken.googleapis.com', 'https://*.firebaseapp.com'],
         frameSrc: ["'self'", 'https://*.firebaseapp.com', 'https://accounts.google.com'],
       },

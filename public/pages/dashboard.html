@@ -177,11 +177,11 @@
         </div>
         <span class="community-arr">›</span>
       </a>
-      <a href="https://t.me/abouthanzpiww" target="_blank" rel="noopener" class="community-btn btn-tg">
+      <a href="https://t.me/chhanzpiw" target="_blank" rel="noopener" class="community-btn btn-tg">
         <span class="community-icon"><i class="ic ic-send"></i></span>
         <div class="community-info">
           <div class="community-name">Channel Telegram</div>
-          <div class="community-desc">@abouthanzpiww</div>
+          <div class="community-desc">@chhanzpiw</div>
         </div>
         <span class="community-arr">›</span>
       </a>
@@ -361,7 +361,7 @@
             return `
             <div class="announcement-item glass-card">
               <div class="ann-title">${Utils.escapeHtml(a.title)}</div>
-              <div class="ann-content">${Utils.escapeHtml(content.substring(0, 100))}${content.length > 100 ? '...' : ''}</div>
+              <div class="ann-content">${Utils.linkifyPreview(content, 100)}</div>
               <div class="ann-date">${Utils.formatDateShort(a.createdAt)}</div>
             </div>`;
           }).join('');
@@ -423,5 +423,6 @@
       bootDashboard();
     }
   </script>
+  <script src="/assets/js/backsound.js"></script>
 </body>
 </html>

@@ -3,6 +3,8 @@ const router = express.Router();
 const { getDb } = require('../config/firebase');
 const { checkApiStatus } = require('../services/apiService');
 
+const DEFAULT_BACKSOUND_URL = 'https://u.pone.rs/lgqzjhof.mp3';
+
 // Public announcements (active only) — di-cache di edge Vercel supaya tidak kena cold start
 router.get('/announcements', async (req, res) => {
   res.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');
@@ -38,6 +40,11 @@ router.get('/status', async (req, res) => {
       maintenanceMessage: sys.maintenanceMessage || '',
       appVersion: sys.appVersion || process.env.APP_VERSION || '2.0.0-beta',
       apiStatus: sys.apiStatus || 'unknown',
+      // Backsound: default aktif; owner bisa mengganti URL & default aktif/nonaktif
+      backsound: {
+        enabled: sys.backsoundEnabled !== false,
+        url: sys.backsoundUrl || DEFAULT_BACKSOUND_URL,
+      },
     }
   });
 });

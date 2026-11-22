@@ -95,12 +95,13 @@ app.use('/api/', generalLimiter);
 // URL bersih: /dashboard (bukan /pages/dashboard.html). Di Vercel ini ditangani vercel.json;
 // blok ini untuk menjalankan lokal / hosting lain (mis. Pterodactyl).
 const CLEAN_PAGES = ['login', 'register', 'dashboard', 'generator', 'history', 'redeem', 'updates', 'profile', 'admin', 'owner', 'maintenance'];
-app.get(/^\/pages\/([a-z]+?)(?:\.html)?$/, (req, res, next) => {
-  const name = req.params[0];
-  if (!CLEAN_PAGES.includes(name)) return next();
-  const qIndex = req.originalUrl.indexOf('?');
-  res.redirect(301, '/' + name + (qIndex >= 0 ? req.originalUrl.slice(qIndex) : ''));
-});
+const NOT_FOUND_PAGE = path.join(__dirname, '../public/404.html');
+const sendNotFound = (req, res) => res.status(404).sendFile(NOT_FOUND_PAGE);
+
+// URL lama /pages/xxx.html sudah dihapus: tampilkan halaman "Menu tidak ditemukan"
+app.use('/pages', sendNotFound);
+app.get(['/404', '/404.html', '/menu-tidak-ditemukan'], sendNotFound);
+
 CLEAN_PAGES.forEach((name) => {
   app.get('/' + name, (req, res) => res.sendFile(path.join(__dirname, '../public/pages/' + name + '.html')));
 });
@@ -196,12 +197,12 @@ app.get('/api/firebase-config', (req, res) => {
   res.json({ success: true, data: config });
 });
 
-// Catch-all: serve SPA for unmatched routes (non-API)
+// Catch-all: URL yang tidak dikenal -> halaman "Menu tidak ditemukan"
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ success: false, message: 'Endpoint tidak ditemukan' });
   }
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+  return sendNotFound(req, res);
 });
 
 // Global error handler

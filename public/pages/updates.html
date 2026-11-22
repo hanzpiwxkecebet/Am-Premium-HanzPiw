@@ -76,9 +76,9 @@
     function showAnnDetail(ann) {
       if (!ann) return;
       markRead(ann.id);
-      document.querySelectorAll(`.ann-new-${ann.id}`).forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.new-badge').forEach(el => { if (el.dataset.annId === ann.id) el.style.display = 'none'; });
       Utils.createModal(Utils.escapeHtml(ann.title), `
-        <div style="font-size:0.88rem;line-height:1.8;color:var(--text-secondary);white-space:pre-wrap">${Utils.escapeHtml(ann.content || '')}</div>
+        <div style="font-size:0.88rem;line-height:1.8;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word">${Utils.linkify(ann.content || '')}</div>
         <div style="margin-top:12px;font-size:0.72rem;color:var(--text-muted)">${Utils.formatDate(ann.createdAt)}</div>
       `, [{ label: 'Tutup', action: 'close', class: 'btn-primary' }]);
     }
@@ -94,16 +94,15 @@
       container.innerHTML = list.map(ann => {
         const isNew = !readIds.includes(ann.id);
         const isHigh = ann.priority > 0;
-        const content = String(ann.content || '');
-        const preview = content.substring(0, 120) + (content.length > 120 ? '...' : '');
+        const previewHtml = Utils.linkifyPreview(ann.content || '', 120);
         return `
           <div class="ann-card ${isHigh ? 'priority-high' : ''}" data-id="${Utils.escapeHtml(ann.id)}">
             <div class="ann-header">
               <div class="ann-title">${Utils.escapeHtml(ann.title)}</div>
-              ${isNew ? `<span class="new-badge ann-new-${ann.id}">Baru</span>` : ''}
+              ${isNew ? `<span class="new-badge" data-ann-id="${Utils.escapeHtml(ann.id)}">Baru</span>` : ''}
               ${isHigh ? '<span class="badge badge-admin" style="font-size:0.65rem;flex-shrink:0">Penting</span>' : ''}
             </div>
-            <div class="ann-content-preview">${Utils.escapeHtml(preview)}</div>
+            <div class="ann-content-preview">${previewHtml}</div>
             <div class="ann-footer">
               <span class="ann-date">${Utils.formatDateShort(ann.createdAt)}</span>
               <span class="text-xs text-muted">Baca selengkapnya <i class="ic ic-arrow"></i></span>
@@ -114,6 +113,15 @@
     }
 
     window.showAnnDetail = showAnnDetail;
+
+    // Delegasi klik: link di dalam kartu dibuka langsung (tab baru), bukan membuka modal
+    function bindCardClicks() {
+      document.getElementById('ann-list').addEventListener('click', (e) => {
+        if (e.target.closest('a')) return;
+        const el = e.target.closest('.ann-card');
+        if (el && el.dataset.id) showAnnDetail(annMap[el.dataset.id]);
+      });
+    }
 
     // Pengumuman bersifat publik: tidak perlu menunggu login/token
     async function loadAnnouncements() {
@@ -136,6 +144,7 @@
     document.addEventListener('DOMContentLoaded', async () => {
       try { initParticles(); } catch (e) { /* abaikan */ }
       Nav.init('updates');
+      bindCardClicks();
       loadAnnouncements(); // paralel dengan auth
 
       let user = null;
@@ -148,12 +157,8 @@
       }
       if (!user) { window.location.href = '/login'; return; }
 
-      document.getElementById('ann-list').addEventListener('click', (e) => {
-        const el = e.target.closest('.ann-card');
-        if (el && el.dataset.id) showAnnDetail(annMap[el.dataset.id]);
-      });
-
     });
   </script>
+  <script src="/assets/js/backsound.js"></script>
 </body>
 </html>
