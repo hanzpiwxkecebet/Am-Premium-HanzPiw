@@ -39,3 +39,19 @@ Buka `https://DOMAIN-KAMU/api/health?deep=1` — hasilnya langsung bilang bagian
 - `vercel.json`: `/login`, `/dashboard`, dll. -> `shell.html`; kalau ada `?_embed` -> halaman asli di `pages/`. Express (`server/index.js`) memakai aturan yang sama.
 - Login Google mode redirect tidak bisa di iframe (Google melarang di-iframe), jadi `auth.js` keluar ke halaman login penuh dulu (`/login?_embed=1`), lalu `login.html` melanjutkan redirect.
 - Halaman `/` (splash) dan 404 tetap halaman biasa; musik hanya mulai ulang sekali saat masuk dari sana (posisi lagu dilanjutkan).
+
+## Update: logo, PWA, transisi, skeleton (Nov 2026)
+- **Logo H hitam putih**: `public/favicon.svg`, `favicon.ico`, `apple-touch-icon.png`, `assets/icons/*` (192, 512, maskable). Terpasang di semua halaman.
+- **PWA**: `manifest.webmanifest` + `sw.js` (network-first; `/api/` dan domain luar tidak pernah di-cache; offline menampilkan halaman "Offline"). Service worker didaftarkan oleh shell. Tombol **Install Aplikasi** ada di Profile (muncul hanya kalau bisa di-install; di iOS memberi petunjuk "Tambah ke Layar Utama"). Warna address bar mengikuti tema terang/gelap.
+- **Transisi**: shell melakukan fade-out/fade-in saat pindah menu.
+- **Tema**: perubahan tema di dalam menu ikut diterapkan ke shell (tidak ada kilatan warna saat pindah halaman).
+- **Skeleton loading** ditambah di angka statistik dan nama di Dashboard, serta daftar email di Generator; terlihat juga di tema terang.
+- Naikkan `CACHE` di `sw.js` (mis. `am-premium-v2`) kalau mau memaksa cache lama dibersihkan.
+
+## Update: background kustom (Nov 2026)
+- **Owner** (`/owner` -> tab *Sistem* -> kartu *Background Website*): tombol aktif/nonaktif, sumber **link gambar** atau **upload dari galeri/penyimpanan HP**, slider blur (0-24px, default 6), dan preview.
+- **Nonaktif = tampilan bawaan** (gelombang abu-abu + partikel) persis seperti sebelumnya. Aktif = gambar jadi latar di semua halaman, di-blur dan diredupkan sedikit supaya teks terbaca (tema terang memakai peredam terang).
+- Upload dikecilkan di browser (maks 1600px, JPEG) lalu dikirim ke `POST /api/admin/background` (owner saja). Server memeriksa isi file (JPEG/PNG/WebP asli; SVG ditolak) dan menyimpannya di `backgroundAsset/` (terpisah dari `system/` agar `/api/public/status` tetap kecil). Gambar disajikan lewat `GET /api/public/background?v=<versi>` dengan cache panjang; ganti gambar = versi baru.
+- Setelan disimpan di `system/bgEnabled`, `bgSource` (`url`/`upload`), `bgUrl`, `bgBlur`, `bgVersion`, `bgHasUpload`; dibaca publik lewat `/api/public/status` (`background`).
+- `assets/js/background.js` dimuat di `<head>` semua halaman (tanpa kedipan). Gambar digambar sekali di shell; halaman menu di iframe dibuat transparan, jadi tidak dimuat ulang saat pindah menu. Link yang rusak otomatis kembali ke tampilan bawaan.
+- Setelah owner menyimpan, perubahan langsung terlihat (melewati cache edge); pengunjung lain mendapat pembaruan dalam sekitar 30 detik.

@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="/assets/js/background.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -69,7 +73,7 @@
     <div class="welcome-card glass-card" style="margin-bottom:16px">
       <div class="avatar" id="user-avatar">?</div>
       <div class="welcome-info">
-        <div class="welcome-name" id="user-name">Memuat...</div>
+        <div class="welcome-name" id="user-name"><span class="skeleton skeleton-inline" style="width:140px;height:1.2em"></span></div>
         <div class="welcome-meta">
           <span id="user-username" style="color:var(--text-muted)">@-</span>
           <span id="user-role-badge"></span>
@@ -104,19 +108,19 @@
     <div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Statistik Global</span><span class="text-muted text-xs" style="text-transform:none;letter-spacing:0">Semua pengguna</span></div>
     <div class="stats-grid">
       <div class="stat-card glass-card">
-        <div class="stat-number gradient-text" id="stat-total">-</div>
+        <div class="stat-number gradient-text" id="stat-total"><span class="skeleton skeleton-inline" style="width:46px;height:1.4em"></span></div>
         <div class="stat-label">Total Proses</div>
       </div>
       <div class="stat-card glass-card">
-        <div class="stat-number text-success" id="stat-success">-</div>
+        <div class="stat-number text-success" id="stat-success"><span class="skeleton skeleton-inline" style="width:46px;height:1.4em"></span></div>
         <div class="stat-label">Berhasil</div>
       </div>
       <div class="stat-card glass-card">
-        <div class="stat-number text-error" id="stat-failed">-</div>
+        <div class="stat-number text-error" id="stat-failed"><span class="skeleton skeleton-inline" style="width:46px;height:1.4em"></span></div>
         <div class="stat-label">Gagal</div>
       </div>
       <div class="stat-card glass-card">
-        <div class="stat-number text-info" id="stat-rate">-</div>
+        <div class="stat-number text-info" id="stat-rate"><span class="skeleton skeleton-inline" style="width:54px;height:1.4em"></span></div>
         <div class="stat-label">Sukses Rate</div>
       </div>
     </div>

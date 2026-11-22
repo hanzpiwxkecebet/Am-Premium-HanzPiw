@@ -456,13 +456,19 @@ async function getSystemSettings(req, res) {
       apiStatus: d.apiStatus || 'unknown',
       backsoundEnabled: d.backsoundEnabled !== false,
       backsoundUrl: d.backsoundUrl || 'https://u.pone.rs/lgqzjhof.mp3',
+      bgEnabled: d.bgEnabled === true,
+      bgSource: d.bgSource === 'upload' ? 'upload' : 'url',
+      bgUrl: d.bgUrl || '',
+      bgBlur: Number.isFinite(Number(d.bgBlur)) ? Number(d.bgBlur) : 6,
+      bgHasUpload: d.bgHasUpload === true,
+      bgVersion: d.bgVersion || 0,
     },
   });
 }
 
 async function updateSystemSettings(req, res) {
   const actor = req.user;
-  const { maintenance, maintenanceMessage, defaultDailyLimit, dailyLimit, version, welcomeMessage, apiStatus, backsoundEnabled, backsoundUrl } = req.body;
+  const { maintenance, maintenanceMessage, defaultDailyLimit, dailyLimit, version, welcomeMessage, apiStatus, backsoundEnabled, backsoundUrl, bgEnabled, bgSource, bgUrl, bgBlur } = req.body;
   const db = getDb();
   const updates = {};
   if (maintenance !== undefined) updates['system/maintenance'] = maintenance === true || maintenance === 'true';
@@ -492,6 +498,33 @@ async function updateSystemSettings(req, res) {
         }
         updates['system/backsoundUrl'] = url;
       }
+    }
+  }
+
+  // Background kustom: hanya owner
+  if (actor.role === 'owner') {
+    if (bgEnabled !== undefined) updates['system/bgEnabled'] = bgEnabled === true || bgEnabled === 'true';
+    if (bgBlur !== undefined) {
+      const b = Number(bgBlur);
+      if (!Number.isFinite(b) || b < 0 || b > 24) {
+        return res.status(400).json({ success: false, message: 'Blur background harus 0 sampai 24' });
+      }
+      updates['system/bgBlur'] = Math.round(b);
+    }
+    if (bgSource !== undefined) {
+      if (bgSource !== 'url' && bgSource !== 'upload') {
+        return res.status(400).json({ success: false, message: 'Sumber background tidak valid' });
+      }
+      updates['system/bgSource'] = bgSource;
+      updates['system/bgVersion'] = Date.now();
+    }
+    if (bgUrl !== undefined) {
+      const u = String(bgUrl).trim();
+      if (u !== '' && (u.length > 1000 || !/^https?:\/\/[^\s"'()<>\\]+$/i.test(u))) {
+        return res.status(400).json({ success: false, message: 'URL gambar harus diawali http:// atau https:// (tanpa spasi atau tanda kutip/kurung)' });
+      }
+      updates['system/bgUrl'] = u === '' ? null : u;
+      updates['system/bgVersion'] = Date.now();
     }
   }
   if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, message: 'Tidak ada setting yang diubah' });
@@ -663,7 +696,64 @@ async function getAdminLogs(req, res) {
   return res.json({ success: true, data: logs });
 }
 
+// ─── Background kustom (upload dari galeri) ──────────────────
+// Browser mengecilkan gambar dulu (maks 1600px, JPEG). Server tetap memeriksa isi file (magic bytes),
+// jadi hanya JPEG/PNG/WebP asli yang diterima (SVG dan file lain ditolak).
+const BG_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/;
+const BG_MAX_LEN = 1800000; // karakter base64 (~1,3MB gambar)
+
+function sniffImageType(buf) {
+  if (buf.length > 12 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpeg';
+  if (buf.length > 12 && buf[0] === 0x89 && buf.toString('ascii', 1, 4) === 'PNG') return 'png';
+  if (buf.length > 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return 'webp';
+  return null;
+}
+
+async function uploadBackground(req, res) {
+  const actor = req.user;
+  const dataUrl = req.body && req.body.dataUrl;
+  if (typeof dataUrl !== 'string' || dataUrl.length > BG_MAX_LEN || !BG_RE.test(dataUrl)) {
+    return res.status(400).json({ success: false, message: 'Gambar tidak valid atau terlalu besar (pakai JPG/PNG/WebP, maks ~1,3MB)' });
+  }
+  const buf = Buffer.from(dataUrl.slice(dataUrl.indexOf(',') + 1), 'base64');
+  const type = sniffImageType(buf);
+  if (!type) {
+    return res.status(400).json({ success: false, message: 'Isi file bukan gambar JPG/PNG/WebP yang valid' });
+  }
+  const db = getDb();
+  const version = Date.now();
+  await db.ref('/').update({
+    'backgroundAsset/data': dataUrl,
+    'backgroundAsset/type': type,
+    'system/bgSource': 'upload',
+    'system/bgHasUpload': true,
+    'system/bgVersion': version,
+  });
+  await logAction({ actorUID: actor.uid, actorRole: actor.role, action: 'upload_background', summary: `Upload background (${Math.round(buf.length / 1024)} KB)` });
+  return res.json({ success: true, message: 'Background berhasil diupload', data: { version } });
+}
+
+async function deleteBackground(req, res) {
+  const actor = req.user;
+  const db = getDb();
+  const snap = await db.ref('system/bgSource').once('value');
+  const updates = {
+    'backgroundAsset': null,
+    'system/bgHasUpload': false,
+    'system/bgVersion': Date.now(),
+  };
+  // Kalau yang aktif adalah gambar upload, otomatis kembali ke background default
+  if (snap.val() === 'upload') {
+    updates['system/bgEnabled'] = false;
+    updates['system/bgSource'] = 'url';
+  }
+  await db.ref('/').update(updates);
+  await logAction({ actorUID: actor.uid, actorRole: actor.role, action: 'delete_background', summary: 'Hapus background upload' });
+  return res.json({ success: true, message: 'Background upload dihapus' });
+}
+
 module.exports = {
+  uploadBackground, deleteBackground,
   getUsers, getUserDetail, updateUserRole, updateUserLimit, suspendUser, activateUser,
   createRedeemCode, getRedeemCodes, deleteRedeemCode, updateRedeemCode,
   getEmails, addEmail, deleteEmail, updateEmailStatus,

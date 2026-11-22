@@ -27,7 +27,19 @@ const Theme = {
     }
     document.documentElement.setAttribute('data-theme', theme);
     this._save(theme);
+    this._applyChrome(document, theme);
+    // Halaman ini bisa berada di dalam iframe shell: samakan tema & warna bar browser di shell juga
+    try { if (window.top !== window) { window.top.document.documentElement.setAttribute('data-theme', theme); this._applyChrome(window.top.document, theme); } } catch (e) { /* beda origin */ }
     this.updateToggleBtn();
+  },
+
+  // Warna address bar / status bar (PWA & Chrome Android) mengikuti tema
+  _applyChrome(doc, theme) {
+    try {
+      let m = doc.querySelector('meta[name="theme-color"]');
+      if (!m) { m = doc.createElement('meta'); m.name = 'theme-color'; doc.head.appendChild(m); }
+      m.content = theme === Theme.LIGHT ? '#e7e7e7' : '#0f0f0f';
+    } catch (e) { /* abaikan */ }
   },
 
   toggle() {

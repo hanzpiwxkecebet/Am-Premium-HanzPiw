@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="/assets/js/background.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -108,6 +112,10 @@
           <div class="toggle-thumb"></div>
         </div>
       </div>
+      <div class="settings-item" id="install-app-row" style="display:none;cursor:pointer" onclick="installApp()">
+        <div><span class="settings-icon"><i class="ic ic-rocket"></i></span><span class="settings-label">Install Aplikasi</span></div>
+        <span class="settings-arrow">›</span>
+      </div>
       <div class="settings-item">
         <div><span class="settings-icon"><i class="ic ic-bell"></i></span><span class="settings-label">Suara Notifikasi</span></div>
         <div class="toggle-switch on" id="sound-toggle" onclick="toggleSound(this)">
@@ -174,6 +182,28 @@
       // Update switch state based on actual theme
       el.classList.toggle('on', Theme.current === 'dark');
     }
+
+    // Install sebagai aplikasi (PWA). Statusnya dipegang shell (window.top.AMInstall).
+    function installState() {
+      try { return (window.top.AMInstall && window.top.AMInstall.status()) || 'none'; } catch (e) { return 'none'; }
+    }
+    function refreshInstallRow() {
+      const row = document.getElementById('install-app-row');
+      if (row) row.style.display = ['ready', 'ios'].includes(installState()) ? '' : 'none';
+    }
+    async function installApp() {
+      const st = installState();
+      if (st === 'ready') {
+        const outcome = await window.top.AMInstall.prompt();
+        if (outcome === 'accepted') Toast.success('Aplikasi sedang di-install');
+        refreshInstallRow();
+      } else if (st === 'ios') {
+        Toast.info('Di Safari: tekan tombol Bagikan, lalu pilih "Tambah ke Layar Utama"');
+      }
+    }
+    // Event install bisa datang setelah halaman ini dimuat
+    setTimeout(refreshInstallRow, 600);
+    setTimeout(refreshInstallRow, 2500);
 
     function toggleSound(el) {
       el.classList.toggle('on');

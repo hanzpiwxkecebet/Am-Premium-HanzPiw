@@ -53,6 +53,8 @@ app.use(cors({
 //  - POST /api/admin/emails : tambah email bulk (maks 200 email)
 app.use('/api/auth/profile', express.json({ limit: '300kb' }));
 app.use('/api/admin/emails', express.json({ limit: '40kb' }));
+//  - POST /api/admin/background : gambar background (data URL hasil kompres di browser, maks ~1,5MB)
+app.use('/api/admin/background', express.json({ limit: '2mb' }));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
@@ -113,7 +115,12 @@ CLEAN_PAGES.forEach((name) => {
 });
 
 // Serve static files
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('sw.js')) res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    if (filePath.endsWith('.webmanifest')) res.setHeader('Content-Type', 'application/manifest+json');
+  },
+}));
 
 // API Routes
 app.use('/api/auth', require('./routes/auth'));

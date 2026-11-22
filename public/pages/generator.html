@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="/assets/js/background.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -101,7 +105,9 @@
         <div id="system-email-wrap" class="hidden">
           <label class="form-label">Pilih Email Sistem</label>
           <div id="system-email-list" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto">
-            <div class="text-muted text-sm text-center" style="padding:16px">Memuat email...</div>
+            <div class="skeleton" style="height:44px;border-radius:var(--radius-md)"></div>
+            <div class="skeleton" style="height:44px;border-radius:var(--radius-md)"></div>
+            <div class="skeleton" style="height:44px;border-radius:var(--radius-md)"></div>
           </div>
           <input type="hidden" id="system-email-selected">
         </div>

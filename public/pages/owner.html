@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="/assets/js/background.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -263,6 +267,52 @@
           <div class="text-muted text-xs" style="margin-top:4px">Link langsung ke file audio (mp3/ogg/wav, https). Kosongkan untuk kembali ke audio bawaan.</div>
         </div>
         <button class="btn btn-primary btn-full" id="owner-save-sys"><i class="ic ic-save"></i> Simpan Semua Pengaturan</button>
+      </div>
+
+      <div class="glass-card" style="margin-top:12px" id="owner-bg-card">
+        <div class="section-title" style="margin-top:0">Background Website</div>
+        <div class="form-group">
+          <label class="form-label">Background Kustom</label>
+          <select class="form-input" id="owner-bg-enabled">
+            <option value="false">Nonaktif (tampilan bawaan)</option>
+            <option value="true">Aktif</option>
+          </select>
+          <div class="text-muted text-xs" style="margin-top:4px">Nonaktif = tampilan bawaan seperti sekarang. Aktif = gambar di bawah dipakai sebagai latar di semua halaman.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sumber Gambar</label>
+          <select class="form-input" id="owner-bg-source">
+            <option value="url">Link gambar</option>
+            <option value="upload">Upload dari galeri / penyimpanan HP</option>
+          </select>
+        </div>
+        <div class="form-group" id="owner-bg-url-wrap">
+          <label class="form-label">Link Gambar</label>
+          <input type="url" class="form-input" id="owner-bg-url" placeholder="https://contoh.com/gambar.jpg">
+          <div class="text-muted text-xs" style="margin-top:4px">Link langsung ke gambar (https). Kalau gambarnya gagal dimuat, website otomatis memakai tampilan bawaan.</div>
+        </div>
+        <div class="form-group" id="owner-bg-upload-wrap" style="display:none">
+          <label class="form-label">File Gambar</label>
+          <input type="file" id="owner-bg-file" accept="image/*" style="display:none">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn btn-secondary" id="owner-bg-pick" style="flex:1;min-width:150px">Pilih gambar</button>
+            <button type="button" class="btn btn-secondary" id="owner-bg-delete" style="display:none">Hapus upload</button>
+          </div>
+          <div class="text-muted text-xs" id="owner-bg-file-info" style="margin-top:6px">Gambar otomatis dikecilkan (maks 1600px) supaya website tetap cepat.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Blur: <span id="owner-bg-blur-val">6</span>px</label>
+          <input type="range" id="owner-bg-blur" min="0" max="24" step="1" value="6" style="width:100%">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Preview</label>
+          <div id="owner-bg-preview" style="position:relative;height:150px;border-radius:var(--radius-md);overflow:hidden;background:var(--bg-glass);border:1px solid var(--border-glass)">
+            <div id="owner-bg-preview-img" style="position:absolute;inset:-14px;background-size:cover;background-position:center"></div>
+            <div style="position:absolute;inset:0;background:rgba(0,0,0,0.38)"></div>
+            <div id="owner-bg-preview-empty" class="text-muted text-sm" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">Belum ada gambar</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" id="owner-bg-save"><i class="ic ic-save"></i> Simpan Background</button>
       </div>
     </div>
 
@@ -773,8 +823,141 @@
         document.getElementById('owner-bgm-enabled').value = d.backsoundEnabled === false ? 'false' : 'true';
         const bgmUrl = d.backsoundUrl || '';
         document.getElementById('owner-bgm-url').value = (window.Backsound && bgmUrl === window.Backsound.defaultUrl) ? '' : bgmUrl;
+        loadBgSettings(d);
       } catch (e) { Toast.error('Gagal muat pengaturan'); }
     }
+
+    // ========== BACKGROUND WEBSITE ==========
+    const bgState = { hasUpload: false, version: 0, pending: null };
+    const $bg = (id) => document.getElementById(id);
+
+    function loadBgSettings(d) {
+      bgState.hasUpload = d.bgHasUpload === true;
+      bgState.version = d.bgVersion || 0;
+      $bg('owner-bg-enabled').value = d.bgEnabled ? 'true' : 'false';
+      $bg('owner-bg-source').value = d.bgSource === 'upload' ? 'upload' : 'url';
+      $bg('owner-bg-url').value = d.bgUrl || '';
+      $bg('owner-bg-blur').value = Number.isFinite(Number(d.bgBlur)) ? d.bgBlur : 6;
+      bgState.pending = null;
+      bgRefreshUi();
+    }
+
+    function bgPreviewSrc() {
+      if ($bg('owner-bg-source').value === 'upload') {
+        if (bgState.pending) return bgState.pending;
+        return bgState.hasUpload ? `/api/public/background?v=${bgState.version}` : '';
+      }
+      const u = $bg('owner-bg-url').value.trim();
+      return /^https?:\/\/[^\s"'()<>\\]+$/i.test(u) ? u : '';
+    }
+
+    function bgRefreshUi() {
+      const isUpload = $bg('owner-bg-source').value === 'upload';
+      $bg('owner-bg-url-wrap').style.display = isUpload ? 'none' : '';
+      $bg('owner-bg-upload-wrap').style.display = isUpload ? '' : 'none';
+      $bg('owner-bg-delete').style.display = (isUpload && bgState.hasUpload) ? '' : 'none';
+      $bg('owner-bg-file-info').textContent = bgState.pending
+        ? 'Gambar baru siap diupload. Tekan "Simpan Background".'
+        : (bgState.hasUpload ? 'Sudah ada gambar upload. Pilih gambar lain untuk menggantinya.' : 'Gambar otomatis dikecilkan (maks 1600px) supaya website tetap cepat.');
+      const blur = Number($bg('owner-bg-blur').value) || 0;
+      $bg('owner-bg-blur-val').textContent = blur;
+      const src = bgPreviewSrc();
+      const img = $bg('owner-bg-preview-img');
+      img.style.backgroundImage = src ? `url("${src}")` : 'none';
+      img.style.filter = `blur(${Math.round(blur / 2)}px)`; // preview lebih kecil dari layar, jadi blur diskalakan
+      $bg('owner-bg-preview-empty').style.display = src ? 'none' : 'flex';
+    }
+
+    // Kecilkan gambar dari galeri HP: maks 1600px, JPEG. Foto 5MB+ jadi sekitar 200-500KB.
+    async function bgCompress(file) {
+      let bmp = null;
+      try { bmp = await createImageBitmap(file); } catch (e) {
+        bmp = await new Promise((resolve, reject) => {
+          const url = URL.createObjectURL(file);
+          const im = new Image();
+          im.onload = () => { URL.revokeObjectURL(url); resolve(im); };
+          im.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Format gambar tidak didukung. Pakai JPG, PNG, atau WebP.')); };
+          im.src = url;
+        });
+      }
+      const w0 = bmp.width, h0 = bmp.height;
+      let maxSide = 1600;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const scale = Math.min(1, maxSide / Math.max(w0, h0));
+        const w = Math.max(1, Math.round(w0 * scale)), h = Math.max(1, Math.round(h0 * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(bmp, 0, 0, w, h);
+        for (let q = 0.82; q >= 0.45; q -= 0.08) {
+          const data = canvas.toDataURL('image/jpeg', q);
+          if (data.length <= 1700000) { if (bmp.close) bmp.close(); return data; }
+        }
+        maxSide = Math.round(maxSide * 0.75);
+      }
+      throw new Error('Gambar terlalu besar, pilih gambar yang lebih kecil');
+    }
+
+    $bg('owner-bg-source').addEventListener('change', bgRefreshUi);
+    $bg('owner-bg-url').addEventListener('input', bgRefreshUi);
+    $bg('owner-bg-blur').addEventListener('input', bgRefreshUi);
+    $bg('owner-bg-pick').addEventListener('click', () => $bg('owner-bg-file').click());
+    $bg('owner-bg-file').addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      if (!/^image\//i.test(file.type)) { Toast.error('File harus berupa gambar'); return; }
+      if (file.size > 25 * 1024 * 1024) { Toast.error('File terlalu besar (maks 25MB)'); return; }
+      $bg('owner-bg-file-info').textContent = 'Memproses gambar...';
+      try {
+        bgState.pending = await bgCompress(file);
+        bgRefreshUi();
+      } catch (err) {
+        bgState.pending = null;
+        bgRefreshUi();
+        Toast.error(err.message || 'Gagal memproses gambar');
+      }
+    });
+
+    $bg('owner-bg-delete').addEventListener('click', async () => {
+      if (!window.confirm('Hapus gambar upload? Background kembali ke tampilan bawaan.')) return;
+      try {
+        await AMApp.apiCall('DELETE', '/api/admin/background');
+        Toast.success('Gambar upload dihapus');
+        if (window.Background) window.Background.refresh(true);
+        await loadOwnerSystem();
+      } catch (err) { Toast.error(err.message || 'Gagal menghapus'); }
+    });
+
+    $bg('owner-bg-save').addEventListener('click', async () => {
+      const btn = $bg('owner-bg-save');
+      const enabled = $bg('owner-bg-enabled').value === 'true';
+      const source = $bg('owner-bg-source').value;
+      const url = $bg('owner-bg-url').value.trim();
+      if (enabled && source === 'url' && !bgPreviewSrc()) { Toast.error('Isi link gambar yang valid (https://...) dulu'); return; }
+      if (enabled && source === 'upload' && !bgState.pending && !bgState.hasUpload) { Toast.error('Pilih gambar dari galeri dulu'); return; }
+      Utils.setButtonLoading(btn);
+      try {
+        if (source === 'upload' && bgState.pending) {
+          await AMApp.apiCall('POST', '/api/admin/background', { dataUrl: bgState.pending }, {}, 60000);
+          bgState.pending = null;
+        }
+        await AMApp.apiCall('PUT', '/api/admin/system', {
+          bgEnabled: enabled,
+          bgSource: source,
+          bgUrl: url,
+          bgBlur: Number($bg('owner-bg-blur').value) || 0
+        });
+        Toast.success(enabled ? 'Background disimpan dan diaktifkan' : 'Background disimpan (nonaktif)');
+        if (window.Background) window.Background.refresh(true); // terapkan langsung
+        await loadOwnerSystem();
+      } catch (err) {
+        Toast.error(err.message || 'Gagal menyimpan background');
+      } finally {
+        Utils.setButtonLoading(btn, false);
+      }
+    });
 
     document.getElementById('owner-save-sys').addEventListener('click', async () => {
       const btn = document.getElementById('owner-save-sys');

@@ -49,6 +49,8 @@ router.get('/system', ...isAdmin, ctrl.getSystemSettings);
 update('/system', ...isAdmin, ctrl.updateSystemSettings);
 
 // Danger zone (owner)
+router.post('/background', ...isOwner, ctrl.uploadBackground);
+router.delete('/background', ...isOwner, ctrl.deleteBackground);
 router.post('/system/reset-stats', ...isOwner, ctrl.resetGlobalStats);
 router.post('/system/reset-limits', ...isOwner, ctrl.resetAllLimits);
 router.post('/system/apply-default-limit', ...isOwner, ctrl.applyDefaultLimit);

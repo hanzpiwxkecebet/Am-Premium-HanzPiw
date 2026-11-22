@@ -19,13 +19,29 @@
     return u.pathname + u.search + u.hash;
   }
 
+  var leaveTimer = null;
+  function showFrame() {
+    clearTimeout(leaveTimer);
+    frame.classList.remove('leaving');
+  }
+
   function onFrameLoad() {
+    showFrame(); // fade-in halaman baru
     var w, d;
     try {
       w = frame.contentWindow;
       d = w.document;
       if (w.location.origin !== location.origin) return;
     } catch (e) { return; }
+
+    // Fade-out halaman lama saat pindah menu (pengaman: otomatis tampil lagi kalau navigasi batal)
+    try {
+      w.addEventListener('beforeunload', function () {
+        frame.classList.add('leaving');
+        clearTimeout(leaveTimer);
+        leaveTimer = setTimeout(showFrame, 4000);
+      });
+    } catch (e) { /* abaikan */ }
 
     // Samakan address bar & judul tab dengan halaman di dalam iframe
     var clean = toClean(w.location.href);
@@ -40,4 +56,35 @@
 
   frame.addEventListener('load', onFrameLoad);
   frame.src = toEmbed(location.href);
+
+  // ─── PWA: service worker + tombol install ───────────────────────
+  // Halaman di dalam iframe memakai window.top.AMInstall (mis. tombol "Install Aplikasi" di Profile).
+  var deferredPrompt = null;
+  function isStandalone() {
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  }
+  window.AMInstall = {
+    // 'ready' = bisa langsung install, 'ios' = perlu langkah manual di Safari, 'installed' / 'none' = tidak ditampilkan
+    status: function () {
+      if (isStandalone()) return 'installed';
+      if (deferredPrompt) return 'ready';
+      if (/iphone|ipad|ipod/i.test(navigator.userAgent)) return 'ios';
+      return 'none';
+    },
+    prompt: function () {
+      if (!deferredPrompt) return Promise.resolve('unavailable');
+      var p = deferredPrompt;
+      deferredPrompt = null;
+      p.prompt();
+      return p.userChoice.then(function (c) { return c && c.outcome; }).catch(function () { return 'dismissed'; });
+    }
+  };
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferredPrompt = e; });
+  window.addEventListener('appinstalled', function () { deferredPrompt = null; });
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').catch(function () { /* abaikan: website tetap jalan tanpa SW */ });
+    });
+  }
 })();

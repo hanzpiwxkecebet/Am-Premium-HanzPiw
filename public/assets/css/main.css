@@ -1132,3 +1132,26 @@ th, td { border-bottom-color: rgba(255,255,255,0.12); }
 /* Link otomatis di pengumuman (Updates & Dashboard) */
 .auto-link { color: var(--neon-blue, #8ab4ff); text-decoration: underline; text-underline-offset: 2px; word-break: break-all; cursor: pointer; }
 .auto-link:hover { opacity: 0.8; }
+
+/* Skeleton tetap terlihat di tema terang */
+[data-theme="light"] .skeleton::after { background: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.08) 50%, transparent 100%); background-size: 200% 100%; }
+.skeleton-inline { display: inline-block; vertical-align: middle; border-radius: var(--radius-sm); }
+
+/* ─── Background kustom (diatur owner; nonaktif = tampilan bawaan di atas) ─── */
+html.bg-custom { background: var(--bg-primary); }
+html.bg-custom body { background: transparent !important; }
+html.bg-custom.bg-in-frame { background: transparent; }            /* halaman di iframe: gambar digambar induk */
+html.bg-custom body::before, html.bg-custom body::after { display: none !important; }
+html.bg-custom #particles-canvas { display: none !important; }
+
+#custom-bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 0.5s ease; }
+#custom-bg.ready { opacity: 1; }
+#custom-bg .bg-img {
+  position: absolute; inset: -32px;                 /* lebih besar dari layar agar tepi blur tidak terlihat */
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+  filter: blur(var(--bg-blur, 6px));
+  transform: translateZ(0);
+}
+#custom-bg .bg-dim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.38); }   /* peredam supaya teks tetap terbaca */
+[data-theme="light"] #custom-bg .bg-dim { background: rgba(255, 255, 255, 0.34); }
+@media (prefers-reduced-motion: reduce) { #custom-bg { transition: none; } }

@@ -225,10 +225,10 @@
     return urlChanged;
   }
 
-  function fetchCfg(timeoutMs) {
+  function fetchCfg(timeoutMs, bust) {
     var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, timeoutMs || 6000) : null;
-    return fetch('/api/public/status', { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+    return fetch('/api/public/status' + (bust ? '?t=' + Date.now() : ''), { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
       .then(function (r) { return r.json(); })
       .then(function (j) { return j && j.data && j.data.backsound ? j.data.backsound : null; })
       .catch(function () { return null; })
@@ -237,7 +237,7 @@
 
   // Panggil setelah owner menyimpan setelan supaya langsung berlaku di halaman ini
   function refresh() {
-    return fetchCfg(6000).then(function (b) {
+    return fetchCfg(6000, true).then(function (b) {
       if (!b) return;
       setCfg(b);
       apply();
