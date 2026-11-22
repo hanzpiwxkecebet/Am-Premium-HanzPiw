@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="/assets/js/background.js"></script>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f0f0f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="AM Premium">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+  <title>AM Premium Generator V2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <style>
+    .loading-screen {
+      position: fixed; inset: 0;
+      background: radial-gradient(60% 45% at 85% 8%, rgba(113, 113, 113,.9), transparent 70%), radial-gradient(55% 40% at 8% 55%, rgba(101, 101, 101,.75), transparent 70%), linear-gradient(170deg,#0e0e0e,#1c1c1c 55%,#1c1c1c);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 99999;
+      transition: opacity 0.25s ease;
+    }
+    .loading-screen.fade-out { opacity: 0; pointer-events: none; }
+    .loading-logo {
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 900;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+      text-align: center;
+      width: 100%;
+      padding: 0 24px;
+    }
+    .loading-dev {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 48px;
+      text-align: center;
+    }
+    .loading-bar-wrap {
+      width: min(300px, 80vw);
+      height: 4px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .loading-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #e6e8ec, #8f939b);
+      border-radius: 9999px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .loading-status {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .loading-ring {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      border: 3px solid rgba(156, 156, 156,0.1);
+      border-top-color: #9e9e9e;
+      border-right-color: #595959;
+      animation: spin 1.2s linear infinite;
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- Loading Screen -->
+  <div class="loading-screen" id="loading-screen">
+    <div class="loading-ring"></div>
+    <div class="loading-logo gradient-text">AM PREMIUM GENERATOR</div>
+    <div class="loading-dev">by HanzPiw Official</div>
+    <div class="loading-bar-wrap">
+      <div class="loading-bar-fill" id="loading-bar"></div>
+    </div>
+    <div class="loading-status" id="loading-status">Memuat aplikasi...</div>
+  </div>
+
+  <script src="/assets/js/boot.js"></script>
+
+  <script src="/assets/js/theme.js"></script>
+  <script>Theme.init();</script>
+
+  <!-- Firebase SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+  <script src="/assets/js/particles.js"></script>
+  <script src="/assets/js/firebase-init.js"></script>
+  <script src="/assets/js/notifications.js"></script>
+  <script src="/assets/js/auth.js"></script>
+
+  <script>
+    async function boot() {
+      const bar = document.getElementById('loading-bar');
+      const status = document.getElementById('loading-status');
+
+      function setProgress(pct, msg) {
+        bar.style.width = pct + '%';
+        status.textContent = msg;
+      }
+
+      try {
+        // Cek maintenance jalan PARALEL dengan login, dan hanya ditunggu maks. 1,5 detik.
+        // (Sebelumnya berurutan & bisa menahan layar loading sampai 5 detik kalau server lambat.)
+        const statusTask = AMApp.requestJson('/api/public/status', {}, 5000)
+          .then(({ data }) => data)
+          .catch(() => null);
+
+        setProgress(20, 'Menghubungkan ke Firebase...');
+        try {
+          await AMApp.initFirebaseClient();
+        } catch (firebaseErr) {
+          console.warn('[Boot] Firebase init warning:', firebaseErr.message);
+          // Lanjutkan meski Firebase gagal — fallback config akan dipakai
+        }
+
+        setProgress(50, 'Memeriksa autentikasi...');
+        let user = null;
+        try {
+          user = await Auth.init({ waitProfile: false });
+        } catch (authErr) {
+          console.warn('[Boot] Auth init warning:', authErr.message);
+        }
+
+        setProgress(80, 'Memeriksa status sistem...');
+        const statusData = await Promise.race([
+          statusTask,
+          new Promise((resolve) => setTimeout(() => resolve(null), 1500)),
+        ]);
+        if (statusData && statusData.data && statusData.data.maintenance) {
+          setProgress(100, 'Redirect ke maintenance...');
+          setTimeout(() => { window.location.href = '/maintenance'; }, 300);
+          return;
+        }
+
+        setProgress(100, 'Selesai!');
+        document.getElementById('loading-screen').classList.add('fade-out');
+        setTimeout(() => {
+          window.location.href = user ? '/dashboard' : '/login';
+        }, 250);
+
+      } catch (err) {
+        setProgress(100, 'Gagal memuat. Periksa koneksi.');
+        console.error('[Boot]', err);
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
+      boot();
+    });
+  </script>
+  <script src="/assets/js/backsound.js"></script>
+</body>
+</html>

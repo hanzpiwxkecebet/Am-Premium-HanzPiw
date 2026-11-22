@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="/assets/js/background.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+  <title>Redeem - AM Premium Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <style>
+    .redeem-card { padding: 24px; text-align: center; border-radius: var(--radius-xl); background: var(--gradient-card); border: 1px solid var(--border-neon-blue); margin-bottom: 20px; }
+    .redeem-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .code-input-wrap { position: relative; }
+    .code-input { font-family: var(--font-mono); font-size: 1rem; text-align: center; letter-spacing: 2px; text-transform: uppercase; }
+    .code-input:focus { border-color: var(--neon-red-dim); box-shadow: 0 0 0 3px var(--neon-red-glow); }
+    .redeem-history-item { padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .history-code { font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-secondary); }
+    .type-badge-limit { background: rgba(0,255,136,0.1); color: var(--text-success); border: 1px solid rgba(0,255,136,0.3); }
+    .type-badge-premium { background: var(--gradient-primary); color: #fff; }
+    .type-badge-special { background: rgba(255,165,0,0.1); color: #ffaa44; border: 1px solid rgba(255,165,0,0.3); }
+    .type-info { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+    .type-card { flex: 1; padding: 12px 10px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); text-align: center; }
+    .type-card-icon { font-size: 1.3rem; margin-bottom: 4px; }
+    .type-card-name { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .type-card-desc { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+  <div id="toast-container"></div>
+
+  <div class="page-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title gradient-text">Redeem <i class="ic ic-ticket"></i></div>
+        <div class="page-subtitle">Gunakan kode redeem kamu</div>
+      </div>
+    </div>
+
+    <!-- Redeem card -->
+    <div class="redeem-card glass-card">
+      <div class="redeem-icon"><i class="ic ic-ticket"></i></div>
+      <div style="font-weight:700;font-size:1.1rem;margin-bottom:4px">Masukkan Kode Redeem</div>
+      <div class="text-secondary text-sm mb-3">Dapatkan limit tambahan, premium, atau akses khusus</div>
+
+      <div class="form-group" style="text-align:left">
+        <div class="code-input-wrap">
+          <input type="text" class="form-input code-input" id="redeem-code" placeholder="XXXXXXXX" maxlength="30" autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full btn-lg" id="redeem-btn">
+        <div class="btn-loader"></div>
+        <span class="btn-text"><i class="ic ic-ticket"></i> Redeem Sekarang</span>
+      </button>
+    </div>
+
+    <!-- Code types info -->
+    <div class="section-title">Jenis Kode</div>
+    <div class="type-info">
+      <div class="type-card">
+        <div class="type-card-icon"><i class="ic ic-chart"></i></div>
+        <div class="type-card-name" style="color:var(--text-success)">Limit</div>
+        <div class="type-card-desc">Tambah limit harian</div>
+      </div>
+      <div class="type-card">
+        <div class="type-card-icon"><i class="ic ic-star"></i></div>
+        <div class="type-card-name" style="background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Premium</div>
+        <div class="type-card-desc">Akses Premium</div>
+      </div>
+      <div class="type-card">
+        <div class="type-card-icon"><i class="ic ic-key"></i></div>
+        <div class="type-card-name" style="color:#ffaa44">Special</div>
+        <div class="type-card-desc">Akses khusus</div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="section-title">Riwayat Redeem</div>
+    <div id="redeem-history">
+      <div class="skeleton" style="height:56px;border-radius:var(--radius-md);margin-bottom:8px"></div>
+      <div class="skeleton" style="height:56px;border-radius:var(--radius-md)"></div>
+    </div>
+  </div>
+
+  <nav id="bottom-nav"></nav>
+
+  <script src="/assets/js/boot.js"></script>
+
+  <script src="/assets/js/theme.js"></script>
+  <script>Theme.init();</script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="/assets/js/particles.js"></script>
+  <script src="/assets/js/firebase-init.js"></script>
+  <script src="/assets/js/notifications.js"></script>
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/utils.js"></script>
+  <script src="/assets/js/nav.js"></script>
+  <script>
+    const TYPE_LABELS = { limit: 'Limit', premium: 'Premium', special: 'Special' };
+    const TYPE_BADGE_CLS = { limit: 'type-badge-limit', premium: 'type-badge-premium', special: 'type-badge-special' };
+
+    function renderHistory(items) {
+      const container = document.getElementById('redeem-history');
+      if (!items || items.length === 0) {
+        container.innerHTML = '<div class="text-muted text-sm text-center" style="padding:20px">Belum pernah redeem kode</div>';
+        return;
+      }
+      container.innerHTML = items.map(item => `
+        <div class="redeem-history-item">
+          <div>
+            <div class="history-code">${Utils.escapeHtml(item.code)}</div>
+            <div class="text-muted text-xs">${Utils.formatDate(item.redeemedAt)}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+            <span class="badge ${TYPE_BADGE_CLS[item.type] || 'badge-user'}">${Utils.escapeHtml(TYPE_LABELS[item.type] || item.type)}</span>
+            <span class="text-xs text-muted">+${Utils.escapeHtml(String(item.value))}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
+      Nav.init('redeem');
+
+      let user = null;
+      try {
+        user = await Auth.init({ waitProfile: false });
+      } catch (err) {
+        console.error('[redeem] Auth error:', err);
+        Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
+        return;
+      }
+      if (!user) { window.location.href = '/login'; return; }
+
+      // Auto uppercase code input
+      const codeInput = document.getElementById('redeem-code');
+      codeInput.addEventListener('input', () => {
+        const pos = codeInput.selectionStart;
+        codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        codeInput.setSelectionRange(pos, pos);
+      });
+
+      // Redeem button
+      document.getElementById('redeem-btn').addEventListener('click', async () => {
+        const code = codeInput.value.trim();
+        if (!code || code.length < 4) { Toast.warning('Masukkan kode redeem yang valid'); return; }
+
+        const btn = document.getElementById('redeem-btn');
+        Utils.setButtonLoading(btn);
+
+        try {
+          const res = await AMApp.apiCall('POST', '/api/redeem', { code });
+          if (res.success) {
+            Toast.success(res.message || 'Kode berhasil diredeem!');
+            codeInput.value = '';
+
+            // Show reward modal
+            const typeLabel = Utils.escapeHtml(TYPE_LABELS[res.data && res.data.type] || (res.data && res.data.type) || '');
+            const val = res.data ? res.data.value : '';
+            Utils.createModal('<i class="ic ic-sparkles"></i> Redeem Berhasil!',
+              `<div style="text-align:center;padding:8px 0">
+                <div style="font-size:2.5rem;margin-bottom:12px"><i class="ic ic-sparkles"></i></div>
+                <div class="text-secondary" style="font-size:0.9rem">Kamu mendapatkan:</div>
+                <div style="font-size:1.5rem;font-weight:800;margin:8px 0" class="gradient-text">+${Utils.escapeHtml(String(val))} ${typeLabel}</div>
+              </div>`,
+              [{ label: 'Yeay!', action: 'close', class: 'btn-primary' }]
+            );
+
+            await loadHistory(true);
+          }
+        } catch (err) {
+          Toast.error(err.message || 'Redeem gagal');
+        } finally {
+          Utils.setButtonLoading(btn, false);
+        }
+      });
+
+      async function loadHistory(fresh) {
+        const key = 'redeem-history:' + user.uid;
+        try {
+          if (fresh) {
+            const res = await AMApp.apiCall('GET', '/api/redeem/history');
+            Cache.set(key, res.data || []);
+            renderHistory(res.data || []);
+          } else {
+            await Cache.swr(
+              key,
+              async () => (await AMApp.apiCall('GET', '/api/redeem/history')).data || [],
+              (data) => renderHistory(data)
+            );
+          }
+        } catch (e) {
+          Utils.renderError(document.getElementById('redeem-history'), 'Gagal memuat riwayat', () => loadHistory(true));
+        }
+      }
+
+      loadHistory();
+    });
+  </script>
+  <script src="/assets/js/backsound.js"></script>
+</body>
+</html>

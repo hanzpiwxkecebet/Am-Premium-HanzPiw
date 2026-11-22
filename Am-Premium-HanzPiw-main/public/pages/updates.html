@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="/assets/js/background.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+  <title>Updates - AM Premium Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <style>
+    .ann-card { padding: 18px 16px; border-radius: var(--radius-lg); border: 1px solid var(--border-glass); background: var(--bg-glass); margin-bottom: 12px; cursor: pointer; transition: var(--transition); }
+    .ann-card:hover { background: var(--bg-glass-hover); border-color: var(--border-neon-blue); }
+    .ann-card.priority-high { border-color: var(--border-neon-red); background: rgba(156, 156, 156,0.04); }
+    .ann-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+    .ann-title { font-weight: 700; font-size: 0.95rem; flex: 1; }
+    .ann-content-preview { font-size: 0.84rem; color: var(--text-secondary); line-height: 1.6; }
+    .ann-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+    .ann-date { font-size: 0.72rem; color: var(--text-muted); }
+    .new-badge { background: rgba(156, 156, 156,0.15); color: var(--neon-red); font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: var(--radius-full); border: 1px solid var(--border-neon-red); letter-spacing: 0.5px; text-transform: uppercase; }
+    .ann-detail-modal .modal-body { font-size: 0.88rem; line-height: 1.8; color: var(--text-secondary); white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+  <div id="toast-container"></div>
+
+  <div class="page-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title gradient-text">Updates <i class="ic ic-bell"></i></div>
+        <div class="page-subtitle">Pengumuman terbaru dari admin</div>
+      </div>
+    </div>
+
+    <div id="ann-list">
+      <div class="skeleton" style="height:90px;border-radius:var(--radius-lg);margin-bottom:12px"></div>
+      <div class="skeleton" style="height:90px;border-radius:var(--radius-lg);margin-bottom:12px"></div>
+      <div class="skeleton" style="height:90px;border-radius:var(--radius-lg)"></div>
+    </div>
+  </div>
+
+  <nav id="bottom-nav"></nav>
+
+  <script src="/assets/js/boot.js"></script>
+
+  <script src="/assets/js/theme.js"></script>
+  <script>Theme.init();</script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="/assets/js/particles.js"></script>
+  <script src="/assets/js/firebase-init.js"></script>
+  <script src="/assets/js/notifications.js"></script>
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/utils.js"></script>
+  <script src="/assets/js/nav.js"></script>
+  <script>
+    const readKey = 'read_announcements';
+    let readIds = [];
+    try { readIds = JSON.parse(localStorage.getItem(readKey) || '[]'); } catch (e) { readIds = []; }
+
+    function markRead(id) {
+      if (!readIds.includes(id)) {
+        readIds.push(id);
+        try { localStorage.setItem(readKey, JSON.stringify(readIds)); } catch (e) {}
+      }
+    }
+
+    let annMap = {};
+
+    function showAnnDetail(ann) {
+      if (!ann) return;
+      markRead(ann.id);
+      document.querySelectorAll('.new-badge').forEach(el => { if (el.dataset.annId === ann.id) el.style.display = 'none'; });
+      Utils.createModal(Utils.escapeHtml(ann.title), `
+        <div style="font-size:0.88rem;line-height:1.8;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word">${Utils.linkify(ann.content || '')}</div>
+        <div style="margin-top:12px;font-size:0.72rem;color:var(--text-muted)">${Utils.formatDate(ann.createdAt)}</div>
+      `, [{ label: 'Tutup', action: 'close', class: 'btn-primary' }]);
+    }
+
+    function renderAnnouncements(list) {
+      const container = document.getElementById('ann-list');
+      if (!list || list.length === 0) {
+        container.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--text-muted)"><div style="font-size:3rem;margin-bottom:12px;opacity:0.5"><i class="ic ic-bell"></i></div><div>Belum ada pengumuman</div></div>`;
+        return;
+      }
+      annMap = {};
+      list.forEach(a => { annMap[a.id] = a; });
+      container.innerHTML = list.map(ann => {
+        const isNew = !readIds.includes(ann.id);
+        const isHigh = ann.priority > 0;
+        const previewHtml = Utils.linkifyPreview(ann.content || '', 120);
+        return `
+          <div class="ann-card ${isHigh ? 'priority-high' : ''}" data-id="${Utils.escapeHtml(ann.id)}">
+            <div class="ann-header">
+              <div class="ann-title">${Utils.escapeHtml(ann.title)}</div>
+              ${isNew ? `<span class="new-badge" data-ann-id="${Utils.escapeHtml(ann.id)}">Baru</span>` : ''}
+              ${isHigh ? '<span class="badge badge-admin" style="font-size:0.65rem;flex-shrink:0">Penting</span>' : ''}
+            </div>
+            <div class="ann-content-preview">${previewHtml}</div>
+            <div class="ann-footer">
+              <span class="ann-date">${Utils.formatDateShort(ann.createdAt)}</span>
+              <span class="text-xs text-muted">Baca selengkapnya <i class="ic ic-arrow"></i></span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.showAnnDetail = showAnnDetail;
+
+    // Delegasi klik: link di dalam kartu dibuka langsung (tab baru), bukan membuka modal
+    function bindCardClicks() {
+      document.getElementById('ann-list').addEventListener('click', (e) => {
+        if (e.target.closest('a')) return;
+        const el = e.target.closest('.ann-card');
+        if (el && el.dataset.id) showAnnDetail(annMap[el.dataset.id]);
+      });
+    }
+
+    // Pengumuman bersifat publik: tidak perlu menunggu login/token
+    async function loadAnnouncements() {
+      try {
+        await Cache.swr(
+          'announcements',
+          async () => {
+            const { res, data } = await AMApp.requestJson('/api/public/announcements', {}, 10000);
+            if (!res.ok || !data) throw new Error((data && data.message) || 'Server sedang sibuk');
+            return data.data || [];
+          },
+          (list) => renderAnnouncements(list)
+        );
+      } catch (err) {
+        Toast.error('Gagal memuat pengumuman');
+        Utils.renderError(document.getElementById('ann-list'), err.message || 'Gagal memuat pengumuman', loadAnnouncements);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
+      Nav.init('updates');
+      bindCardClicks();
+      loadAnnouncements(); // paralel dengan auth
+
+      let user = null;
+      try {
+        user = await Auth.init({ waitProfile: false });
+      } catch (err) {
+        console.error('[updates] Auth error:', err);
+        Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
+        return;
+      }
+      if (!user) { window.location.href = '/login'; return; }
+
+    });
+  </script>
+  <script src="/assets/js/backsound.js"></script>
+</body>
+</html>

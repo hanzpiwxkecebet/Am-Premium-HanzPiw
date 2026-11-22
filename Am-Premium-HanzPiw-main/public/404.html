@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="/assets/js/background.js"></script>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f0f0f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="AM Premium">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <title>Menu Tidak Ditemukan - AM Premium Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
+    .nf-container { text-align: center; padding: 32px 24px; max-width: 400px; width: 100%; z-index: 1; position: relative; }
+    .nf-code { font-size: 5rem; font-weight: 900; line-height: 1; margin-bottom: 8px; letter-spacing: -2px; }
+    .nf-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; }
+    .nf-subtitle { font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 28px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+
+  <div class="nf-container">
+    <div class="nf-code gradient-text">404</div>
+    <div class="nf-title">Menu tidak ditemukan</div>
+    <div class="nf-subtitle">Halaman yang kamu cari tidak ada atau alamatnya sudah berubah.</div>
+    <a href="/dashboard" class="btn btn-primary btn-full"><span class="btn-text"><i class="ic ic-home"></i> Kembali ke Dashboard</span></a>
+  </div>
+
+  <script src="/assets/js/theme.js"></script>
+  <script>Theme.init();</script>
+  <script src="/assets/js/particles.js"></script>
+  <script>try { initParticles(); } catch (e) { /* abaikan */ }</script>
+  <script src="/assets/js/backsound.js"></script>
+</body>
+</html>

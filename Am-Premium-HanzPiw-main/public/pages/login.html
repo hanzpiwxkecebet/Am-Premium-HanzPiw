@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="/assets/js/background.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+  <title>Login - AM Premium Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <style>
+    .auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .auth-card { width: 100%; max-width: 420px; padding: 36px 32px; }
+    .auth-logo { text-align: center; margin-bottom: 28px; }
+    .auth-logo-text { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.5px; }
+    .auth-logo-sub { font-size: 0.75rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+    .tab-switcher { display: flex; gap: 4px; background: var(--bg-glass); padding: 4px; border-radius: var(--radius-md); margin-bottom: 24px; }
+    .tab-btn { flex: 1; padding: 8px; border: none; background: none; color: var(--text-secondary); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: var(--transition); }
+    .tab-btn.active { background: var(--gradient-primary); color: #fff; }
+    .input-icon-wrap { position: relative; }
+    .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.9rem; color: var(--text-muted); pointer-events: none; }
+    .input-icon-wrap .form-input { padding-left: 36px; }
+    .input-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.9rem; }
+    .google-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .google-btn:hover { background: rgba(255,255,255,0.08); }
+    .google-icon { width: 18px; height: 18px; }
+    .auth-footer { text-align: center; margin-top: 20px; font-size: 0.85rem; color: var(--text-muted); }
+    .auth-footer a { color: var(--neon-blue); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+
+  <div class="auth-page">
+    <div class="auth-card glass-card animate-fadeInUp">
+      <div class="auth-logo">
+        <div class="auth-logo-text gradient-text">AM PREMIUM</div>
+        <div class="auth-logo-sub">Generator V2.0 Beta</div>
+      </div>
+
+      <div class="tab-switcher" id="login-tabs">
+        <button class="tab-btn active" data-tab="email">Email</button>
+        <button class="tab-btn" data-tab="username">Username</button>
+      </div>
+
+      <!-- Email Login -->
+      <form id="form-email" class="login-form">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon"><i class="ic ic-mail"></i></span>
+            <input type="email" class="form-input" id="email-input" placeholder="email@contoh.com" autocomplete="email">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon"><i class="ic ic-lock"></i></span>
+            <input type="password" class="form-input" id="email-pass" placeholder="Masukkan password" autocomplete="current-password">
+            <button type="button" class="input-toggle" id="toggle-pass-email"><i class="ic ic-eye"></i></button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg">
+          <div class="btn-loader"></div>
+          <span class="btn-text">Masuk</span>
+        </button>
+      </form>
+
+      <!-- Username Login -->
+      <form id="form-username" class="login-form hidden">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon">@</span>
+            <input type="text" class="form-input" id="username-input" placeholder="username_kamu" autocomplete="username">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon"><i class="ic ic-lock"></i></span>
+            <input type="password" class="form-input" id="username-pass" placeholder="Masukkan password">
+            <button type="button" class="input-toggle" id="toggle-pass-user"><i class="ic ic-eye"></i></button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg">
+          <div class="btn-loader"></div>
+          <span class="btn-text">Masuk</span>
+        </button>
+      </form>
+
+      <div class="divider-text" style="margin: 16px 0;">atau</div>
+
+      <button class="btn btn-full google-btn" id="google-login-btn">
+        <div class="btn-loader"></div>
+        <svg class="google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.79-.07-1.54-.19-2.27h-11.3v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/><path fill="#34A853" d="M12.255 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96h-3.98v3.09C3.515 21.3 7.615 24 12.255 24z"/><path fill="#FBBC05" d="M5.525 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62h-3.98a11.86 11.86 0 0 0 0 10.76l3.98-3.09z"/><path fill="#EA4335" d="M12.255 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C18.205 1.19 15.495 0 12.255 0c-4.64 0-8.74 2.7-10.71 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
+        <span class="btn-text">Lanjutkan dengan Google</span>
+      </button>
+
+      <div class="auth-footer">
+        Belum punya akun? <a href="/register">Daftar sekarang</a>
+        <br><br>
+        <a href="#" id="forgot-pass-link" style="color: var(--text-muted); font-size: 0.8rem;">Lupa password?</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/js/boot.js"></script>
+
+  <script src="/assets/js/theme.js"></script>
+  <script>Theme.init();</script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="/assets/js/particles.js"></script>
+  <script src="/assets/js/firebase-init.js"></script>
+  <script src="/assets/js/notifications.js"></script>
+  <script src="/assets/js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
+
+      // Init Firebase — jangan crash jika gagal (form tetap bisa dipakai setelah refresh)
+      try {
+        await AMApp.initFirebaseClient();
+        firebase.auth().onAuthStateChanged(user => {
+          if (user) window.location.href = '/dashboard';
+        });
+        // Lanjutan login Google (redirect) setelah keluar dari iframe shell
+        try {
+          if (window.top === window && sessionStorage.getItem('am_google_redirect') === '1') {
+            sessionStorage.removeItem('am_google_redirect');
+            Auth.loginGoogleRedirect().catch(e => { const m = Auth.friendlyError(e); if (m) Toast.error(m); });
+          }
+        } catch (e) { /* abaikan */ }
+      } catch (err) {
+        console.error('[Login] Firebase init error:', err.message);
+        Toast.error('Koneksi bermasalah. Coba refresh halaman.');
+      }
+
+      // Tabs
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.login-form').forEach(f => f.classList.add('hidden'));
+          btn.classList.add('active');
+          document.getElementById('form-' + btn.dataset.tab).classList.remove('hidden');
+        });
+      });
+
+      // Password toggles
+      function togglePass(inputId, btnId) {
+        document.getElementById(btnId).addEventListener('click', () => {
+          const input = document.getElementById(inputId);
+          input.type = input.type === 'password' ? 'text' : 'password';
+        });
+      }
+      togglePass('email-pass', 'toggle-pass-email');
+      togglePass('username-pass', 'toggle-pass-user');
+
+      // Email login
+      document.getElementById('form-email').addEventListener('submit', async e => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type=submit]');
+        const email = document.getElementById('email-input').value.trim();
+        const pass = document.getElementById('email-pass').value;
+        if (!email || !pass) return Toast.warning('Isi email dan password');
+        Utils.setButtonLoading(btn);
+        try {
+          await Auth.loginEmail(email, pass);
+          Toast.success('Login berhasil!');
+          setTimeout(() => window.location.href = '/dashboard', 500);
+        } catch (err) {
+          Toast.error(Auth.friendlyError(err) || 'Login gagal');
+          Utils.setButtonLoading(btn, false);
+        }
+      });
+
+      // Username login
+      document.getElementById('form-username').addEventListener('submit', async e => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type=submit]');
+        const username = document.getElementById('username-input').value.trim();
+        const pass = document.getElementById('username-pass').value;
+        if (!username || !pass) return Toast.warning('Isi username dan password');
+        Utils.setButtonLoading(btn);
+        try {
+          await Auth.loginUsername(username, pass);
+          Toast.success('Login berhasil!');
+          setTimeout(() => window.location.href = '/dashboard', 500);
+        } catch (err) {
+          Toast.error(Auth.friendlyError(err) || 'Login gagal');
+          Utils.setButtonLoading(btn, false);
+        }
+      });
+
+      // Google login — pakai popup (domain sudah authorized)
+      document.getElementById('google-login-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('google-login-btn');
+        Utils.setButtonLoading(btn);
+        try {
+          await Auth.loginGoogle();
+          Toast.success('Login dengan Google berhasil!');
+          setTimeout(() => window.location.href = '/dashboard', 500);
+        } catch (err) {
+          { const m = Auth.friendlyError(err); if (m) Toast.error(m); }
+          Utils.setButtonLoading(btn, false);
+        }
+      });
+
+      // Forgot password
+      document.getElementById('forgot-pass-link').addEventListener('click', async e => {
+        e.preventDefault();
+        const { overlay } = Utils.createModal('Reset Password',
+          `<div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-input" id="reset-email" placeholder="email@contoh.com">
+          </div>`,
+          [
+            { label: 'Batalkan', action: 'cancel', class: 'btn-secondary', close: true },
+            { label: 'Kirim Reset', action: 'send', class: 'btn-primary', close: false, onClick: async () => {
+              const email = document.getElementById('reset-email').value.trim();
+              if (!email) { Toast.warning('Masukkan email'); return; }
+              try {
+                await firebase.auth().sendPasswordResetEmail(email);
+                Toast.success('Email reset dikirim! Cek inbox kamu.');
+                overlay.remove();
+              } catch (err) { Toast.error(err.message); }
+            }}
+          ]
+        );
+      });
+    });
+  </script>
+  <script src="/assets/js/utils.js"></script>
+  <script src="/assets/js/backsound.js"></script>
+</body>
+</html>
