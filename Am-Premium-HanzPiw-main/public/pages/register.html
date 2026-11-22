@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+  <title>Register - AM Premium Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <style>
+    .auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .auth-card { width: 100%; max-width: 440px; padding: 36px 32px; }
+    .auth-logo { text-align: center; margin-bottom: 28px; }
+    .auth-logo-text { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.5px; }
+    .auth-logo-sub { font-size: 0.75rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+    .input-icon-wrap { position: relative; }
+    .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.9rem; color: var(--text-muted); pointer-events: none; }
+    .input-icon-wrap .form-input { padding-left: 36px; }
+    .input-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; }
+    .pass-strength { margin-top: 6px; }
+    .pass-strength-bar { height: 3px; border-radius: 9999px; background: var(--bg-glass); overflow: hidden; }
+    .pass-strength-fill { height: 100%; border-radius: 9999px; transition: width 0.3s, background 0.3s; }
+    .pass-strength-label { font-size: 0.72rem; margin-top: 3px; }
+    .req-list { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+    .req-item { padding: 2px 8px; border-radius: var(--radius-full); background: var(--bg-glass); transition: all 0.2s; }
+    .req-item.met { background: rgba(0,255,136,0.1); color: var(--text-success); }
+    .auth-footer { text-align: center; margin-top: 20px; font-size: 0.85rem; color: var(--text-muted); }
+    .auth-footer a { color: var(--neon-blue); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+  <div class="auth-page">
+    <div class="auth-card glass-card animate-fadeInUp">
+      <div class="auth-logo">
+        <div class="auth-logo-text gradient-text">Daftar Akun</div>
+        <div class="auth-logo-sub">AM Premium Generator V2.0</div>
+      </div>
+
+      <form id="register-form">
+        <div class="form-group">
+          <label class="form-label">Nama Lengkap</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon"><i class="ic ic-user"></i></span>
+            <input type="text" class="form-input" id="reg-name" placeholder="Nama kamu" maxlength="50" autocomplete="name">
+          </div>
+          <div class="form-error" id="err-name"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon">@</span>
+            <input type="text" class="form-input" id="reg-username" placeholder="username_unik" maxlength="20" autocomplete="username">
+          </div>
+          <div class="form-error" id="err-username">3-20 karakter, huruf kecil, angka, underscore</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon"><i class="ic ic-mail"></i></span>
+            <input type="email" class="form-input" id="reg-email" placeholder="email@contoh.com" autocomplete="email">
+          </div>
+          <div class="form-error" id="err-email"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon"><i class="ic ic-lock"></i></span>
+            <input type="password" class="form-input" id="reg-pass" placeholder="Min. 8 karakter" autocomplete="new-password">
+            <button type="button" class="input-toggle" id="toggle-pass"><i class="ic ic-eye"></i></button>
+          </div>
+          <div class="pass-strength" id="pass-strength-wrap">
+            <div class="pass-strength-bar"><div class="pass-strength-fill" id="pass-strength-fill" style="width:0%"></div></div>
+            <div class="pass-strength-label" id="pass-strength-label"></div>
+          </div>
+          <div class="req-list" id="req-list">
+            <span class="req-item" data-req="len">≥ 8 karakter</span>
+            <span class="req-item" data-req="upper">Huruf besar</span>
+            <span class="req-item" data-req="lower">Huruf kecil</span>
+            <span class="req-item" data-req="num">Angka</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Konfirmasi Password</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon"><i class="ic ic-lock"></i></span>
+            <input type="password" class="form-input" id="reg-confirm" placeholder="Ulangi password" autocomplete="new-password">
+          </div>
+          <div class="form-error" id="err-confirm"></div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="reg-btn">
+          <div class="btn-loader"></div>
+          <span class="btn-text">Buat Akun</span>
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Sudah punya akun? <a href="/login">Masuk sekarang</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/js/boot.js"></script>
+
+  <script src="/assets/js/theme.js"></script>
+  <script>Theme.init();</script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="/assets/js/particles.js"></script>
+  <script src="/assets/js/firebase-init.js"></script>
+  <script src="/assets/js/notifications.js"></script>
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/utils.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
+      try {
+        await AMApp.initFirebaseClient();
+        // Jangan redirect otomatis selagi proses registrasi berjalan (profil belum tersimpan)
+        firebase.auth().onAuthStateChanged(u => { if (u && !Auth.registering) window.location.href = '/dashboard'; });
+      } catch (err) {
+        console.error('[Register] Firebase init error:', err.message);
+        Toast.error('Koneksi bermasalah. Coba refresh halaman.');
+      }
+
+      // Password visibility toggle
+      document.getElementById('toggle-pass').addEventListener('click', () => {
+        const inp = document.getElementById('reg-pass');
+        inp.type = inp.type === 'password' ? 'text' : 'password';
+      });
+
+      // Password strength checker
+      document.getElementById('reg-pass').addEventListener('input', (e) => {
+        const val = e.target.value;
+        const reqs = {
+          len: val.length >= 8,
+          upper: /[A-Z]/.test(val),
+          lower: /[a-z]/.test(val),
+          num: /\d/.test(val),
+        };
+        let score = Object.values(reqs).filter(Boolean).length;
+        const fill = document.getElementById('pass-strength-fill');
+        const label = document.getElementById('pass-strength-label');
+        const pct = (score / 4) * 100;
+        const colors = ['', '#ff4444', '#ffaa00', '#88cc00', '#00ff88'];
+        const labels = ['', 'Lemah', 'Cukup', 'Baik', 'Kuat'];
+        fill.style.width = pct + '%';
+        fill.style.background = colors[score] || '#ff4444';
+        label.textContent = val ? labels[score] || '' : '';
+        label.style.color = colors[score] || '';
+        document.querySelectorAll('.req-item').forEach(el => {
+          el.classList.toggle('met', reqs[el.dataset.req]);
+        });
+      });
+
+      // Form submit
+      document.getElementById('register-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('reg-name').value.trim();
+        const username = document.getElementById('reg-username').value.trim().toLowerCase();
+        const email = document.getElementById('reg-email').value.trim().toLowerCase();
+        const pass = document.getElementById('reg-pass').value;
+        const confirm = document.getElementById('reg-confirm').value;
+
+        // Validation
+        let valid = true;
+        const setErr = (id, msg) => {
+          const el = document.getElementById(id);
+          if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
+          if (msg) valid = false;
+        };
+
+        setErr('err-name', !name ? 'Nama wajib diisi' : name.length < 2 ? 'Nama terlalu pendek' : '');
+        setErr('err-username', !username ? 'Username wajib diisi' : !/^[a-z0-9_]{3,20}$/.test(username) ? 'Format username tidak valid (3-20 karakter, a-z, 0-9, _)' : '');
+        setErr('err-email', !email ? 'Email wajib diisi' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? 'Format email tidak valid' : '');
+        setErr('err-confirm', pass !== confirm ? 'Password tidak cocok' : '');
+
+        if (pass.length < 8 || !/[A-Z]/.test(pass) || !/[a-z]/.test(pass) || !/\d/.test(pass)) {
+          Toast.warning('Password harus minimal 8 karakter, mengandung huruf besar, huruf kecil, dan angka');
+          valid = false;
+        }
+        if (!valid) return;
+
+        const btn = document.getElementById('reg-btn');
+        Utils.setButtonLoading(btn);
+        try {
+          await Auth.register(name, username, email, pass);
+          Toast.success('Akun berhasil dibuat!');
+          setTimeout(() => window.location.href = '/dashboard', 800);
+        } catch (err) {
+          let msg = (err && err.code) ? Auth.friendlyError(err) : ((err && err.message) || 'Registrasi gagal');
+          if (msg.includes('email-already-in-use')) msg = 'Email sudah digunakan akun lain';
+          if (msg.includes('weak-password')) msg = 'Password terlalu lemah';
+          Toast.error(msg || 'Registrasi gagal');
+          Utils.setButtonLoading(btn, false);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

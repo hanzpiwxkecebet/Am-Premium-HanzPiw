@@ -1,0 +1,176 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "outputDirectory": "public",
+  "regions": [
+    "sin1"
+  ],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 60,
+      "includeFiles": "server/**"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/login",
+      "destination": "/pages/login.html"
+    },
+    {
+      "source": "/register",
+      "destination": "/pages/register.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/pages/dashboard.html"
+    },
+    {
+      "source": "/generator",
+      "destination": "/pages/generator.html"
+    },
+    {
+      "source": "/history",
+      "destination": "/pages/history.html"
+    },
+    {
+      "source": "/redeem",
+      "destination": "/pages/redeem.html"
+    },
+    {
+      "source": "/updates",
+      "destination": "/pages/updates.html"
+    },
+    {
+      "source": "/profile",
+      "destination": "/pages/profile.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/pages/admin.html"
+    },
+    {
+      "source": "/owner",
+      "destination": "/pages/owner.html"
+    },
+    {
+      "source": "/maintenance",
+      "destination": "/pages/maintenance.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/pages/login.html",
+      "destination": "/login",
+      "permanent": true
+    },
+    {
+      "source": "/pages/login",
+      "destination": "/login",
+      "permanent": true
+    },
+    {
+      "source": "/pages/register.html",
+      "destination": "/register",
+      "permanent": true
+    },
+    {
+      "source": "/pages/register",
+      "destination": "/register",
+      "permanent": true
+    },
+    {
+      "source": "/pages/dashboard.html",
+      "destination": "/dashboard",
+      "permanent": true
+    },
+    {
+      "source": "/pages/dashboard",
+      "destination": "/dashboard",
+      "permanent": true
+    },
+    {
+      "source": "/pages/generator.html",
+      "destination": "/generator",
+      "permanent": true
+    },
+    {
+      "source": "/pages/generator",
+      "destination": "/generator",
+      "permanent": true
+    },
+    {
+      "source": "/pages/history.html",
+      "destination": "/history",
+      "permanent": true
+    },
+    {
+      "source": "/pages/history",
+      "destination": "/history",
+      "permanent": true
+    },
+    {
+      "source": "/pages/redeem.html",
+      "destination": "/redeem",
+      "permanent": true
+    },
+    {
+      "source": "/pages/redeem",
+      "destination": "/redeem",
+      "permanent": true
+    },
+    {
+      "source": "/pages/updates.html",
+      "destination": "/updates",
+      "permanent": true
+    },
+    {
+      "source": "/pages/updates",
+      "destination": "/updates",
+      "permanent": true
+    },
+    {
+      "source": "/pages/profile.html",
+      "destination": "/profile",
+      "permanent": true
+    },
+    {
+      "source": "/pages/profile",
+      "destination": "/profile",
+      "permanent": true
+    },
+    {
+      "source": "/pages/admin.html",
+      "destination": "/admin",
+      "permanent": true
+    },
+    {
+      "source": "/pages/admin",
+      "destination": "/admin",
+      "permanent": true
+    },
+    {
+      "source": "/pages/owner.html",
+      "destination": "/owner",
+      "permanent": true
+    },
+    {
+      "source": "/pages/owner",
+      "destination": "/owner",
+      "permanent": true
+    },
+    {
+      "source": "/pages/maintenance.html",
+      "destination": "/maintenance",
+      "permanent": true
+    },
+    {
+      "source": "/pages/maintenance",
+      "destination": "/maintenance",
+      "permanent": true
+    }
+  ]
+}

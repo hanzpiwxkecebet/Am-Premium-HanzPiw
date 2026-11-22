@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+  <link rel="preload" as="script" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+  <title>Profil - AM Premium Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/main.css">
+  <style>
+    .profile-hero { text-align: center; padding: 24px 20px; border-radius: var(--radius-xl); background: var(--gradient-card); border: 1px solid var(--border-glass); margin-bottom: 16px; position: relative; overflow: hidden; }
+    .profile-hero::before { content: ''; position: absolute; top: -40px; left: 50%; transform: translateX(-50%); width: 200px; height: 200px; background: radial-gradient(circle, rgba(156, 156, 156,0.15) 0%, transparent 70%); pointer-events: none; }
+    .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; margin: 0 auto 12px; border: 3px solid rgba(156, 156, 156,0.4); object-fit: cover; }
+    .profile-name { font-size: 1.3rem; font-weight: 800; margin-bottom: 4px; }
+    .profile-username { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px; }
+    .profile-badges { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border-glass); }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { font-size: 0.82rem; color: var(--text-secondary); font-weight: 600; }
+    .info-value { font-size: 0.88rem; color: var(--text-primary); text-align: right; word-break: break-all; max-width: 55%; }
+    .info-value.mono { font-family: var(--font-mono); font-size: 0.75rem; }
+    .settings-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-glass); cursor: pointer; transition: var(--transition); }
+    .settings-item:last-child { border-bottom: none; }
+    .settings-item:hover .settings-label { color: var(--text-primary); }
+    .settings-icon { font-size: 1.1rem; margin-right: 10px; }
+    .settings-label { font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); }
+    .settings-arrow { color: var(--text-muted); }
+    .toggle-switch { width: 44px; height: 24px; border-radius: 12px; background: var(--bg-glass); border: 1px solid var(--border-glass); cursor: pointer; position: relative; transition: var(--transition); }
+    .toggle-switch.on { background: var(--gradient-primary); border-color: transparent; }
+    .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: var(--transition); }
+    .toggle-switch.on .toggle-thumb { left: calc(100% - 20px); }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+  <div id="toast-container"></div>
+
+  <div class="page-content">
+    <div class="page-header">
+      <div>
+        <div class="page-title gradient-text">Profil <i class="ic ic-user"></i></div>
+        <div class="page-subtitle">Informasi dan pengaturan akun</div>
+      </div>
+    </div>
+
+    <!-- Profile Hero -->
+    <div class="profile-hero glass-card" id="profile-hero">
+      <div class="skeleton" style="width:80px;height:80px;border-radius:50%;margin:0 auto 12px"></div>
+      <div class="skeleton" style="width:150px;height:1.3rem;margin:0 auto 8px;border-radius:var(--radius-sm)"></div>
+      <div class="skeleton" style="width:100px;height:0.85rem;margin:0 auto;border-radius:var(--radius-sm)"></div>
+    </div>
+
+    <!-- Account Info -->
+    <div class="glass-card" style="padding:4px 20px;margin-bottom:12px">
+      <div class="info-row">
+        <span class="info-label">Email</span>
+        <span class="info-value" id="info-email">-</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">UID</span>
+        <span class="info-value mono" id="info-uid" title="Firebase UID">-</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Bergabung</span>
+        <span class="info-value" id="info-joined">-</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Status</span>
+        <span class="info-value" id="info-status">-</span>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="glass-card" style="padding:4px 20px;margin-bottom:12px">
+      <div class="settings-item" id="edit-photo-btn">
+        <div><span class="settings-icon"><i class="ic ic-user"></i></span><span class="settings-label">Ganti Foto Profil</span></div>
+        <span class="settings-arrow">›</span>
+      </div>
+      <div class="settings-item" id="edit-name-btn">
+        <div><span class="settings-icon"><i class="ic ic-pencil"></i></span><span class="settings-label">Edit Nama</span></div>
+        <span class="settings-arrow">›</span>
+      </div>
+      <div class="settings-item" id="edit-username-btn">
+        <div><span class="settings-icon"><i class="ic ic-at"></i></span><span class="settings-label">Edit Username</span></div>
+        <span class="settings-arrow">›</span>
+      </div>
+      <div class="settings-item" id="change-pass-btn">
+        <div><span class="settings-icon"><i class="ic ic-lock"></i></span><span class="settings-label">Ganti Password</span></div>
+        <span class="settings-arrow">›</span>
+      </div>
+      <div class="settings-item" id="reset-pass-btn">
+        <div><span class="settings-icon"><i class="ic ic-mail"></i></span><span class="settings-label">Reset Password via Email</span></div>
+        <span class="settings-arrow">›</span>
+      </div>
+    </div>
+
+    <!-- Preferences -->
+    <div class="glass-card" style="padding:4px 20px;margin-bottom:12px">
+      <div class="settings-item">
+        <div><span class="settings-icon"><i class="ic ic-moon"></i></span><span class="settings-label">Dark Mode</span></div>
+        <div class="toggle-switch on" id="theme-toggle-sw" onclick="toggleTheme(this)">
+          <div class="toggle-thumb"></div>
+        </div>
+      </div>
+      <div class="settings-item">
+        <div><span class="settings-icon"><i class="ic ic-bell"></i></span><span class="settings-label">Suara Notifikasi</span></div>
+        <div class="toggle-switch on" id="sound-toggle" onclick="toggleSound(this)">
+          <div class="toggle-thumb"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logout -->
+    <button class="btn btn-danger btn-full btn-lg" id="logout-btn" style="margin-bottom:24px">
+      <div class="btn-loader"></div>
+      <span class="btn-text"><i class="ic ic-logout"></i> Keluar</span>
+    </button>
+
+    <!-- Social Links -->
+    <div style="margin-bottom:16px">
+      <div class="section-title">Komunitas & Kontak</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <a href="https://whatsapp.com/channel/0029VbDvpID7oQhXPaT1ar1B" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:rgba(37,211,102,0.07);border:1px solid rgba(37,211,102,0.2);text-decoration:none;color:var(--text-primary)">
+          <span style="font-size:1.2rem;flex-shrink:0"><i class="ic ic-megaphone"></i></span>
+          <div style="flex:1"><div style="font-size:0.82rem;font-weight:700">Channel WA Info</div><div style="font-size:0.7rem;color:var(--text-secondary)">Info website AM Premium</div></div>
+          <span style="color:#25D366;font-weight:700;font-size:0.72rem">Follow</span>
+        </a>
+        <a href="https://t.me/abouthanzpiww" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:rgba(34,158,217,0.07);border:1px solid rgba(34,158,217,0.2);text-decoration:none;color:var(--text-primary)">
+          <span style="font-size:1.2rem;flex-shrink:0"><i class="ic ic-send"></i></span>
+          <div style="flex:1"><div style="font-size:0.82rem;font-weight:700">Channel Telegram Utama</div><div style="font-size:0.7rem;color:var(--text-secondary)">@abouthanzpiww</div></div>
+          <span style="color:#229ED9;font-weight:700;font-size:0.72rem">Join</span>
+        </a>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:rgba(156, 156, 156,0.06);border:1px solid rgba(156, 156, 156,0.2)">
+          <span style="font-size:1.2rem;flex-shrink:0"><i class="ic ic-crown"></i></span>
+          <div style="flex:1"><div style="font-size:0.82rem;font-weight:700">Hubungi Owner</div>
+            <div style="display:flex;gap:6px;margin-top:5px">
+              <a href="https://wa.me/6285191782145" target="_blank" rel="noopener" style="padding:3px 10px;border-radius:6px;font-size:0.72rem;font-weight:700;background:rgba(37,211,102,0.15);color:#25D366;border:1px solid rgba(37,211,102,0.3);text-decoration:none">WhatsApp</a>
+              <a href="https://t.me/itshanzpiw" target="_blank" rel="noopener" style="padding:3px 10px;border-radius:6px;font-size:0.72rem;font-weight:700;background:rgba(34,158,217,0.15);color:#229ED9;border:1px solid rgba(34,158,217,0.3);text-decoration:none">Telegram</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;color:var(--text-muted);font-size:0.72rem;padding-bottom:8px">
+      Developed with <i class="ic ic-heart"></i> by HanzPiw Official<br>AM Premium Generator V2.0 Beta
+    </div>
+  </div>
+
+  <nav id="bottom-nav"></nav>
+
+  <script src="/assets/js/boot.js"></script>
+
+  <script src="/assets/js/theme.js"></script>
+  <script>Theme.init();</script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="/assets/js/particles.js"></script>
+  <script src="/assets/js/firebase-init.js"></script>
+  <script src="/assets/js/notifications.js"></script>
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/utils.js"></script>
+  <script src="/assets/js/nav.js"></script>
+  <script>
+    function toggleTheme(el) {
+      el.classList.toggle('on');
+      Theme.toggle();
+      // Update switch state based on actual theme
+      el.classList.toggle('on', Theme.current === 'dark');
+    }
+
+    function toggleSound(el) {
+      el.classList.toggle('on');
+      Toast.setSoundEnabled(el.classList.contains('on'));
+    }
+
+    window.toggleTheme = toggleTheme;
+    window.toggleSound = toggleSound;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try { initParticles(); } catch (e) { /* abaikan */ }
+      Nav.init('profile');
+
+      let user = null;
+      try {
+        user = await Auth.init({ waitProfile: 'auto' });
+      } catch (err) {
+        console.error('[profile] Auth error:', err);
+        Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
+        return;
+      }
+      if (!user) { window.location.href = '/login'; return; }
+
+      // Kalau backend belum merespons, pakai data akun Firebase supaya halaman tetap berfungsi
+      const ud = Auth.userData || {
+        name: user.displayName || user.email || 'Pengguna',
+        username: user.email ? user.email.split('@')[0] : 'user',
+        email: user.email || '',
+        role: 'user',
+        status: 'active',
+        photoURL: user.photoURL || '',
+        createdAt: user.metadata && user.metadata.creationTime ? Date.parse(user.metadata.creationTime) : null,
+      };
+
+      // Perbarui tampilan begitu profil terbaru dari server tiba (data cache sudah tampil lebih dulu)
+      Auth.profilePromise.then((fresh) => {
+        if (!fresh) return;
+        Object.assign(ud, fresh);
+        paintProfile();
+      }).catch(() => {});
+
+      function paintProfile() {
+      // Render profile hero
+      const hero = document.getElementById('profile-hero');
+      hero.innerHTML = `
+        <div class="profile-avatar-wrap" id="pf-avatar-wrap" title="Ganti foto profil">
+          <div class="profile-avatar" id="pf-avatar">${ud.photoURL && /^data:image\//.test(ud.photoURL) ? `<img src="${Utils.escapeHtml(ud.photoURL)}" alt="" style="width:100%;height:100%;object-fit:cover">` : Utils.escapeHtml((ud.name||'U')[0].toUpperCase())}</div>
+          <span class="avatar-edit"><i class="ic ic-pencil"></i></span>
+        </div>
+        <div class="profile-name">${Utils.escapeHtml(ud.name || 'Pengguna')}</div>
+        <div class="profile-username">@${Utils.escapeHtml(ud.username || '-')}</div>
+        <div class="profile-badges">
+          ${Utils.getRoleBadge(ud.role)}
+          ${ud.status === 'active' ? '<span class="badge badge-active">Aktif</span>' : '<span class="badge badge-suspended">Suspended</span>'}
+        </div>
+      `;
+
+      // Info rows
+      document.getElementById('info-email').textContent = ud.email || '-';
+      document.getElementById('info-uid').textContent = user.uid.substring(0,16) + '...';
+      document.getElementById('info-uid').title = user.uid;
+      document.getElementById('info-joined').textContent = Utils.formatDateShort(ud.createdAt);
+      document.getElementById('info-status').innerHTML = ud.status === 'active'
+        ? '<span class="badge badge-active">Aktif</span>'
+        : '<span class="badge badge-suspended">Suspended</span>';
+
+      }
+      paintProfile();
+
+      // Theme toggle sync
+      const themeSw = document.getElementById('theme-toggle-sw');
+      themeSw.classList.toggle('on', Theme.current === 'dark');
+
+      // Sound toggle sync
+      let soundEnabled = true;
+      try { soundEnabled = localStorage.getItem('sound_enabled') !== 'false'; } catch (e) { /* storage diblokir */ }
+      document.getElementById('sound-toggle').classList.toggle('on', soundEnabled);
+
+      // Edit name
+      document.getElementById('edit-name-btn').addEventListener('click', () => {
+        const { overlay } = Utils.createModal('Edit Nama', `
+          <div class="form-group">
+            <label class="form-label">Nama Baru</label>
+            <input type="text" class="form-input" id="new-name" value="${Utils.escapeHtml(ud.name || '')}" maxlength="50">
+          </div>
+        `, [
+          { label: 'Batalkan', action: 'cancel', class: 'btn-secondary' },
+          { label: 'Simpan', action: 'save', class: 'btn-primary', close: false, onClick: async () => {
+            const name = document.getElementById('new-name').value.trim();
+            if (!name || name.length < 2) { Toast.warning('Nama terlalu pendek'); return; }
+            try {
+              await firebase.auth().currentUser.updateProfile({ displayName: name });
+              await AMApp.apiCall('PUT', '/api/auth/profile', { name });
+              ud.name = name;
+              document.getElementById('profile-hero').querySelector('.profile-name').textContent = name;
+              Toast.success('Nama diperbarui');
+              overlay.remove();
+            } catch (err) { Toast.error(err.message); }
+          }}
+        ]);
+      });
+
+      // Simpan perubahan profil ke state lokal + cache + menu bawah
+      function applyProfileChange(patch) {
+        Object.assign(ud, patch);
+        if (Auth.userData) Object.assign(Auth.userData, patch);
+        if (window.Cache) window.Cache.set('profile:' + user.uid, Auth.userData || ud);
+        if ('photoURL' in patch) Auth.syncAvatar(patch.photoURL);
+        paintProfile();
+      }
+
+      // ── Foto profil ──────────────────────────────────────────
+      const PHOTO_MAX_BYTES = 2 * 1024 * 1024;
+
+      function loadImageFile(file) {
+        return new Promise((resolve, reject) => {
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Gambar tidak bisa dibaca. Coba foto JPG, PNG, atau WebP.')); };
+          img.src = url;
+        });
+      }
+
+      // Potong persegi dari tengah, kecilkan, simpan sebagai JPEG
+      function squareDataUrl(img, size, quality) {
+        const side = Math.min(img.naturalWidth, img.naturalHeight);
+        const sx = (img.naturalWidth - side) / 2;
+        const sy = (img.naturalHeight - side) / 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, size, size);
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        return canvas.toDataURL('image/jpeg', quality);
+      }
+
+      function openPhotoModal() {
+        const initial = Utils.escapeHtml((ud.name || 'U')[0].toUpperCase());
+        const hasPhoto = !!(ud.photoURL && /^data:image\//.test(ud.photoURL));
+        let pending = null; // null | 'remove' | { photoURL, photoThumb }
+
+        const { overlay } = Utils.createModal('Foto Profil', `
+          <div class="photo-edit">
+            <div class="photo-preview" id="photo-preview">${hasPhoto ? `<img src="${Utils.escapeHtml(ud.photoURL)}" alt="">` : initial}</div>
+            <input type="file" id="photo-file" accept="image/*" style="display:none">
+            <div class="photo-actions">
+              <button type="button" class="btn btn-secondary" id="photo-pick"><i class="ic ic-user"></i> Pilih Foto</button>
+              ${hasPhoto ? '<button type="button" class="btn btn-secondary" id="photo-remove"><i class="ic ic-x"></i> Hapus Foto</button>' : ''}
+            </div>
+            <div class="text-xs text-muted" style="text-align:center">JPG, PNG, atau WebP, maksimal 2 MB. Foto otomatis dipotong persegi.</div>
+          </div>
+        `, [
+          { label: 'Batalkan', action: 'cancel', class: 'btn-secondary' },
+          { label: 'Simpan', action: 'save', class: 'btn-primary', close: false, onClick: async () => {
+            if (!pending) { Toast.warning('Pilih foto dulu'); return; }
+            try {
+              const body = pending === 'remove' ? { photoURL: '', photoThumb: '' } : pending;
+              await AMApp.apiCall('PUT', '/api/auth/profile', body, {}, 20000);
+              applyProfileChange({ photoURL: body.photoURL });
+              Toast.success(pending === 'remove' ? 'Foto dihapus' : 'Foto profil diperbarui');
+              overlay.remove();
+            } catch (err) { Toast.error(err.message || 'Gagal menyimpan foto'); }
+          }}
+        ]);
+
+        const preview = overlay.querySelector('#photo-preview');
+        const fileInput = overlay.querySelector('#photo-file');
+        overlay.querySelector('#photo-pick').addEventListener('click', () => fileInput.click());
+        const removeBtn = overlay.querySelector('#photo-remove');
+        if (removeBtn) removeBtn.addEventListener('click', () => { pending = 'remove'; preview.textContent = initial; });
+
+        fileInput.addEventListener('change', async () => {
+          const file = fileInput.files && fileInput.files[0];
+          fileInput.value = '';
+          if (!file) return;
+          if (!/^image\//.test(file.type)) { Toast.warning('File harus berupa gambar'); return; }
+          if (file.size > PHOTO_MAX_BYTES) { Toast.warning('Ukuran foto maksimal 2 MB'); return; }
+          try {
+            const img = await loadImageFile(file);
+            const photoURL = squareDataUrl(img, 256, 0.82);
+            const photoThumb = squareDataUrl(img, 64, 0.75);
+            pending = { photoURL, photoThumb };
+            preview.innerHTML = `<img src="${photoURL}" alt="">`;
+          } catch (err) { Toast.error(err.message); }
+        });
+      }
+
+      document.getElementById('edit-photo-btn').addEventListener('click', openPhotoModal);
+      // Klik avatar di atas juga membuka editor foto (hero digambar ulang, jadi pakai delegasi)
+      document.getElementById('profile-hero').addEventListener('click', (e) => {
+        if (e.target.closest('#pf-avatar-wrap')) openPhotoModal();
+      });
+
+      // ── Edit username ────────────────────────────────────────
+      const USERNAME_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+
+      document.getElementById('edit-username-btn').addEventListener('click', () => {
+        const unlockAt = ud.role === 'owner' ? 0 : (Number(ud.usernameChangedAt) || 0) + USERNAME_COOLDOWN_MS;
+        const locked = unlockAt > Date.now();
+        const { overlay } = Utils.createModal('Edit Username', `
+          <div class="form-group">
+            <label class="form-label">Username Baru</label>
+            <input type="text" class="form-input" id="new-username" value="${Utils.escapeHtml(ud.username || '')}" maxlength="20" autocapitalize="off" autocomplete="off" spellcheck="false">
+            <div class="text-xs text-muted mt-1">3-20 karakter: huruf kecil, angka, dan underscore. Username bisa diganti sekali tiap 7 hari.</div>
+            ${locked ? `<div class="text-xs mt-1" style="color:var(--text-warning)">Username baru bisa diganti lagi pada ${Utils.formatDateShort(unlockAt)}.</div>` : ''}
+          </div>
+        `, [
+          { label: 'Batalkan', action: 'cancel', class: 'btn-secondary' },
+          { label: 'Simpan', action: 'save', class: 'btn-primary', close: false, onClick: async () => {
+            const username = document.getElementById('new-username').value.toLowerCase().trim();
+            if (!/^[a-z0-9_]{3,20}$/.test(username)) { Toast.warning('Username harus 3-20 karakter (huruf, angka, underscore)'); return; }
+            if (username === ud.username) { Toast.warning('Itu sudah username kamu sekarang'); return; }
+            if (locked) { Toast.warning(`Username baru bisa diganti lagi pada ${Utils.formatDateShort(unlockAt)}`); return; }
+            try {
+              const res = await AMApp.apiCall('PUT', '/api/auth/username', { username });
+              applyProfileChange({ username: res.data.username, usernameChangedAt: Date.now() });
+              Toast.success('Username diperbarui');
+              overlay.remove();
+            } catch (err) { Toast.error(err.message || 'Gagal mengganti username'); }
+          }}
+        ]);
+      });
+
+      // Change password
+      document.getElementById('change-pass-btn').addEventListener('click', () => {
+        const { overlay } = Utils.createModal('Ganti Password', `
+          <div class="form-group">
+            <label class="form-label">Password Baru</label>
+            <input type="password" class="form-input" id="new-pass" placeholder="Min. 8 karakter">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Konfirmasi</label>
+            <input type="password" class="form-input" id="confirm-new-pass" placeholder="Ulangi password baru">
+          </div>
+        `, [
+          { label: 'Batalkan', action: 'cancel', class: 'btn-secondary' },
+          { label: 'Ganti', action: 'save', class: 'btn-primary', close: false, onClick: async () => {
+            const p = document.getElementById('new-pass').value;
+            const c = document.getElementById('confirm-new-pass').value;
+            if (p.length < 8) { Toast.warning('Password minimal 8 karakter'); return; }
+            if (p !== c) { Toast.warning('Password tidak cocok'); return; }
+            try {
+              await firebase.auth().currentUser.updatePassword(p);
+              Toast.success('Password berhasil diganti');
+              overlay.remove();
+            } catch (err) {
+              if (err.code === 'auth/requires-recent-login') {
+                Toast.error('Silakan login ulang sebelum ganti password');
+              } else { Toast.error(err.message); }
+            }
+          }}
+        ]);
+      });
+
+      // Reset password via email
+      document.getElementById('reset-pass-btn').addEventListener('click', async () => {
+        try {
+          await firebase.auth().sendPasswordResetEmail(ud.email);
+          Toast.success('Email reset password dikirim!');
+        } catch (err) { Toast.error(err.message); }
+      });
+
+      // Logout
+      document.getElementById('logout-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('logout-btn');
+        Utils.setButtonLoading(btn);
+        try {
+          await Auth.logout();
+          window.location.href = '/login';
+        } catch (err) {
+          Toast.error('Gagal keluar');
+          Utils.setButtonLoading(btn, false);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
