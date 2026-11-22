@@ -319,7 +319,7 @@
         Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
         return;
       }
-      if (!user) { window.location.href = '/pages/login.html'; return; }
+      if (!user) { window.location.href = '/login'; return; }
       renderProgressSteps();
 
       // Role badge: pakai data yang ada dulu, perbarui begitu profil dari server tiba

@@ -1087,3 +1087,43 @@ th, td { border-bottom-color: rgba(255,255,255,0.12); }
 .ic-info { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 7.6v.2'/%3E%3C/svg%3E"); }
 .ic-arrow { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6'/%3E%3C/svg%3E"); }
 .ic-lock { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E"); }
+
+/* ═══════════════════════════════════════════════════════════
+   LOGO METODE DAFTAR/LOGIN + AVATAR
+   .pv = logo berwarna (Google, Gmail) — bukan mask, warna asli brand.
+   .ic-at = ikon @ (login via username), mengikuti warna teks seperti ikon lain.
+   ═══════════════════════════════════════════════════════════ */
+.ic-at { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94'/%3E%3C/svg%3E"); }
+.pv { display: inline-block; width: 1.3em; height: 1.3em; vertical-align: -0.3em; flex-shrink: 0;
+  background: var(--pv) center / contain no-repeat; }
+.pv-google { --pv: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23EA4335' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%234285F4' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z'/%3E%3Cpath fill='%2334A853' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3C/svg%3E"); }
+.pv-gmail { --pv: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M4 4.5h16A2 2 0 0 1 22 6.5v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2z'/%3E%3Cpath fill='%234285F4' d='M2 7.4l4 3v9.1H4a2 2 0 0 1-2-2z'/%3E%3Cpath fill='%2334A853' d='M22 7.4l-4 3v9.1h2a2 2 0 0 0 2-2z'/%3E%3Cpath fill='%23EA4335' d='M2 6.5a2 2 0 0 1 2-2c.5 0 1 .2 1.4.4L12 9.7l6.6-4.8c.4-.2.9-.4 1.4-.4a2 2 0 0 1 2 2v.9l-4 3L12 14.5 6 10.4 2 7.4z'/%3E%3C/svg%3E"); }
+.pv-at { display: inline-flex; align-items: center; justify-content: center; width: 1.3em; height: 1.3em; border-radius: 6px;
+  background: rgba(255,255,255,0.1); border: 1px solid var(--border-glass); color: var(--text-primary); vertical-align: -0.3em; flex-shrink: 0; }
+.pv-at .ic { width: 0.95em; height: 0.95em; margin: 0; vertical-align: 0; }
+.pv-cell { display: flex; flex-direction: column; gap: 4px; white-space: nowrap; font-size: 0.75rem; }
+.pv-line { display: flex; align-items: center; gap: 6px; }
+.pv-sub { display: flex; align-items: center; gap: 5px; font-size: 0.68rem; color: var(--text-muted); }
+.pv-sub .pv, .pv-sub .pv-at { font-size: 0.85em; }
+
+.user-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ava-sm { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+  background: var(--gradient-primary); display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; font-weight: 700; border: 1px solid var(--border-glass); }
+.ava-sm img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Avatar di menu bawah / sidebar (menggantikan ikon Profile kalau user punya foto) */
+.nav-avatar { display: inline-block; width: 1.45em; height: 1.45em; border-radius: 50%; overflow: hidden; vertical-align: middle;
+  border: 1.5px solid currentColor; box-sizing: border-box; }
+.nav-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Edit foto profil */
+.photo-edit { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.photo-preview { width: 112px; height: 112px; border-radius: 50%; overflow: hidden; background: var(--gradient-primary);
+  display: flex; align-items: center; justify-content: center; font-size: 2.4rem; font-weight: 700; border: 3px solid rgba(156,156,156,0.4); }
+.photo-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.profile-avatar-wrap { position: relative; width: 80px; margin: 0 auto 12px; cursor: pointer; }
+.profile-avatar-wrap .profile-avatar { margin: 0; overflow: hidden; }
+.profile-avatar-wrap .avatar-edit { position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--bg-card, #1c1c24); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }

@@ -66,11 +66,35 @@ const Auth = {
       if (res.success) {
         this.userData = res.data;
         if (window.Cache && this.user) window.Cache.set('profile:' + this.user.uid, res.data);
+        this.syncAvatar(res.data.photoURL);
+        this.flushLoginMethod();
       }
     } catch (e) {
       console.warn('[Auth] Could not load user data:', e.message);
     }
     return this.userData;
+  },
+
+  /** Simpan foto profil untuk menu bawah (dihapus otomatis saat logout lewat Cache.clear) */
+  syncAvatar(photoURL) {
+    const url = photoURL && /^data:image\//.test(photoURL) ? photoURL : '';
+    if (window.Cache) { if (url) window.Cache.set('avatar', url); else window.Cache.remove('avatar'); }
+    if (window.Nav && typeof window.Nav.setAvatar === 'function') window.Nav.setAvatar(url);
+  },
+
+  /**
+   * Metode login dicatat di perangkat saat login, lalu dikirim ke server begitu profil termuat.
+   * Dibuat begini karena halaman login langsung pindah ke dashboard (request bisa terputus kalau dikirim saat itu juga).
+   */
+  markLogin(method) {
+    try { localStorage.setItem('am:pendingLogin', method); } catch (e) { /* abaikan */ }
+  },
+
+  flushLoginMethod() {
+    let method = null;
+    try { method = localStorage.getItem('am:pendingLogin'); localStorage.removeItem('am:pendingLogin'); } catch (e) { return; }
+    if (!method) return;
+    AMApp.apiCall('POST', '/api/auth/login-method', { method }, {}, 8000).catch(() => {});
   },
 
   onAuthChange(callback) {
@@ -110,6 +134,7 @@ const Auth = {
       if (!res.ok || !data || !data.success) {
         throw new Error((data && data.message) || 'Registrasi gagal');
       }
+      this.markLogin('email');
       return data;
     } catch (err) {
       // Rollback akun Firebase kalau profil gagal dibuat (best effort)
@@ -120,8 +145,10 @@ const Auth = {
     }
   },
 
-  async loginEmail(email, password) {
-    return await firebase.auth().signInWithEmailAndPassword(email, password);
+  async loginEmail(email, password, method = 'email') {
+    const cred = await firebase.auth().signInWithEmailAndPassword(email, password);
+    this.markLogin(method);
+    return cred;
   },
 
   async loginUsername(username, password) {
@@ -130,16 +157,19 @@ const Auth = {
     if (!data || !data.success) {
       throw new Error((data && data.message) || (res.ok ? 'Username tidak ditemukan' : 'Server bermasalah, coba lagi'));
     }
-    return await this.loginEmail(data.data.email, password);
+    return await this.loginEmail(data.data.email, password, 'username');
   },
 
   async loginGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
     try {
-      return await firebase.auth().signInWithPopup(provider);
+      const cred = await firebase.auth().signInWithPopup(provider);
+      this.markLogin('google');
+      return cred;
     } catch (err) {
       // Popup diblokir browser (sering di HP) -> pakai redirect
       if (err && (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment')) {
+        this.markLogin('google');
         await firebase.auth().signInWithRedirect(provider);
         return null;
       }
@@ -175,13 +205,13 @@ const Auth = {
     return (err && err.message) || 'Terjadi kesalahan';
   },
 
-  redirectIfNotAuth(redirectTo = '/pages/login.html') {
+  redirectIfNotAuth(redirectTo = '/login') {
     firebase.auth().onAuthStateChanged((user) => {
       if (!user) window.location.href = redirectTo;
     });
   },
 
-  redirectIfAuth(redirectTo = '/pages/dashboard.html') {
+  redirectIfAuth(redirectTo = '/dashboard') {
     firebase.auth().onAuthStateChanged((user) => {
       if (user && !this.registering) window.location.href = redirectTo;
     });

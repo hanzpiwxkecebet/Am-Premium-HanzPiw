@@ -139,21 +139,21 @@
         ]);
         if (statusData && statusData.data && statusData.data.maintenance) {
           setProgress(100, 'Redirect ke maintenance...');
-          setTimeout(() => { window.location.href = '/pages/maintenance.html'; }, 300);
+          setTimeout(() => { window.location.href = '/maintenance'; }, 300);
           return;
         }
 
         setProgress(100, 'Selesai!');
         document.getElementById('loading-screen').classList.add('fade-out');
         setTimeout(() => {
-          window.location.href = user ? '/pages/dashboard.html' : '/pages/login.html';
+          window.location.href = user ? '/dashboard' : '/login';
         }, 250);
 
       } catch (err) {
         setProgress(100, 'Gagal memuat. Periksa koneksi.');
         console.error('[Boot]', err);
         setTimeout(() => {
-          window.location.href = '/pages/login.html';
+          window.location.href = '/login';
         }, 2000);
       }
     }

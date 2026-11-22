@@ -48,6 +48,11 @@ app.use(cors({
 }));
 
 // Body parsing
+// Dua endpoint butuh body lebih besar dari 10kb. Parser khusus harus dipasang SEBELUM parser global.
+//  - PUT /api/auth/profile : foto profil (data URL hasil resize di browser, maks ~150kb)
+//  - POST /api/admin/emails : tambah email bulk (maks 200 email)
+app.use('/api/auth/profile', express.json({ limit: '300kb' }));
+app.use('/api/admin/emails', express.json({ limit: '40kb' }));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
@@ -86,6 +91,19 @@ app.use('/api/', (req, res, next) => {
 
 // Apply general rate limit
 app.use('/api/', generalLimiter);
+
+// URL bersih: /dashboard (bukan /pages/dashboard.html). Di Vercel ini ditangani vercel.json;
+// blok ini untuk menjalankan lokal / hosting lain (mis. Pterodactyl).
+const CLEAN_PAGES = ['login', 'register', 'dashboard', 'generator', 'history', 'redeem', 'updates', 'profile', 'admin', 'owner', 'maintenance'];
+app.get(/^\/pages\/([a-z]+?)(?:\.html)?$/, (req, res, next) => {
+  const name = req.params[0];
+  if (!CLEAN_PAGES.includes(name)) return next();
+  const qIndex = req.originalUrl.indexOf('?');
+  res.redirect(301, '/' + name + (qIndex >= 0 ? req.originalUrl.slice(qIndex) : ''));
+});
+CLEAN_PAGES.forEach((name) => {
+  app.get('/' + name, (req, res) => res.sendFile(path.join(__dirname, '../public/pages/' + name + '.html')));
+});
 
 // Serve static files
 app.use(express.static(path.join(__dirname, '../public')));

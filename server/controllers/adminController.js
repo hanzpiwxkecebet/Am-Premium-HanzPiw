@@ -3,6 +3,7 @@ const { invalidateUser } = require('../middleware/auth');
 const { logAction } = require('../services/auditService');
 const { getTodayJakarta, clearDefaultLimitCache } = require('../services/limitService');
 const { checkApiStatus } = require('../services/apiService');
+const { lookupProviders } = require('../services/providerService');
 const { v4: uuidv4 } = require('uuid');
 
 const ROLE_HIERARCHY = { user: 0, premium: 1, moderator: 2, admin: 3, owner: 4 };
@@ -14,9 +15,31 @@ function canManageRole(actorRole, targetRole) {
 
 // ─── USER MANAGEMENT ─────────────────────────────────────────────────────────
 
+/**
+ * Isi otomatis `provider` untuk user lama yang belum punya (backfill dari Firebase Auth).
+ * Hanya jalan kalau ada user yang belum terisi; hasilnya disimpan jadi request berikutnya tidak perlu lagi.
+ * Gagal = diabaikan (daftar user tetap tampil, provider kosong).
+ */
+async function backfillProviders(db, snap) {
+  const missing = [];
+  snap.forEach(child => { if (!child.val().provider) missing.push(child.key); });
+  if (!missing.length) return {};
+  try {
+    const found = await lookupProviders(getAuth(), missing);
+    const updates = {};
+    for (const uid of missing) updates[`users/${uid}/provider`] = found[uid];
+    await db.ref('/').update(updates);
+    return found;
+  } catch (err) {
+    console.error('[Admin] Backfill provider gagal:', err.message);
+    return {};
+  }
+}
+
 async function getUsers(req, res) {
   const db = getDb();
   const snap = await db.ref('users').once('value');
+  const filled = await backfillProviders(db, snap);
   const today = getTodayJakarta();
   const users = [];
   snap.forEach(child => {
@@ -30,6 +53,11 @@ async function getUsers(req, res) {
       status: u.status,
       createdAt: u.createdAt,
       dailyLimit: u.dailyLimit,
+      // Metode daftar & login terakhir (untuk ikon di dashboard admin)
+      provider: u.provider || filled[child.key] || 'unknown',
+      lastLoginMethod: u.lastLoginMethod || null,
+      // Hanya thumbnail kecil (64px) yang dikirim ke daftar user; foto penuh tidak ikut supaya respons tetap ringan
+      photoThumb: u.photoThumb || '',
       // usedToday hanya berlaku kalau tanggal reset = hari ini
       usedToday: u.lastResetDate === today ? (u.usedToday || 0) : 0,
       totalUsage: u.totalUsage || 0,
@@ -45,6 +73,7 @@ async function getUserDetail(req, res) {
   if (!snap.exists()) return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
   const data = snap.val();
   delete data.usedToday;
+  delete data.photoURL; // foto penuh tidak perlu di detail admin (cukup photoThumb)
   return res.json({ success: true, data: { ...data, uid } });
 }
 
@@ -265,18 +294,66 @@ async function getEmails(req, res) {
   return res.json({ success: true, data: emails });
 }
 
-async function addEmail(req, res) {
-  const { email, label } = req.body;
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ success: false, message: 'Email tidak valid' });
-  }
-  const db = getDb();
-  const existing = await db.ref('emails').orderByChild('email').equalTo(email).once('value');
-  if (existing.exists()) return res.status(409).json({ success: false, message: 'Email sudah ada' });
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const BULK_EMAIL_MAX = 200;
 
-  const id = uuidv4();
-  await db.ref(`emails/${id}`).set({ email, label: label ? String(label).substring(0, 50) : '', status: 'available', authorized: true, createdAt: Date.now() });
-  return res.status(201).json({ success: true, message: 'Email ditambahkan', data: { id } });
+/**
+ * Tambah email sistem. Mendukung:
+ *  - satu email:  { email, label }
+ *  - bulk:        { emails: "a@x.com\nb@x.com, c@x.com" | ["a@x.com", ...], label }
+ * Pemisah: baris baru, koma, titik koma, atau spasi. Maksimal 200 email sekali tambah.
+ * Duplikat / tidak valid dilewati dan dilaporkan di ringkasan.
+ */
+async function addEmail(req, res) {
+  const { email, emails, label } = req.body;
+  const raw = emails !== undefined ? emails : email;
+  const tokens = (Array.isArray(raw) ? raw.map(String).join('\n') : String(raw || ''))
+    .split(/[\s,;]+/)
+    .map(t => t.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (!tokens.length) {
+    return res.status(400).json({ success: false, message: 'Masukkan minimal 1 alamat email' });
+  }
+  if (tokens.length > BULK_EMAIL_MAX) {
+    return res.status(400).json({ success: false, message: `Maksimal ${BULK_EMAIL_MAX} email sekali tambah (kamu memasukkan ${tokens.length})` });
+  }
+
+  const db = getDb();
+  const existingSnap = await db.ref('emails').once('value');
+  const existing = new Set();
+  existingSnap.forEach(child => { const e = child.val().email; if (e) existing.add(String(e).toLowerCase()); });
+
+  const cleanLabel = label ? String(label).substring(0, 50) : '';
+  const now = Date.now();
+  const updates = {};
+  const added = [];
+  const duplicates = [];
+  const invalid = [];
+
+  for (const t of tokens) {
+    if (!EMAIL_RE.test(t) || t.length > 254) { invalid.push(t); continue; }
+    if (existing.has(t)) { duplicates.push(t); continue; }
+    existing.add(t); // email yang sama dua kali dalam satu input dihitung duplikat
+    const id = uuidv4();
+    updates[`emails/${id}`] = { email: t, label: cleanLabel, status: 'available', authorized: true, createdAt: now };
+    added.push(t);
+  }
+
+  if (added.length) await db.ref('/').update(updates);
+
+  const summary = { added: added.length, duplicates: duplicates.length, invalid: invalid.length };
+  if (!added.length) {
+    const msg = duplicates.length && !invalid.length ? 'Semua email sudah ada' : 'Tidak ada email valid yang bisa ditambahkan';
+    return res.status(duplicates.length && !invalid.length ? 409 : 400).json({
+      success: false, message: msg, data: { ...summary, invalidList: invalid.slice(0, 20) },
+    });
+  }
+  return res.status(201).json({
+    success: true,
+    message: `${added.length} email ditambahkan`,
+    data: { ...summary, invalidList: invalid.slice(0, 20), duplicateList: duplicates.slice(0, 20) },
+  });
 }
 
 async function deleteEmail(req, res) {

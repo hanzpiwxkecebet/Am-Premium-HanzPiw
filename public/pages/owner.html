@@ -164,10 +164,10 @@
       <div class="table-wrap">
         <table class="admin-table">
           <thead>
-            <tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Limit</th><th>Aksi</th></tr>
+            <tr><th>User</th><th>Email</th><th>Metode</th><th>Role</th><th>Status</th><th>Limit</th><th>Aksi</th></tr>
           </thead>
           <tbody id="allusers-tbody">
-            <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">Memuat...</td></tr>
+            <tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">Memuat...</td></tr>
           </tbody>
         </table>
       </div>
@@ -466,14 +466,20 @@
 
     function renderAllUsers(list) {
       const tbody = document.getElementById('allusers-tbody');
-      if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">Tidak ada user</td></tr>'; return; }
+      if (!list.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">Tidak ada user</td></tr>'; return; }
       tbody.innerHTML = list.map(u => `
         <tr>
           <td>
-            <div style="font-weight:600;font-size:0.82rem">${Utils.escapeHtml(u.name || '-')}</div>
-            <div style="font-size:0.72rem;color:var(--text-muted)">@${Utils.escapeHtml(u.username || '-')}</div>
+            <div class="user-cell">
+              ${Utils.avatarSm(u)}
+              <div style="min-width:0">
+                <div style="font-weight:600;font-size:0.82rem">${Utils.escapeHtml(u.name || '-')}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted)">@${Utils.escapeHtml(u.username || '-')}</div>
+              </div>
+            </div>
           </td>
           <td style="font-size:0.75rem;color:var(--text-secondary);max-width:120px;overflow:hidden;text-overflow:ellipsis">${Utils.escapeHtml(u.email || '-')}</td>
+          <td>${Utils.providerCell(u)}</td>
           <td>${Utils.getRoleBadge(u.role)}</td>
           <td>${u.status === 'active' ? '<span class="badge badge-active">Aktif</span>' : '<span class="badge badge-suspended">Suspended</span>'}</td>
           <td style="font-family:var(--font-mono);font-size:0.78rem">${u.role === 'owner' ? '∞' : (u.usedToday||0) + '/' + (u.dailyLimit||0)}</td>
@@ -638,22 +644,56 @@
     };
     document.getElementById('refresh-emails-btn').addEventListener('click', loadEmails);
     document.getElementById('add-email-btn').addEventListener('click', () => {
+      const MAX_BULK = 200;
+      const parseEmails = (text) => [...new Set(String(text || '').split(/[\s,;]+/).map(t => t.trim().toLowerCase()).filter(Boolean))];
+
       const { overlay } = Utils.createModal('Tambah Email Sistem', `
-        <div class="form-group"><label class="form-label">Alamat Email</label>
-          <input type="email" class="form-input" id="new-email-addr" placeholder="nama@nightgirls.site">
-          <div class="text-xs text-muted mt-1">Buat dulu di generator.email, lalu masukkan alamat lengkapnya.</div></div>
-        <div class="form-group"><label class="form-label">Label (opsional)</label>
-          <input type="text" class="form-input" id="new-email-label" placeholder="Email Utama"></div>
+        <div class="form-group">
+          <label class="form-label">Alamat Email <span id="bulk-count" class="text-xs text-muted"></span></label>
+          <textarea class="form-input" id="new-email-addr" rows="7" spellcheck="false" autocapitalize="off"
+            placeholder="email1@nightgirls.site&#10;email2@nightgirls.site&#10;email3@nightgirls.site"
+            style="font-family:var(--font-mono);font-size:0.8rem;resize:vertical"></textarea>
+          <div class="text-xs text-muted mt-1">Satu email per baris (pemisah koma atau spasi juga bisa), maksimal ${MAX_BULK} email sekali tambah. Buat dulu di generator.email, lalu masukkan alamat lengkapnya.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Label (opsional, dipakai untuk semua email)</label>
+          <input type="text" class="form-input" id="new-email-label" placeholder="Email Utama" maxlength="50">
+        </div>
       `, [
         { label: 'Batal', action: 'cancel', class: 'btn-secondary' },
         { label: 'Tambah', action: 'save', class: 'btn-primary', close: false, onClick: async () => {
-          const email = document.getElementById('new-email-addr').value.trim();
+          const text = document.getElementById('new-email-addr').value;
           const label = document.getElementById('new-email-label').value.trim();
-          if (!email) { Toast.warning('Masukkan alamat email'); return; }
-          try { await AMApp.apiCall('POST', '/api/admin/emails', { email, label }); Toast.success('Email ditambahkan'); overlay.remove(); await loadEmails(); }
-          catch (e) { Toast.error(e.message || 'Gagal tambah email'); }
+          const list = parseEmails(text);
+          if (!list.length) { Toast.warning('Masukkan minimal 1 alamat email'); return; }
+          if (list.length > MAX_BULK) { Toast.warning(`Maksimal ${MAX_BULK} email sekali tambah`); return; }
+          const btn = overlay.querySelector('[data-action="save"]');
+          Utils.setButtonLoading(btn);
+          try {
+            const res = await AMApp.apiCall('POST', '/api/admin/emails', { emails: text, label }, {}, 30000);
+            const d = res.data || {};
+            const parts = [`${d.added} ditambah`];
+            if (d.duplicates) parts.push(`${d.duplicates} duplikat`);
+            if (d.invalid) parts.push(`${d.invalid} tidak valid`);
+            const msg = parts.join(', ') + (d.invalid && d.invalidList && d.invalidList.length ? `. Tidak valid: ${d.invalidList.slice(0, 3).join(', ')}${d.invalid > 3 ? ', ...' : ''}` : '');
+            (d.duplicates || d.invalid) ? Toast.warning(msg) : Toast.success(msg);
+            overlay.remove();
+            await loadEmails();
+          } catch (e) {
+            Toast.error(e.message || 'Gagal tambah email');
+            Utils.setButtonLoading(btn, false);
+          }
         }}
       ]);
+
+      const ta = overlay.querySelector('#new-email-addr');
+      const counter = overlay.querySelector('#bulk-count');
+      ta.addEventListener('input', () => {
+        const n = parseEmails(ta.value).length;
+        counter.textContent = n ? `(${n} email)` : '';
+        counter.style.color = n > MAX_BULK ? 'var(--text-error)' : '';
+      });
+      ta.focus();
     });
 
     // ========== PENGUMUMAN ==========
@@ -832,12 +872,12 @@
         Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
         return;
       }
-      if (!user) { window.location.href = '/pages/login.html'; return; }
+      if (!user) { window.location.href = '/login'; return; }
 
       const role = Auth.userData && Auth.userData.role;
       if (role !== 'owner') {
         Toast.error('Hanya owner yang dapat mengakses halaman ini');
-        window.location.href = '/pages/admin.html';
+        window.location.href = '/admin';
         return;
       }
 

@@ -106,7 +106,7 @@
       </form>
 
       <div class="auth-footer">
-        Sudah punya akun? <a href="/pages/login.html">Masuk sekarang</a>
+        Sudah punya akun? <a href="/login">Masuk sekarang</a>
       </div>
     </div>
   </div>
@@ -128,7 +128,7 @@
       try {
         await AMApp.initFirebaseClient();
         // Jangan redirect otomatis selagi proses registrasi berjalan (profil belum tersimpan)
-        firebase.auth().onAuthStateChanged(u => { if (u && !Auth.registering) window.location.href = '/pages/dashboard.html'; });
+        firebase.auth().onAuthStateChanged(u => { if (u && !Auth.registering) window.location.href = '/dashboard'; });
       } catch (err) {
         console.error('[Register] Firebase init error:', err.message);
         Toast.error('Koneksi bermasalah. Coba refresh halaman.');
@@ -197,7 +197,7 @@
         try {
           await Auth.register(name, username, email, pass);
           Toast.success('Akun berhasil dibuat!');
-          setTimeout(() => window.location.href = '/pages/dashboard.html', 800);
+          setTimeout(() => window.location.href = '/dashboard', 800);
         } catch (err) {
           let msg = (err && err.code) ? Auth.friendlyError(err) : ((err && err.message) || 'Registrasi gagal');
           if (msg.includes('email-already-in-use')) msg = 'Email sudah digunakan akun lain';

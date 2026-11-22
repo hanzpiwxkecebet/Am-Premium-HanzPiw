@@ -7,6 +7,8 @@ const {
   getUserByUsername,
   getProfile,
   updateProfile,
+  updateUsername,
+  recordLoginMethod,
   getRole,
 } = require('../controllers/authController');
 
@@ -22,6 +24,12 @@ router.get('/profile', verifyTokenOnly, getProfile);
 
 // Update profil
 router.put('/profile', verifyToken, updateProfile);
+
+// Ganti username (cooldown 7 hari)
+router.put('/username', authLimiter, verifyToken, updateUsername);
+
+// Catat metode login terakhir (google/email/username). Boleh dipanggil sebelum profil ada.
+router.post('/login-method', verifyTokenOnly, recordLoginMethod);
 
 // Cek role
 router.get('/role', verifyToken, getRole);

@@ -139,7 +139,7 @@
         Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
         return;
       }
-      if (!user) { window.location.href = '/pages/login.html'; return; }
+      if (!user) { window.location.href = '/login'; return; }
 
       // Auto uppercase code input
       const codeInput = document.getElementById('redeem-code');

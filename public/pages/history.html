@@ -182,7 +182,7 @@
         Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
         return;
       }
-      if (!user) { window.location.href = '/pages/login.html'; return; }
+      if (!user) { window.location.href = '/login'; return; }
 
       // Klik item history (delegasi event, aman dari karakter aneh di ID)
       document.getElementById('history-list').addEventListener('click', (e) => {

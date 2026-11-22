@@ -104,6 +104,44 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+// Logo metode daftar/login. Semua pakai logo custom (CSS), tanpa emoji:
+//  google = logo Google, email = logo Gmail (alamat gmail.com) atau ikon amplop (domain lain), username = ikon @
+function providerIcon(method, email) {
+  if (method === 'google') return '<i class="pv pv-google" title="Google"></i>';
+  if (method === 'username') return '<span class="pv-at" title="Username"><i class="ic ic-at"></i></span>';
+  if (method === 'email') {
+    const isGmail = /@(gmail|googlemail)\.com$/i.test(String(email || ''));
+    return isGmail ? '<i class="pv pv-gmail" title="Gmail"></i>' : '<span class="pv-at" title="Email"><i class="ic ic-mail"></i></span>';
+  }
+  return '';
+}
+
+function providerLabel(method, email) {
+  if (method === 'google') return 'Google';
+  if (method === 'username') return 'Username';
+  if (method === 'email') return /@(gmail|googlemail)\.com$/i.test(String(email || '')) ? 'Gmail' : 'Email';
+  return '-';
+}
+
+// Sel tabel admin: "Daftar via" + (kalau ada) metode login terakhir
+function providerCell(u) {
+  const main = u.provider && u.provider !== 'unknown'
+    ? `<div class="pv-line">${providerIcon(u.provider, u.email)}<span>${providerLabel(u.provider, u.email)}</span></div>`
+    : '<div class="pv-line" style="color:var(--text-muted)">-</div>';
+  const last = u.lastLoginMethod
+    ? `<div class="pv-sub">Login terakhir ${providerIcon(u.lastLoginMethod, u.email)}<span>${providerLabel(u.lastLoginMethod, u.email)}</span></div>`
+    : '';
+  return `<div class="pv-cell">${main}${last}</div>`;
+}
+
+// Avatar kecil (thumbnail 64px dari server, atau huruf pertama nama)
+function avatarSm(u) {
+  const m = String((u && (u.name || u.username)) || 'U').match(/[\p{L}\p{N}]/u);
+  const initial = (m ? m[0] : 'U').toUpperCase();
+  const thumb = u && u.photoThumb && /^data:image\//.test(u.photoThumb) ? u.photoThumb : '';
+  return `<span class="ava-sm">${thumb ? `<img src="${escapeHtml(thumb)}" alt="" loading="lazy">` : escapeHtml(initial)}</span>`;
+}
+
 function debounce(fn, ms = 300) {
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
@@ -121,4 +159,4 @@ function renderError(container, message, onRetry) {
   if (btn && onRetry) btn.addEventListener('click', onRetry);
 }
 
-window.Utils = { renderError, formatDate, formatDateShort, formatDuration, animateNumber, setButtonLoading, showElement, hideElement, createModal, getStatusBadge, getRoleBadge, escapeHtml, debounce };
+window.Utils = { renderError, formatDate, formatDateShort, formatDuration, animateNumber, setButtonLoading, showElement, hideElement, createModal, getStatusBadge, getRoleBadge, escapeHtml, debounce, providerIcon, providerLabel, providerCell, avatarSm };

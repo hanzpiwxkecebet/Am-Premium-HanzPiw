@@ -146,7 +146,7 @@
         Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
         return;
       }
-      if (!user) { window.location.href = '/pages/login.html'; return; }
+      if (!user) { window.location.href = '/login'; return; }
 
       document.getElementById('ann-list').addEventListener('click', (e) => {
         const el = e.target.closest('.ann-card');

@@ -78,8 +78,16 @@
 
     <!-- Settings -->
     <div class="glass-card" style="padding:4px 20px;margin-bottom:12px">
+      <div class="settings-item" id="edit-photo-btn">
+        <div><span class="settings-icon"><i class="ic ic-user"></i></span><span class="settings-label">Ganti Foto Profil</span></div>
+        <span class="settings-arrow">›</span>
+      </div>
       <div class="settings-item" id="edit-name-btn">
         <div><span class="settings-icon"><i class="ic ic-pencil"></i></span><span class="settings-label">Edit Nama</span></div>
+        <span class="settings-arrow">›</span>
+      </div>
+      <div class="settings-item" id="edit-username-btn">
+        <div><span class="settings-icon"><i class="ic ic-at"></i></span><span class="settings-label">Edit Username</span></div>
         <span class="settings-arrow">›</span>
       </div>
       <div class="settings-item" id="change-pass-btn">
@@ -187,7 +195,7 @@
         Toast.error(err.message || 'Gagal terhubung. Coba refresh halaman.');
         return;
       }
-      if (!user) { window.location.href = '/pages/login.html'; return; }
+      if (!user) { window.location.href = '/login'; return; }
 
       // Kalau backend belum merespons, pakai data akun Firebase supaya halaman tetap berfungsi
       const ud = Auth.userData || {
@@ -211,7 +219,10 @@
       // Render profile hero
       const hero = document.getElementById('profile-hero');
       hero.innerHTML = `
-        <div class="profile-avatar" id="pf-avatar">${ud.photoURL ? `<img src="${Utils.escapeHtml(ud.photoURL)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">` : (ud.name||'U')[0].toUpperCase()}</div>
+        <div class="profile-avatar-wrap" id="pf-avatar-wrap" title="Ganti foto profil">
+          <div class="profile-avatar" id="pf-avatar">${ud.photoURL && /^data:image\//.test(ud.photoURL) ? `<img src="${Utils.escapeHtml(ud.photoURL)}" alt="" style="width:100%;height:100%;object-fit:cover">` : Utils.escapeHtml((ud.name||'U')[0].toUpperCase())}</div>
+          <span class="avatar-edit"><i class="ic ic-pencil"></i></span>
+        </div>
         <div class="profile-name">${Utils.escapeHtml(ud.name || 'Pengguna')}</div>
         <div class="profile-username">@${Utils.escapeHtml(ud.username || '-')}</div>
         <div class="profile-badges">
@@ -265,6 +276,130 @@
         ]);
       });
 
+      // Simpan perubahan profil ke state lokal + cache + menu bawah
+      function applyProfileChange(patch) {
+        Object.assign(ud, patch);
+        if (Auth.userData) Object.assign(Auth.userData, patch);
+        if (window.Cache) window.Cache.set('profile:' + user.uid, Auth.userData || ud);
+        if ('photoURL' in patch) Auth.syncAvatar(patch.photoURL);
+        paintProfile();
+      }
+
+      // ── Foto profil ──────────────────────────────────────────
+      const PHOTO_MAX_BYTES = 2 * 1024 * 1024;
+
+      function loadImageFile(file) {
+        return new Promise((resolve, reject) => {
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Gambar tidak bisa dibaca. Coba foto JPG, PNG, atau WebP.')); };
+          img.src = url;
+        });
+      }
+
+      // Potong persegi dari tengah, kecilkan, simpan sebagai JPEG
+      function squareDataUrl(img, size, quality) {
+        const side = Math.min(img.naturalWidth, img.naturalHeight);
+        const sx = (img.naturalWidth - side) / 2;
+        const sy = (img.naturalHeight - side) / 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, size, size);
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        return canvas.toDataURL('image/jpeg', quality);
+      }
+
+      function openPhotoModal() {
+        const initial = Utils.escapeHtml((ud.name || 'U')[0].toUpperCase());
+        const hasPhoto = !!(ud.photoURL && /^data:image\//.test(ud.photoURL));
+        let pending = null; // null | 'remove' | { photoURL, photoThumb }
+
+        const { overlay } = Utils.createModal('Foto Profil', `
+          <div class="photo-edit">
+            <div class="photo-preview" id="photo-preview">${hasPhoto ? `<img src="${Utils.escapeHtml(ud.photoURL)}" alt="">` : initial}</div>
+            <input type="file" id="photo-file" accept="image/*" style="display:none">
+            <div class="photo-actions">
+              <button type="button" class="btn btn-secondary" id="photo-pick"><i class="ic ic-user"></i> Pilih Foto</button>
+              ${hasPhoto ? '<button type="button" class="btn btn-secondary" id="photo-remove"><i class="ic ic-x"></i> Hapus Foto</button>' : ''}
+            </div>
+            <div class="text-xs text-muted" style="text-align:center">JPG, PNG, atau WebP, maksimal 2 MB. Foto otomatis dipotong persegi.</div>
+          </div>
+        `, [
+          { label: 'Batalkan', action: 'cancel', class: 'btn-secondary' },
+          { label: 'Simpan', action: 'save', class: 'btn-primary', close: false, onClick: async () => {
+            if (!pending) { Toast.warning('Pilih foto dulu'); return; }
+            try {
+              const body = pending === 'remove' ? { photoURL: '', photoThumb: '' } : pending;
+              await AMApp.apiCall('PUT', '/api/auth/profile', body, {}, 20000);
+              applyProfileChange({ photoURL: body.photoURL });
+              Toast.success(pending === 'remove' ? 'Foto dihapus' : 'Foto profil diperbarui');
+              overlay.remove();
+            } catch (err) { Toast.error(err.message || 'Gagal menyimpan foto'); }
+          }}
+        ]);
+
+        const preview = overlay.querySelector('#photo-preview');
+        const fileInput = overlay.querySelector('#photo-file');
+        overlay.querySelector('#photo-pick').addEventListener('click', () => fileInput.click());
+        const removeBtn = overlay.querySelector('#photo-remove');
+        if (removeBtn) removeBtn.addEventListener('click', () => { pending = 'remove'; preview.textContent = initial; });
+
+        fileInput.addEventListener('change', async () => {
+          const file = fileInput.files && fileInput.files[0];
+          fileInput.value = '';
+          if (!file) return;
+          if (!/^image\//.test(file.type)) { Toast.warning('File harus berupa gambar'); return; }
+          if (file.size > PHOTO_MAX_BYTES) { Toast.warning('Ukuran foto maksimal 2 MB'); return; }
+          try {
+            const img = await loadImageFile(file);
+            const photoURL = squareDataUrl(img, 256, 0.82);
+            const photoThumb = squareDataUrl(img, 64, 0.75);
+            pending = { photoURL, photoThumb };
+            preview.innerHTML = `<img src="${photoURL}" alt="">`;
+          } catch (err) { Toast.error(err.message); }
+        });
+      }
+
+      document.getElementById('edit-photo-btn').addEventListener('click', openPhotoModal);
+      // Klik avatar di atas juga membuka editor foto (hero digambar ulang, jadi pakai delegasi)
+      document.getElementById('profile-hero').addEventListener('click', (e) => {
+        if (e.target.closest('#pf-avatar-wrap')) openPhotoModal();
+      });
+
+      // ── Edit username ────────────────────────────────────────
+      const USERNAME_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+
+      document.getElementById('edit-username-btn').addEventListener('click', () => {
+        const unlockAt = ud.role === 'owner' ? 0 : (Number(ud.usernameChangedAt) || 0) + USERNAME_COOLDOWN_MS;
+        const locked = unlockAt > Date.now();
+        const { overlay } = Utils.createModal('Edit Username', `
+          <div class="form-group">
+            <label class="form-label">Username Baru</label>
+            <input type="text" class="form-input" id="new-username" value="${Utils.escapeHtml(ud.username || '')}" maxlength="20" autocapitalize="off" autocomplete="off" spellcheck="false">
+            <div class="text-xs text-muted mt-1">3-20 karakter: huruf kecil, angka, dan underscore. Username bisa diganti sekali tiap 7 hari.</div>
+            ${locked ? `<div class="text-xs mt-1" style="color:var(--text-warning)">Username baru bisa diganti lagi pada ${Utils.formatDateShort(unlockAt)}.</div>` : ''}
+          </div>
+        `, [
+          { label: 'Batalkan', action: 'cancel', class: 'btn-secondary' },
+          { label: 'Simpan', action: 'save', class: 'btn-primary', close: false, onClick: async () => {
+            const username = document.getElementById('new-username').value.toLowerCase().trim();
+            if (!/^[a-z0-9_]{3,20}$/.test(username)) { Toast.warning('Username harus 3-20 karakter (huruf, angka, underscore)'); return; }
+            if (username === ud.username) { Toast.warning('Itu sudah username kamu sekarang'); return; }
+            if (locked) { Toast.warning(`Username baru bisa diganti lagi pada ${Utils.formatDateShort(unlockAt)}`); return; }
+            try {
+              const res = await AMApp.apiCall('PUT', '/api/auth/username', { username });
+              applyProfileChange({ username: res.data.username, usernameChangedAt: Date.now() });
+              Toast.success('Username diperbarui');
+              overlay.remove();
+            } catch (err) { Toast.error(err.message || 'Gagal mengganti username'); }
+          }}
+        ]);
+      });
+
       // Change password
       document.getElementById('change-pass-btn').addEventListener('click', () => {
         const { overlay } = Utils.createModal('Ganti Password', `
@@ -310,7 +445,7 @@
         Utils.setButtonLoading(btn);
         try {
           await Auth.logout();
-          window.location.href = '/pages/login.html';
+          window.location.href = '/login';
         } catch (err) {
           Toast.error('Gagal keluar');
           Utils.setButtonLoading(btn, false);
