@@ -1,6 +1,6 @@
 const { getDb } = require('../config/firebase');
 const { sendVerification, verifyLink } = require('../services/apiService');
-const { consumeLimit, refundLimit, recordUsage, updateStats } = require('../services/limitService');
+const { consumeLimit, refundLimit, recordUsage, updateStats, bumpGlobalStat } = require('../services/limitService');
 const { v4: uuidv4 } = require('uuid');
 
 // requestId dipakai sebagai key di Firebase: tidak boleh mengandung . # $ [ ] /
@@ -82,6 +82,7 @@ async function sendVerify(req, res) {
       return res.status(429).json({ success: false, message: limitResult.message, remaining: 0 });
     }
     limitConsumed = true;
+    await bumpGlobalStat('totalProcess', 1);
 
     // Create pending usage record
     await usageRef.set({
@@ -101,6 +102,7 @@ async function sendVerify(req, res) {
     } catch (err) {
       // Refund limit on API failure
       await refundLimit(uid);
+      await bumpGlobalStat('totalProcess', -1);
       await usageRef.update({ status: 'failed_send', completedAt: Date.now() });
       if (emailLocked) await unlockSystemEmail(email, db);
       return res.status(502).json({ success: false, message: `API gagal: ${err.message}` });
@@ -117,7 +119,7 @@ async function sendVerify(req, res) {
     });
   } catch (err) {
     // Error tak terduga (mis. database): kembalikan limit & kunci email, lalu biarkan error handler membalas
-    if (limitConsumed) { try { await refundLimit(uid); } catch (e) { /* abaikan */ } }
+    if (limitConsumed) { try { await refundLimit(uid); await bumpGlobalStat('totalProcess', -1); } catch (e) { /* abaikan */ } }
     if (emailLocked) { try { await unlockSystemEmail(email, db); } catch (e) { /* abaikan */ } }
     throw err;
   }
@@ -160,6 +162,7 @@ async function submitVerify(req, res) {
     const duration = Date.now() - startVerify;
     await usageRef.update({ status: 'failed', completedAt: Date.now(), duration, error: err.message });
     await updateStats(uid, false);
+    await bumpGlobalStat('totalFailed', 1);
 
     // Unlock system email if used
     if (method === 'system') {
@@ -187,11 +190,7 @@ async function submitVerify(req, res) {
   }
 
   // Update global stats
-  if (isSuccess) {
-    await db.ref('system/stats/totalSuccess').transaction(v => (v || 0) + 1);
-  } else {
-    await db.ref('system/stats/totalFailed').transaction(v => (v || 0) + 1);
-  }
+  await bumpGlobalStat(isSuccess ? 'totalSuccess' : 'totalFailed', 1);
 
   return res.json({
     success: true,

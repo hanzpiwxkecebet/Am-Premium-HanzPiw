@@ -47,6 +47,7 @@
     .email-select-item { padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); cursor: pointer; transition: var(--transition); font-size: 0.88rem; display: flex; align-items: center; justify-content: space-between; }
     .email-select-item:hover { border-color: var(--border-neon-red); background: rgba(156, 156, 156,0.05); }
     .email-select-item.selected { border-color: var(--neon-red-dim); background: rgba(156, 156, 156,0.1); }
+    .email-select-item.in-use, .email-select-item.in-use:hover { opacity: 0.6; cursor: not-allowed; border-color: var(--border-glass); background: var(--bg-glass); }
   </style>
 </head>
 <body>
@@ -342,31 +343,56 @@
           currentMethod = tab.dataset.method;
           document.getElementById('custom-email-wrap').classList.toggle('hidden', currentMethod !== 'custom');
           document.getElementById('system-email-wrap').classList.toggle('hidden', currentMethod !== 'system');
-          if (currentMethod === 'system') loadSystemEmails();
+          if (currentMethod === 'system') { loadSystemEmails(); startEmailPoll(); } else { stopEmailPoll(); }
         });
       });
 
-      async function loadSystemEmails() {
+      let emailPoll = null;
+      function renderSystemEmails(list) {
+        const container = document.getElementById('system-email-list');
+        const hidden = document.getElementById('system-email-selected');
+        if (!list || list.length === 0) {
+          hidden.value = '';
+          container.innerHTML = '<div class="text-muted text-sm text-center" style="padding:16px">Belum ada email sistem</div>';
+          return;
+        }
+        // Email yang tadinya dipilih tapi sekarang dipakai user lain -> batalkan pilihan
+        const sel = hidden.value;
+        if (sel && !list.some(e => e.email === sel && !e.inUse)) hidden.value = '';
+        container.innerHTML = list.map(e => e.inUse ? `
+            <div class="email-select-item in-use" data-email="${Utils.escapeHtml(e.email)}" aria-disabled="true">
+              <span style="font-family:var(--font-mono);font-size:0.8rem">${Utils.escapeHtml(e.email)}</span>
+              <span class="badge badge-pending">Sedang dipakai</span>
+            </div>` : `
+            <div class="email-select-item${hidden.value === e.email ? ' selected' : ''}" data-email="${Utils.escapeHtml(e.email)}" onclick="selectSystemEmail(this)">
+              <span style="font-family:var(--font-mono);font-size:0.8rem">${Utils.escapeHtml(e.email)}</span>
+              <span class="badge badge-active">Tersedia</span>
+            </div>`).join('');
+      }
+
+      async function loadSystemEmails(silent) {
         const container = document.getElementById('system-email-list');
         try {
           const res = await AMApp.apiCall('GET', '/api/generator/emails');
-          if (!res.data || res.data.length === 0) {
-            container.innerHTML = '<div class="text-muted text-sm text-center" style="padding:16px">Tidak ada email sistem tersedia</div>';
-            return;
-          }
-          document.getElementById('system-email-selected').value = '';
-          container.innerHTML = res.data.map(e => `
-            <div class="email-select-item" data-email="${Utils.escapeHtml(e.email)}" onclick="selectSystemEmail(this)">
-              <span style="font-family:var(--font-mono);font-size:0.8rem">${Utils.escapeHtml(e.email)}</span>
-              <span class="badge badge-active">Tersedia</span>
-            </div>
-          `).join('');
+          renderSystemEmails(res.data || []);
         } catch (err) {
-          container.innerHTML = '<div class="text-error text-sm">Gagal memuat email</div>';
+          if (!silent) container.innerHTML = '<div class="text-error text-sm">Gagal memuat email</div>';
         }
       }
 
+      // Status email diperbarui otomatis tiap 8 detik selama tab Email Sistem terbuka
+      function startEmailPoll() {
+        stopEmailPoll();
+        emailPoll = setInterval(() => {
+          if (document.hidden || currentMethod !== 'system') return;
+          if (!document.getElementById('step-1-content') || document.getElementById('step-1-content').classList.contains('hidden')) return;
+          loadSystemEmails(true);
+        }, 8000);
+      }
+      function stopEmailPoll() { if (emailPoll) { clearInterval(emailPoll); emailPoll = null; } }
+
       window.selectSystemEmail = function(el) {
+        if (el.classList.contains('in-use')) return;
         document.querySelectorAll('.email-select-item').forEach(e => e.classList.remove('selected'));
         el.classList.add('selected');
         document.getElementById('system-email-selected').value = el.dataset.email;
@@ -429,6 +455,7 @@
           renderProgressSteps([], 'sending', true);
           logTerminal('ERROR: ' + err.message, 'err');
           Toast.error(err.message || 'Gagal mengirim verifikasi');
+          if (currentMethod === 'system') loadSystemEmails(true);
           setStep(1);
           Utils.setButtonLoading(btn, false);
           stopTimer();

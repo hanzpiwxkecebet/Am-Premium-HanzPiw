@@ -449,8 +449,8 @@
           <td style="font-family:var(--font-mono);font-size:0.78rem">${Utils.escapeHtml(em.email)}</td>
           <td>${Utils.escapeHtml(em.label || '-')}</td>
           <td>
-            <span class="email-status-dot email-${em.status==='available'?'available':em.status==='in_use'?'inuse':'disabled'}"></span>
-            ${em.status === 'available' ? 'Tersedia' : em.status === 'in_use' ? 'Digunakan' : 'Nonaktif'}
+            <span class="email-status-dot email-${em.status==='in_use'?'inuse':(!em.status||em.status==='available')?'available':'disabled'}"></span>
+            ${em.status === 'in_use' ? 'Sedang dipakai' : (!em.status || em.status === 'available') ? 'Tersedia' : 'Nonaktif'}
           </td>
           <td>
             <button class="action-btn" style="color:var(--text-error);border-color:rgba(255,34,68,0.3)" onclick="deleteEmail('${Utils.escapeHtml(em.id)}','${Utils.escapeHtml(em.email)}')">Hapus</button>

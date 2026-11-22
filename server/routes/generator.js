@@ -39,17 +39,45 @@ router.get('/history', verifyToken, async (req, res) => {
   return res.json({ success: true, data: history });
 });
 
+// Semua email sistem yang aktif ditampilkan, lengkap dengan statusnya:
+//   available -> bisa dipilih ("Tersedia")
+//   in_use    -> sedang dipakai user lain ("Sedang dipakai")
+// Email yang dinonaktifkan admin disembunyikan dari user.
 router.get('/emails', verifyToken, async (req, res) => {
   const db = getDb();
   const snap = await db.ref('emails').orderByChild('authorized').equalTo(true).once('value');
   const emails = [];
   snap.forEach(child => {
     const e = child.val();
-    if (e.authorized && e.status === 'available') {
-      emails.push({ id: child.key, email: e.email });
-    }
+    if (!e.authorized) return;
+    if (e.status === 'in_use') emails.push({ id: child.key, email: e.email, status: 'in_use', inUse: true });
+    else if (!e.status || e.status === 'available') emails.push({ id: child.key, email: e.email, status: 'available', inUse: false });
   });
+  // yang tersedia di atas, yang sedang dipakai di bawah
+  emails.sort((a, b) => Number(a.inUse) - Number(b.inUse) || a.email.localeCompare(b.email));
   return res.json({ success: true, data: emails });
+});
+
+// Statistik GLOBAL (gabungan semua user) untuk kartu di dashboard
+let globalStatsCache = { v: null, t: 0 };
+router.get('/global-stats', verifyToken, async (req, res) => {
+  if (!globalStatsCache.v || Date.now() - globalStatsCache.t > 10000) {
+    const snap = await getDb().ref('system/stats').once('value');
+    const s = snap.val() || {};
+    const success = Number(s.totalSuccess) || 0;
+    const failed = Number(s.totalFailed) || 0;
+    const finished = success + failed;
+    globalStatsCache = {
+      t: Date.now(),
+      v: {
+        total: Math.max(Number(s.totalProcess) || 0, finished),
+        success,
+        failed,
+        rate: finished > 0 ? Math.round((success / finished) * 100) : 0,
+      },
+    };
+  }
+  return res.json({ success: true, data: globalStatsCache.v });
 });
 
 // Tanpa verifyToken: tidak butuh database (verifyToken membaca users/{uid}). Kompatibel dengan klien lama.

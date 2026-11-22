@@ -100,7 +100,8 @@
       </div>
     </div>
 
-    <!-- Stats Grid -->
+    <!-- Stats Grid (global: semua user) -->
+    <div class="section-title" style="display:flex;justify-content:space-between;align-items:center"><span>Statistik Global</span><span class="text-muted text-xs" style="text-transform:none;letter-spacing:0">Semua pengguna</span></div>
     <div class="stats-grid">
       <div class="stat-card glass-card">
         <div class="stat-number gradient-text" id="stat-total">-</div>
@@ -264,15 +265,26 @@
       }
     }
 
-    function renderStats(ud) {
-      const total = Number(ud.totalUsage) || 0;
-      const success = Number(ud.totalSuccess) || 0;
-      const failed = Number(ud.totalFailed) || 0;
-      const rate = total > 0 ? Math.round((success / total) * 100) : 0;
-      Utils.animateNumber($('stat-total'), 0, total);
-      Utils.animateNumber($('stat-success'), 0, success);
-      Utils.animateNumber($('stat-failed'), 0, failed);
-      $('stat-rate').textContent = rate + '%';
+    // Statistik GLOBAL: gabungan semua user (bukan hanya akun yang sedang login)
+    function renderStats(g) {
+      Utils.animateNumber($('stat-total'), 0, Number(g.total) || 0);
+      Utils.animateNumber($('stat-success'), 0, Number(g.success) || 0);
+      Utils.animateNumber($('stat-failed'), 0, Number(g.failed) || 0);
+      $('stat-rate').textContent = (Number(g.rate) || 0) + '%';
+    }
+
+    async function loadGlobalStats(user) {
+      try {
+        await Cache.swr(
+          'global-stats',
+          async () => (await AMApp.apiCall('GET', '/api/generator/global-stats')).data || {},
+          (g) => renderStats(g),
+          30 * 1000
+        );
+      } catch (e) {
+        console.warn('[Dashboard] global stats error:', e.message);
+        ['stat-total', 'stat-success', 'stat-failed', 'stat-rate'].forEach(id => { $(id).textContent = '-'; });
+      }
     }
 
     function paintLimit(lim) {
@@ -385,7 +397,7 @@
 
       // 2) Profil cache (kalau ada) tampil seketika
       const cachedProfile = Cache.get('profile:' + user.uid);
-      if (cachedProfile) { renderUser(cachedProfile); renderStats(cachedProfile); }
+      if (cachedProfile) { renderUser(cachedProfile); }
 
       // 3) Profil sudah pernah dimuat di perangkat ini -> semua request jalan PARALEL.
       //    Akun baru: profil dibuat dulu oleh server, baru endpoint lain dipanggil.
@@ -393,10 +405,9 @@
         try { await Auth.profilePromise; } catch (e) { /* sudah ditangani di Auth */ }
         const ud = Auth.userData || cachedProfile || fallbackUserData(user);
         renderUser(ud);
-        renderStats(ud);
       })();
       if (!cachedProfile) await profileTask;
-      await Promise.allSettled([profileTask, loadLimit(user), apiStatusTask]);
+      await Promise.allSettled([profileTask, loadLimit(user), loadGlobalStats(user), apiStatusTask]);
     }
 
     if (document.readyState === 'loading') {

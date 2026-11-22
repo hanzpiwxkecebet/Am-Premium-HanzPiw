@@ -133,4 +133,16 @@ async function updateStats(uid, success) {
   });
 }
 
-module.exports = { checkLimit, consumeLimit, refundLimit, recordUsage, updateStats, getTodayJakarta };
+/**
+ * Counter global (semua user) di system/stats/<field>. delta boleh negatif, hasil tidak pernah < 0.
+ * Gagal menulis statistik tidak boleh menggagalkan proses utama.
+ */
+async function bumpGlobalStat(field, delta = 1) {
+  try {
+    await getDb().ref(`system/stats/${field}`).transaction(v => Math.max(0, (v || 0) + delta));
+  } catch (e) {
+    console.warn('[stats] gagal update', field, e.message);
+  }
+}
+
+module.exports = { checkLimit, consumeLimit, refundLimit, recordUsage, updateStats, getTodayJakarta, bumpGlobalStat };

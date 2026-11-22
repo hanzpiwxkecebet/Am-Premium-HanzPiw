@@ -297,7 +297,11 @@ async function updateEmailStatus(req, res) {
   if (!snap.exists()) return res.status(404).json({ success: false, message: 'Email tidak ditemukan' });
   const updates = {};
   if (authorized !== undefined) updates.authorized = authorized;
-  if (status && ['available', 'disabled'].includes(status)) updates.status = status;
+  if (status && ['available', 'disabled'].includes(status)) {
+    updates.status = status;
+    updates.lockedBy = null;
+    updates.lockedAt = null;
+  }
   await db.ref(`emails/${id}`).update(updates);
   return res.json({ success: true, message: 'Status email diperbarui' });
 }
@@ -439,39 +443,88 @@ async function getAdminStats(req, res) {
     new Promise(resolve => { apiTimer = setTimeout(() => resolve({ online: false }), 5000); }),
   ]).finally(() => clearTimeout(apiTimer));
 
-  const [usersSnap, statsSnap, sysSnap, codesSnap, emailsSnap, apiStatus] = await Promise.all([
+  const [usersSnap, statsSnap, sysSnap, codesSnap, emailsSnap, annSnap, apiStatus] = await Promise.all([
     db.ref('users').once('value'),
     db.ref('system/stats').once('value'),
     db.ref('system').once('value'),
     db.ref('redeem').once('value'),
     db.ref('emails').once('value'),
+    db.ref('announcements').once('value'),
     apiCheck,
   ]);
 
-  let totalUsers = 0, totalActive = 0, totalPremium = 0;
+  const today = getTodayJakarta();
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  const dayAgo = Date.now() - 24 * 3600 * 1000;
+  let totalUsers = 0, totalActive = 0, totalSuspended = 0;
+  const roles = { user: 0, premium: 0, moderator: 0, admin: 0, owner: 0 };
+  let newToday = 0, newWeek = 0, activeToday = 0, usedTodayTotal = 0, limitTotalToday = 0;
   usersSnap.forEach(child => {
     const u = child.val();
     totalUsers++;
-    if (u.status === 'active') totalActive++;
-    if (u.role === 'premium') totalPremium++;
+    if (u.status === 'suspended') totalSuspended++; else totalActive++;
+    if (roles[u.role] !== undefined) roles[u.role]++; else roles.user++;
+    if ((u.createdAt || 0) >= dayAgo) newToday++;
+    if ((u.createdAt || 0) >= weekAgo) newWeek++;
+    const used = u.lastResetDate === today ? (u.usedToday || 0) : 0;
+    usedTodayTotal += used;
+    limitTotalToday += (u.dailyLimit ?? 20);
+    if (used > 0) activeToday++;
   });
+
+  const emails = { available: 0, in_use: 0, disabled: 0 };
+  emailsSnap.forEach(child => {
+    const e = child.val();
+    if (!e.authorized || (e.status && !['available', 'in_use'].includes(e.status))) emails.disabled++;
+    else if (e.status === 'in_use') emails.in_use++;
+    else emails.available++;
+  });
+
+  let codesActive = 0, codesRedeemed = 0;
+  codesSnap.forEach(child => {
+    const c = child.val();
+    if (c.active === true && (!c.expiresAt || c.expiresAt > Date.now()) && (!c.maxUses || (c.usedCount || 0) < c.maxUses)) codesActive++;
+    codesRedeemed += c.usedCount || 0;
+  });
+
+  let announcementsActive = 0;
+  annSnap.forEach(child => { if (child.val().active !== false) announcementsActive++; });
 
   const stats = statsSnap.val() || {};
   const sys = sysSnap.val() || {};
+  const totalSuccess = stats.totalSuccess || 0;
+  const totalFailed = stats.totalFailed || 0;
+  const finished = totalSuccess + totalFailed;
 
   return res.json({
     success: true,
     data: {
       totalUsers,
       totalActive,
-      totalPremium,
-      premiumUsers: totalPremium,
-      totalSuccess: stats.totalSuccess || 0,
-      totalFailed: stats.totalFailed || 0,
+      totalSuspended,
+      totalPremium: roles.premium,
+      premiumUsers: roles.premium,
+      roles,
+      newUsersToday: newToday,
+      newUsersWeek: newWeek,
+      activeToday,
+      usedToday: usedTodayTotal,
+      limitToday: limitTotalToday,
+      totalProcess: Math.max(stats.totalProcess || 0, finished),
+      totalSuccess,
+      totalFailed,
+      successRate: finished > 0 ? Math.round((totalSuccess / finished) * 100) : 0,
       totalCodes: codesSnap.numChildren(),
+      codesActive,
+      codesRedeemed,
       totalEmails: emailsSnap.numChildren(),
+      emails,
+      totalAnnouncements: annSnap.numChildren(),
+      announcementsActive,
       apiOnline: !!(apiStatus && apiStatus.online),
+      apiLatency: (apiStatus && apiStatus.latency) || null,
       maintenance: sys.maintenance === true,
+      defaultDailyLimit: sys.defaultDailyLimit ?? sys.dailyLimit ?? 20,
       version: sys.version || sys.appVersion || process.env.APP_VERSION || '',
     }
   });
