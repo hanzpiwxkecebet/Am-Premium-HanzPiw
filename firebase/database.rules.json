@@ -100,7 +100,7 @@
     "emails": {
       ".read": false,
       ".write": false,
-      ".indexOn": ["email", "authorized"]
+      ".indexOn": ["email", "authorized", "status"]
     },
 
     // ----------------------------------------------------------------
@@ -131,6 +131,30 @@
     "pendingRequests": {
       ".read": false,
       ".write": false
+    },
+
+    // ----------------------------------------------------------------
+    // userPhotos/ & userThumbs/
+    // Foto profil (256px) dan thumbnail (64px), dipisah dari users/{uid}
+    // supaya node users tetap kecil. Hanya server.
+    // ----------------------------------------------------------------
+    "userPhotos": {
+      ".read": false,
+      ".write": false
+    },
+    "userThumbs": {
+      ".read": false,
+      ".write": false
+    },
+
+    // ----------------------------------------------------------------
+    // rateLimits/
+    // Penghitung rate limit lintas instance (server-managed)
+    // ----------------------------------------------------------------
+    "rateLimits": {
+      ".read": false,
+      ".write": false,
+      ".indexOn": ["resetAt"]
     }
   }
 }

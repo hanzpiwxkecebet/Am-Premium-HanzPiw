@@ -66,7 +66,7 @@ router.get('/status', async (req, res) => {
     data: {
       maintenance: sys.maintenance === true,
       maintenanceMessage: sys.maintenanceMessage || '',
-      appVersion: sys.appVersion || process.env.APP_VERSION || '2.0.0-beta',
+      appVersion: sys.appVersion || process.env.APP_VERSION || require('../../package.json').version,
       apiStatus: sys.apiStatus || 'unknown',
       // Backsound: default aktif; owner bisa mengganti URL & default aktif/nonaktif
       backsound: {

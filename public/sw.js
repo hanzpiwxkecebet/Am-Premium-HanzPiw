@@ -1,7 +1,7 @@
 // Service worker AM Premium — membuat website bisa di-install (PWA) dan tetap menampilkan halaman dasar saat offline.
 // Strategi: network-first (selalu ambil terbaru; cache hanya cadangan saat offline). /api/ dan domain luar TIDAK di-cache.
-const CACHE = 'am-premium-v1';
-const PRECACHE = ['/shell.html', '/404.html', '/assets/css/main.css', '/favicon.svg', '/assets/icons/icon-192.png'];
+const CACHE = 'am-premium-v2';
+const PRECACHE = ['/shell.html', '/404.html', '/assets/css/main.css', '/favicon.svg', '/assets/icons/icon-192.png', '/assets/img/logo-full.png', '/assets/img/logo-mark.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

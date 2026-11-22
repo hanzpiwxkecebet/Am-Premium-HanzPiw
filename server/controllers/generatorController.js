@@ -4,6 +4,7 @@ const { consumeLimit, refundLimit, recordUsage, updateStats, bumpGlobalStat } = 
 const { v4: uuidv4 } = require('uuid');
 
 // requestId dipakai sebagai key di Firebase: tidak boleh mengandung . # $ [ ] /
+const SEND_INFLIGHT_MS = 60 * 1000;
 const REQUEST_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 
 function sanitizeRequestId(raw) {
@@ -27,13 +28,25 @@ async function sendVerify(req, res) {
     return res.status(400).json({ success: false, message: 'Format email tidak valid' });
   }
 
-  // Check maintenance mode
+  // (maintenance sudah diperiksa middleware checkMaintenance di route)
   const db = getDb();
-  const sysSnap = await db.ref('system/maintenance').once('value');
-  if (sysSnap.val() === true) {
-    return res.status(503).json({ success: false, message: 'Aplikasi sedang dalam maintenance' });
-  }
 
+  // Satu proses /send per user pada satu waktu: cegah double-tap / request ganda yang memakai limit dua kali
+  const inflight = await db.ref(`pendingRequests/${uid}`).transaction((cur) => {
+    if (cur && cur.t && Date.now() - cur.t < SEND_INFLIGHT_MS) return; // masih berjalan: batalkan
+    return { t: Date.now(), requestId };
+  });
+  if (!inflight.committed) {
+    return res.status(429).json({ success: false, message: 'Permintaan sebelumnya masih diproses. Tunggu sebentar.' });
+  }
+  try {
+    return await doSend({ req, res, db, uid, email, method, requestId });
+  } finally {
+    db.ref(`pendingRequests/${uid}`).remove().catch(() => {});
+  }
+}
+
+async function doSend({ req, res, db, uid, email, method, requestId }) {
   // If system email, check availability and lock it
   let emailLocked = false;
   if (method === 'system') {
@@ -62,6 +75,7 @@ async function sendVerify(req, res) {
       cur.status = 'in_use';
       cur.lockedBy = uid;
       cur.lockedAt = Date.now();
+      cur.lockedRequestId = requestId;
       return cur;
     });
     if (!lockResult.committed) {
@@ -130,7 +144,7 @@ async function sendVerify(req, res) {
  * Step 2: Submit verification link and get result
  */
 async function submitVerify(req, res) {
-  const { email, link, requestId, method } = req.body;
+  const { email, link, requestId, method: reqMethod } = req.body;
   const { uid } = req.user;
 
   if (!email || !link || !requestId) {
@@ -142,19 +156,32 @@ async function submitVerify(req, res) {
 
   const db = getDb();
   const usageRef = db.ref(`usage/${uid}/${requestId}`);
-  const snap = await usageRef.once('value');
-
-  if (!snap.exists()) {
-    return res.status(404).json({ success: false, message: 'Request tidak ditemukan' });
-  }
-
-  const usageData = snap.val();
-  if (!['waiting_verification', 'pending'].includes(usageData.status)) {
-    return res.status(409).json({ success: false, message: `Proses tidak valid (status: ${usageData.status})` });
-  }
-
   const startVerify = Date.now();
-  await usageRef.update({ status: 'verifying', verifyStartedAt: startVerify });
+
+  // Klaim atomik: hanya SATU request yang boleh mengubah waiting_verification -> verifying.
+  // (Sebelumnya cek lalu update: tap ganda bisa memanggil API pihak ketiga dua kali.)
+  let prev = null;
+  const claim = await usageRef.transaction((cur) => {
+    prev = cur;
+    if (!cur) return cur; // tebakan awal SDK (cache kosong): kembalikan apa adanya, SDK mengulang dengan data asli
+    if (!['waiting_verification', 'pending'].includes(cur.status)) return;
+    cur.status = 'verifying';
+    cur.verifyStartedAt = startVerify;
+    return cur;
+  });
+  const claimed = claim.snapshot && claim.snapshot.val();
+  if (!claimed) return res.status(404).json({ success: false, message: 'Request tidak ditemukan' });
+  if (!claim.committed) {
+    return res.status(409).json({ success: false, message: `Proses tidak valid (status: ${claimed.status})` });
+  }
+  const usageData = claimed;
+
+  // Email harus sama dengan yang dikirimi verifikasi, dan metode dibaca dari catatan server (bukan dari klien)
+  if (usageData.email_masked && usageData.email_masked.toLowerCase() !== maskEmail(email).toLowerCase()) {
+    await usageRef.update({ status: 'waiting_verification' }); // kembalikan agar bisa dicoba lagi dengan email yang benar
+    return res.status(400).json({ success: false, message: 'Email tidak cocok dengan permintaan sebelumnya' });
+  }
+  const method = usageData.method || reqMethod;
 
   let apiResult;
   try {
@@ -206,7 +233,7 @@ async function markSystemEmailUsed(email, db, uid) {
   const emailsSnap = await db.ref('emails').orderByChild('email').equalTo(email).once('value');
   const updates = [];
   emailsSnap.forEach(child => {
-    updates.push(db.ref(`emails/${child.key}`).update({ status: 'used', usedBy: uid, usedAt: Date.now(), lockedBy: null, lockedAt: null }));
+    updates.push(db.ref(`emails/${child.key}`).update({ status: 'used', usedBy: uid, usedAt: Date.now(), lockedBy: null, lockedAt: null, lockedRequestId: null }));
   });
   await Promise.all(updates);
 }
@@ -215,7 +242,7 @@ async function unlockSystemEmail(email, db) {
   const emailsSnap = await db.ref('emails').orderByChild('email').equalTo(email).once('value');
   const updates = [];
   emailsSnap.forEach(child => {
-    updates.push(db.ref(`emails/${child.key}`).update({ status: 'available', lockedBy: null, lockedAt: null }));
+    updates.push(db.ref(`emails/${child.key}`).update({ status: 'available', lockedBy: null, lockedAt: null, lockedRequestId: null }));
   });
   await Promise.all(updates);
 }

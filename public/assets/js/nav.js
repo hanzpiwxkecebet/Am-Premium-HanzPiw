@@ -50,6 +50,7 @@ const Nav = {
     if (!container) return;
     container.innerHTML = `
       <div class="sidebar-brand">
+        <span class="brand-mark" role="img" aria-label="HanzPiw"></span>
         <span class="gradient-text fw-bold">AM</span>
         <span class="text-secondary ms-1 fw-bold">Generator</span>
         <span class="badge badge-premium ms-2" style="font-size:0.6rem">V2.0</span>

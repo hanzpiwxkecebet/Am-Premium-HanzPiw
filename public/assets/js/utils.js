@@ -86,6 +86,8 @@ function getStatusBadge(status) {
     pending: '<span class="badge badge-pending">Pending</span>',
     waiting_verification: '<span class="badge badge-pending">Menunggu</span>',
     verifying: '<span class="badge badge-pending">Verifying</span>',
+    expired: '<span class="badge badge-failed">Kedaluwarsa</span>',
+    failed_send: '<span class="badge badge-failed">Gagal kirim</span>',
   };
   return map[status] || `<span class="badge">${status}</span>`;
 }

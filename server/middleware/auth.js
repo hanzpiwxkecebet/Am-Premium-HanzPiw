@@ -1,4 +1,5 @@
 const { getAuth, getDb } = require('../config/firebase');
+const { expirePremiumIfNeeded } = require('../services/premiumService');
 
 // Cache profil user di memori (per instance serverless) supaya tiap request tidak
 // selalu membaca database. Pendek (15 dtk) agar suspend/ubah role cepat berlaku.
@@ -36,15 +37,21 @@ async function verifyToken(req, res, next) {
     const decoded = await getAuth().verifyIdToken(token);
     const uid = decoded.uid;
 
-    // Role & status dari database (source of truth), dengan cache pendek
+    // Role & status dari database (source of truth), dengan cache pendek.
+    // Hanya field yang dibutuhkan yang dibaca (bukan seluruh node users/{uid}).
     let userData = readUserCache(uid);
     if (!userData) {
-      const snap = await getDb().ref(`users/${uid}`).once('value');
-      if (!snap.exists()) {
+      const db = getDb();
+      const f = (k) => db.ref(`users/${uid}/${k}`).once('value').then((x) => x.val());
+      const [role, status, name, email, premiumExpiresAt] = await Promise.all([
+        f('role'), f('status'), f('name'), f('email'), f('premiumExpiresAt'),
+      ]);
+      if (role === null && status === null && email === null) {
         return res.status(401).json({ success: false, message: 'Akun tidak ditemukan' });
       }
-      const raw = snap.val();
-      userData = { role: raw.role, status: raw.status, name: raw.name, email: raw.email };
+      userData = { role, status, name, email, premiumExpiresAt };
+      // Premium habis -> otomatis jadi user biasa
+      userData = await expirePremiumIfNeeded(db, uid, userData);
       writeUserCache(uid, userData);
     }
 

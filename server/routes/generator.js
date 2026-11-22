@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('../middleware/auth');
 const { generatorLimiter } = require('../middleware/rateLimiter');
-const { deduplicateRequest } = require('../middleware/security');
+const { dbRateLimit } = require('../middleware/dbRateLimit');
+const { maintainEmailsThrottled, USED_RETENTION_MS } = require('../services/emailService');
+const mail = require('../services/mailService');
 const { sendVerify, submitVerify } = require('../controllers/generatorController');
 const { getDb } = require('../config/firebase');
 const { checkLimit } = require('../services/limitService');
@@ -21,8 +23,25 @@ async function checkMaintenance(req, res, next) {
   next();
 }
 
-router.post('/send', verifyToken, generatorLimiter, deduplicateRequest, checkMaintenance, sendVerify);
-router.post('/verify', verifyToken, deduplicateRequest, checkMaintenance, submitVerify);
+// Batas lintas instance (Firebase), per user: 5 generate / menit. generatorLimiter (memori) tetap jadi lapis pertama per IP.
+const sendPerUser = dbRateLimit({ name: 'gen-send', windowMs: 60 * 1000, max: 5, key: (req) => req.user.uid, message: 'Terlalu cepat! Tunggu sebentar sebelum generate lagi.' });
+const verifyPerUser = dbRateLimit({ name: 'gen-verify', windowMs: 60 * 1000, max: 10, key: (req) => req.user.uid, message: 'Terlalu banyak percobaan verifikasi. Tunggu sebentar.' });
+const inboxPerUser = dbRateLimit({ name: 'gen-inbox', windowMs: 60 * 1000, max: 30, key: (req) => req.user.uid, message: 'Terlalu sering cek inbox. Tunggu sebentar.' });
+
+router.post('/send', verifyToken, generatorLimiter, sendPerUser, checkMaintenance, sendVerify);
+router.post('/verify', verifyToken, verifyPerUser, checkMaintenance, submitVerify);
+
+// Email otomatis (generator.email): buat alamat baru & cek isi inbox. Klien memanggil /inbox berulang (polling).
+router.post('/auto-email', verifyToken, checkMaintenance, async (req, res) => {
+  return res.json({ success: true, data: { email: mail.generateAddress(), domains: mail.DOMAINS } });
+});
+router.get('/inbox', verifyToken, inboxPerUser, async (req, res) => {
+  const address = String(req.query.address || '').toLowerCase().trim();
+  if (!mail.isAllowedAddress(address)) {
+    return res.status(400).json({ success: false, message: 'Alamat email tidak diizinkan' });
+  }
+  return res.json({ success: true, data: await mail.checkInbox(address) });
+});
 
 router.get('/limit', verifyToken, async (req, res) => {
   const result = await checkLimit(req.user.uid);
@@ -45,11 +64,15 @@ router.get('/history', verifyToken, async (req, res) => {
 // Email yang dinonaktifkan admin disembunyikan dari user.
 router.get('/emails', verifyToken, async (req, res) => {
   const db = getDb();
+  // Rawat pool (hapus 'used' > 7 hari, lepas kunci basi); dibatasi 1x/menit per instance
+  await maintainEmailsThrottled(db);
   const snap = await db.ref('emails').orderByChild('authorized').equalTo(true).once('value');
   const emails = [];
+  const now = Date.now();
   snap.forEach(child => {
     const e = child.val();
     if (!e.authorized) return;
+    if (e.status === 'used' && e.usedAt && now - e.usedAt >= USED_RETENTION_MS) return; // menunggu dihapus
     if (e.status === 'in_use' || e.status === 'used') emails.push({ id: child.key, email: e.email, status: e.status, inUse: true });
     else if (!e.status || e.status === 'available') emails.push({ id: child.key, email: e.email, status: 'available', inUse: false });
   });

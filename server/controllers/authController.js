@@ -5,6 +5,9 @@ const DEFAULT_LIMIT = parseInt(process.env.DEFAULT_DAILY_LIMIT) || 20;
 const OWNER_UID = process.env.OWNER_UID;
 const { getDefaultLimit } = require('../services/limitService');
 const { providerFromRecord } = require('../services/providerService');
+const { expirePremiumIfNeeded } = require('../services/premiumService');
+const photos = require('../services/photoService');
+const axios = require('axios');
 
 const ROLE_HIERARCHY = { user: 0, premium: 1, moderator: 2, admin: 3, owner: 4 };
 
@@ -40,8 +43,6 @@ async function createProfile(db, { uid, name, username, email, provider }) {
     role,
     status: 'active',
     provider: provider || 'email',
-    photoURL: '',
-    photoThumb: '',
     createdAt: Date.now(),
     dailyLimit: await getDefaultLimit(),
     usedToday: 0,
@@ -108,27 +109,71 @@ async function registerUser(req, res) {
 }
 
 /**
- * Get username -> UID mapping for username login (client does the actual auth)
+ * Cek apakah username masih bebas (dipakai form daftar). TIDAK mengembalikan data akun apa pun.
  */
-async function getUserByUsername(req, res) {
-  const { username } = req.query;
-  if (!username) return res.status(400).json({ success: false, message: 'Username diperlukan' });
+async function checkUsernameAvailable(req, res) {
+  const usernameClean = String(req.query.username || '').toLowerCase().trim();
+  if (!USERNAME_RE.test(usernameClean)) {
+    return res.status(400).json({ success: false, message: 'Username harus 3-20 karakter (huruf, angka, underscore)' });
+  }
+  const snap = await getDb().ref(`usernames/${usernameClean}`).once('value');
+  return res.json({ success: true, available: !snap.exists() });
+}
 
-  const usernameClean = username.toLowerCase().trim();
+const LOGIN_FAIL_MSG = 'Username atau password salah';
+
+/**
+ * Login memakai username. Email TIDAK pernah dikirim ke klien (sebelumnya GET /username membocorkan email
+ * siapa pun yang usernamenya ditebak). Alur: server mencari email -> memverifikasi password lewat Firebase Auth REST
+ * -> mengembalikan custom token; klien login dengan signInWithCustomToken.
+ */
+async function loginWithUsername(req, res) {
+  const username = String((req.body && req.body.username) || '').toLowerCase().trim();
+  const password = String((req.body && req.body.password) || '');
+  if (!USERNAME_RE.test(username) || !password || password.length > 128) {
+    return res.status(400).json({ success: false, message: LOGIN_FAIL_MSG });
+  }
+  const apiKey = String(process.env.FIREBASE_API_KEY || '').trim();
+  if (!apiKey) return res.status(503).json({ success: false, message: 'Server belum dikonfigurasi' });
+
   const db = getDb();
-  const snap = await db.ref(`usernames/${usernameClean}`).once('value');
+  const mapSnap = await db.ref(`usernames/${username}`).once('value');
+  const uid = mapSnap.exists() ? mapSnap.val().uid : null;
+  const emailSnap = uid ? await db.ref(`users/${uid}/email`).once('value') : null;
+  const email = emailSnap && emailSnap.val();
+  if (!uid || !email) return res.status(401).json({ success: false, message: LOGIN_FAIL_MSG });
 
-  if (!snap.exists()) {
-    return res.status(404).json({ success: false, message: 'Username tidak ditemukan' });
+  let r;
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    // Kalau API key dibatasi per "HTTP referrer", panggilan dari server perlu Referer yang sah
+    if (process.env.APP_URL) headers.Referer = String(process.env.APP_URL).replace(/\/+$/, '') + '/';
+    r = await axios.post(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(apiKey)}`,
+      { email, password, returnSecureToken: false },
+      { timeout: 8000, validateStatus: () => true, headers }
+    );
+  } catch (e) {
+    return res.status(502).json({ success: false, message: 'Layanan login tidak merespons, coba lagi' });
   }
 
-  const { uid } = snap.val();
-  const userSnap = await db.ref(`users/${uid}`).once('value');
-  if (!userSnap.exists()) {
-    return res.status(404).json({ success: false, message: 'Akun tidak ditemukan' });
+  if (r.status !== 200) {
+    const code = String(r.data && r.data.error && r.data.error.message || '');
+    if (code.startsWith('TOO_MANY_ATTEMPTS')) {
+      return res.status(429).json({ success: false, message: 'Terlalu banyak percobaan. Coba lagi beberapa menit lagi' });
+    }
+    if (code.startsWith('USER_DISABLED')) {
+      return res.status(403).json({ success: false, message: 'Akun ini dinonaktifkan' });
+    }
+    if (r.status >= 500 || /API_KEY|REFERER|PROJECT/i.test(code)) {
+      console.error('[Auth] signInWithPassword gagal:', r.status, code);
+      return res.status(502).json({ success: false, message: 'Layanan login bermasalah, coba lagi' });
+    }
+    return res.status(401).json({ success: false, message: LOGIN_FAIL_MSG });
   }
-  const user = userSnap.val();
-  return res.json({ success: true, data: { uid, email: user.email } });
+
+  const token = await getAuth().createCustomToken(uid);
+  return res.json({ success: true, data: { customToken: token } });
 }
 
 /**
@@ -159,7 +204,22 @@ async function getProfile(req, res) {
     snap = await db.ref(`users/${uid}`).once('value');
   }
 
-  const data = snap.val();
+  let data = snap.val();
+
+  // Foto: node terpisah. Data lama (foto di dalam users/{uid}) dipindah otomatis sekali.
+  let photoURL = '';
+  const moved = await photos.migrateLegacyPhoto(db, uid, data).catch(() => null);
+  if (moved) {
+    photoURL = moved.photoURL;
+  } else {
+    photoURL = await photos.getPhoto(db, uid).catch(() => '');
+  }
+  delete data.photoURL;
+  delete data.photoThumb;
+
+  // Premium habis -> turunkan ke user
+  data = await expirePremiumIfNeeded(db, uid, data);
+
   // Profil lama belum punya data metode daftar: isi dari token login saat ini (best effort)
   if (!data.provider || data.provider === 'unknown') {
     let provider = providerFromDecoded(req.decoded);
@@ -173,7 +233,7 @@ async function getProfile(req, res) {
   }
   // Never send sensitive fields
   delete data.usedToday;
-  return res.json({ success: true, data: { ...data, uid } });
+  return res.json({ success: true, data: { ...data, photoURL, uid } });
 }
 
 /**
@@ -191,26 +251,27 @@ async function updateProfile(req, res) {
     updates.name = clean;
   }
 
+  let photoChange = null; // null | { main, thumb }
   if (photoURL !== undefined || photoThumb !== undefined) {
     const removing = photoURL === '' && (photoThumb === '' || photoThumb === undefined);
     if (removing) {
-      updates.photoURL = '';
-      updates.photoThumb = '';
+      photoChange = { main: '', thumb: '' };
     } else {
       const okMain = typeof photoURL === 'string' && photoURL.length <= PHOTO_MAX_LEN && PHOTO_RE.test(photoURL);
       const okThumb = typeof photoThumb === 'string' && photoThumb.length <= THUMB_MAX_LEN && PHOTO_RE.test(photoThumb);
       if (!okMain || !okThumb) {
         return res.status(400).json({ success: false, message: 'Foto tidak valid. Gunakan gambar JPG, PNG, atau WebP.' });
       }
-      updates.photoURL = photoURL;
-      updates.photoThumb = photoThumb;
+      photoChange = { main: photoURL, thumb: photoThumb };
     }
   }
 
-  if (Object.keys(updates).length === 0) {
+  if (Object.keys(updates).length === 0 && !photoChange) {
     return res.status(400).json({ success: false, message: 'Tidak ada data yang diperbarui' });
   }
-  await getDb().ref(`users/${uid}`).update(updates);
+  const db = getDb();
+  if (photoChange) await photos.setPhoto(db, uid, photoChange.main, photoChange.thumb);
+  if (Object.keys(updates).length) await db.ref(`users/${uid}`).update(updates);
   return res.json({ success: true, message: 'Profil berhasil diperbarui' });
 }
 
@@ -290,4 +351,4 @@ async function getRole(req, res) {
   return res.json({ success: true, role: req.user.role });
 }
 
-module.exports = { registerUser, getUserByUsername, getProfile, updateProfile, updateUsername, recordLoginMethod, getRole };
+module.exports = { registerUser, checkUsernameAvailable, loginWithUsername, getProfile, updateProfile, updateUsername, recordLoginMethod, getRole };

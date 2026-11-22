@@ -55,3 +55,33 @@ Buka `https://DOMAIN-KAMU/api/health?deep=1` — hasilnya langsung bilang bagian
 - Setelan disimpan di `system/bgEnabled`, `bgSource` (`url`/`upload`), `bgUrl`, `bgBlur`, `bgVersion`, `bgHasUpload`; dibaca publik lewat `/api/public/status` (`background`).
 - `assets/js/background.js` dimuat di `<head>` semua halaman (tanpa kedipan). Gambar digambar sekali di shell; halaman menu di iframe dibuat transparan, jadi tidak dimuat ulang saat pindah menu. Link yang rusak otomatis kembali ke tampilan bawaan.
 - Setelah owner menyimpan, perubahan langsung terlihat (melewati cache edge); pengunjung lain mendapat pembaruan dalam sekitar 30 detik.
+
+## Update: keamanan, race condition, logo (v2.0.2)
+
+### Logo
+- Logo HanzPiw baru: `public/assets/img/logo-full.png` (lengkap) dan `logo-mark.png` (huruf H). Dipakai lewat CSS mask (`.brand-logo`, `.brand-mark`), jadi warnanya otomatis ikut tema terang/gelap.
+- Favicon, `apple-touch-icon`, ikon PWA (192/512/maskable) dibuat ulang dari logo. `sw.js` cache naik ke `am-premium-v2`.
+
+### Perubahan perilaku
+- **Premium kedaluwarsa otomatis.** Role `premium` dari redeem turun ke `user` saat `premiumExpiresAt` lewat (dicek di `verifyToken` dan `/auth/profile`). Redeem premium lagi saat masih aktif = diperpanjang dari sisa masa. Role yang diberi admin manual = permanen (masa dari redeem dihapus). Staff tidak pernah diturunkan.
+- **Email sistem:** yang sudah dipakai tetap "Telah Digunakan"; **7 hari setelah dipakai dihapus otomatis** dari pool (`server/services/emailService.js`). Email yang dikunci tapi tidak diselesaikan dilepas lagi setelah 30 menit (`EMAIL_LOCK_TTL_MIN`), riwayatnya jadi `expired`.
+  Perawatan jalan lewat Vercel Cron harian (`/api/cron/cleanup`, wajib env `CRON_SECRET`) dan juga saat daftar email dibuka (maks 1x/menit).
+- **`/generator/verify` atomik:** tap ganda tidak lagi memanggil API pihak ketiga dua kali; email harus cocok dengan yang dikirimi verifikasi; metode (system/custom) dibaca dari catatan server.
+- **`/generator/send`:** satu proses per user pada satu waktu (`pendingRequests/{uid}`).
+- **Redeem atomik:** klaim kode per-user dilakukan lebih dulu; kalau gagal di tengah, kode dan klaim dikembalikan. Reward limit memakai limit default dinamis (bukan angka 20 tetap).
+- **Login username:** email tidak lagi dikirim ke browser. Endpoint baru `POST /api/auth/login-username` (server cek password lalu membalas custom token) dan `GET /api/auth/username-available` untuk form daftar. Endpoint lama `GET /api/auth/username` dihapus.
+- **Rate limit lintas instance** (disimpan di Firebase `rateLimits/`) untuk generate, verify, redeem, inbox, dan login.
+- **Foto profil dipisah** ke `userPhotos/{uid}` & `userThumbs/{uid}`. Node `users/{uid}` jadi kecil, sehingga auth, limit, dan redeem jauh lebih ringan. Foto lama dipindah otomatis saat user membuka profil; atau jalankan `node scripts/migrate-photos.js --apply` sekali.
+- Password tidak lagi di-trim/di-escape oleh sanitizer input.
+- Timeout 8 dtk: setelah membalas 504, balasan handler berikutnya diabaikan (tidak ada error "headers already sent"). Untuk POST, pesannya menyuruh cek dulu apakah perubahan sudah tersimpan.
+- `/api/generator/auto-email` dan `/api/generator/inbox` (mailService) sekarang tersambung ke route (belum ada tombol di UI).
+- `engines.node` = `>=22`. Versi otomatis dari `package.json` (2.0.2).
+
+### Yang wajib dilakukan setelah deploy
+1. **Publish ulang** `firebase/database.rules.json` di Firebase Console (ada `.indexOn: status` untuk emails, node `userPhotos`, `userThumbs`, `rateLimits`).
+2. Tambah env Vercel `CRON_SECRET` (string acak panjang) lalu **Redeploy**. Tanpa ini cron membalas 503 (aplikasi tetap jalan; penghapusan email 7 hari tetap terjadi lewat pembukaan daftar email).
+3. Pastikan `FIREBASE_API_KEY` terisi di server (dipakai login username). Kalau API key dibatasi per referrer, isi juga `APP_URL`.
+4. Opsional: `node scripts/migrate-photos.js --apply`.
+
+### Tes
+`npm test` (13 tes: redeem paralel, tap ganda verify, lock email, email 7 hari, premium, rate limit) dan `npm run check` (sintaks). Jalan tanpa koneksi/database. CI: `.github/workflows/ci.yml`.

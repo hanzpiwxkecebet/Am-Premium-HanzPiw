@@ -75,16 +75,18 @@ app.use('/api/', (req, res, next) => {
   const timer = setTimeout(() => {
     if (res.headersSent) return;
     console.error('[Timeout]', req.method, req.originalUrl);
-    if (isLong) {
-      res.status(504).json({ success: false, message: 'API pihak ketiga terlalu lama merespons. Coba lagi.' });
-      return;
-    }
+    // Balas dulu, lalu jadikan semua balasan berikutnya no-op: handler masih berjalan di belakang layar
+    // dan akan memanggil res.json() lagi (tanpa ini melempar "headers already sent").
+    const reply = (status, message) => {
+      res.status(status).json({ success: false, message });
+      const noop = function () { return this; };
+      res.json = noop; res.send = noop; res.sendFile = noop; res.status = noop;
+    };
+    if (isLong) return reply(504, 'API pihak ketiga terlalu lama merespons. Coba lagi.');
     // Koneksi database kemungkinan mati: buat ulang supaya request berikutnya tidak ikut menggantung
     resetConnection();
-    res.status(504).json({
-      success: false,
-      message: 'Database tidak merespons. Buka /api/health?deep=1 untuk diagnosa.',
-    });
+    const mutating = req.method !== 'GET';
+    return reply(504, 'Database tidak merespons.' + (mutating ? ' Periksa dulu apakah perubahan sudah tersimpan sebelum mengulang.' : '') + ' Buka /api/health?deep=1 untuk diagnosa.');
   }, isLong ? 55000 : 8000);
   res.on('finish', () => clearTimeout(timer));
   res.on('close', () => clearTimeout(timer));
@@ -128,11 +130,12 @@ app.use('/api/generator', require('./routes/generator'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/redeem', require('./routes/redeem'));
 app.use('/api/public', require('./routes/public'));
+app.use('/api/cron', require('./routes/cron'));
 
 // Health check. ?deep=1 = diagnosa koneksi database (hanya menampilkan true/false & waktu, TIDAK pernah nilai secret)
 app.get('/api/health', async (req, res) => {
   res.set('Cache-Control', 'no-store');
-  const base = { status: 'ok', version: process.env.APP_VERSION || '2.0.0-beta', ts: Date.now() };
+  const base = { status: 'ok', version: process.env.APP_VERSION || require('../package.json').version, ts: Date.now() };
 
   // ?warm=1 dipanggil otomatis oleh browser (boot.js): bangunkan function SEKALIGUS buka koneksi database
   // selagi SDK Firebase & script lain masih diunduh, supaya request pertama user tidak kena cold start penuh.

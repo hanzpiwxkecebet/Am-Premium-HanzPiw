@@ -2,9 +2,16 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken, verifyTokenOnly } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimiter');
+const { dbRateLimit } = require('../middleware/dbRateLimit');
+
+const ipOf = (req) => req.ip || (req.headers['x-forwarded-for'] || '').split(',')[0] || 'unknown';
+// Batas lintas instance: per IP+username (tebak password satu akun) dan per IP (menyisir banyak username)
+const loginPerAccount = dbRateLimit({ name: 'login-acct', windowMs: 15 * 60 * 1000, max: 10, key: (req) => `${ipOf(req)}|${String((req.body && req.body.username) || '').toLowerCase()}`, message: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.' });
+const loginPerIp = dbRateLimit({ name: 'login-ip', windowMs: 15 * 60 * 1000, max: 60, key: ipOf, message: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.' });
 const {
   registerUser,
-  getUserByUsername,
+  checkUsernameAvailable,
+  loginWithUsername,
   getProfile,
   updateProfile,
   updateUsername,
@@ -16,8 +23,11 @@ const {
 // Pakai verifyTokenOnly karena profil belum ada di database.
 router.post('/register', authLimiter, verifyTokenOnly, registerUser);
 
-// Cari email dari username (untuk login via username)
-router.get('/username', authLimiter, getUserByUsername);
+// Cek ketersediaan username (form daftar). Tidak mengembalikan data akun.
+router.get('/username-available', authLimiter, checkUsernameAvailable);
+
+// Login via username: email tidak pernah keluar dari server; klien menerima custom token.
+router.post('/login-username', authLimiter, loginPerIp, loginPerAccount, loginWithUsername);
 
 // Ambil profil. Kalau belum ada (mis. user Google baru), otomatis dibuat.
 router.get('/profile', verifyTokenOnly, getProfile);

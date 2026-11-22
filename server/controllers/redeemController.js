@@ -1,5 +1,7 @@
 const { getDb } = require('../config/firebase');
 const { invalidateUser } = require('../middleware/auth');
+const { getDefaultLimit } = require('../services/limitService');
+const { extendPremium } = require('../services/premiumService');
 
 /**
  * Redeem a code (atomic transaction)
@@ -19,78 +21,95 @@ async function redeemCode(req, res) {
   }
   const db = getDb();
 
-  // Check if user already used this code
-  const usedRef = db.ref(`users/${uid}/redeemedCodes/${codeClean}`);
-  const usedSnap = await usedRef.once('value');
-  if (usedSnap.exists()) {
+  // 1) Klaim atomik "kode ini sudah dipakai user ini" SEBELUM apa pun (cegah dobel-redeem dari request paralel)
+  const claimRef = db.ref(`users/${uid}/redeemedCodes/${codeClean}`);
+  const claim = await claimRef.transaction((cur) => (cur ? undefined : { redeemedAt: Date.now() }));
+  if (!claim.committed) {
     return res.status(409).json({ success: false, message: 'Kamu sudah menggunakan kode ini' });
   }
+  const releaseClaim = () => claimRef.remove().catch(() => {});
 
+  // 2) Pakai kode (atomik pada node kode)
   const codeRef = db.ref(`redeem/${codeClean}`);
   let result = { success: false, message: 'Kode tidak ditemukan' };
-
-  await codeRef.transaction(codeData => {
-    if (!codeData) {
-      result = { success: false, message: 'Kode tidak ditemukan' };
+  let consumedUse = false;
+  try {
+    await codeRef.transaction(codeData => {
+      consumedUse = false;
+      if (!codeData) {
+        result = { success: false, message: 'Kode tidak ditemukan' };
+        return codeData;
+      }
+      if (!codeData.active) {
+        result = { success: false, message: 'Kode sudah tidak aktif' };
+        return; // batalkan (tidak ada perubahan)
+      }
+      if (codeData.expiresAt && Date.now() > codeData.expiresAt) {
+        result = { success: false, message: 'Kode sudah kedaluwarsa' };
+        return;
+      }
+      if (codeData.maxUses && (codeData.usedCount || 0) >= codeData.maxUses) {
+        result = { success: false, message: 'Kode sudah mencapai batas penggunaan' };
+        return;
+      }
+      codeData.usedCount = (codeData.usedCount || 0) + 1;
+      if (codeData.maxUses && codeData.usedCount >= codeData.maxUses) {
+        codeData.active = false;
+      }
+      consumedUse = true;
+      result = { success: true, type: codeData.type, value: codeData.value };
       return codeData;
-    }
-
-    if (!codeData.active) {
-      result = { success: false, message: 'Kode sudah tidak aktif' };
-      return codeData; // No change
-    }
-
-    if (codeData.expiresAt && Date.now() > codeData.expiresAt) {
-      result = { success: false, message: 'Kode sudah kedaluwarsa' };
-      return codeData;
-    }
-
-    if (codeData.maxUses && codeData.usedCount >= codeData.maxUses) {
-      result = { success: false, message: 'Kode sudah mencapai batas penggunaan' };
-      return codeData;
-    }
-
-    codeData.usedCount = (codeData.usedCount || 0) + 1;
-    if (codeData.maxUses && codeData.usedCount >= codeData.maxUses) {
-      codeData.active = false;
-    }
-
-    result = { success: true, type: codeData.type, value: codeData.value };
-    return codeData;
-  });
-
-  if (!result.success) {
-    return res.status(400).json(result);
+    });
+  } catch (err) {
+    await releaseClaim();
+    throw err;
   }
 
-  // Apply reward
-  const userRef = db.ref(`users/${uid}`);
-  const updates = {};
-  updates[`users/${uid}/redeemedCodes/${codeClean}`] = { redeemedAt: Date.now() };
-
-  if (result.type === 'limit') {
-    // Atomically add limit
-    const addLimit = Number(result.value);
-    if (Number.isFinite(addLimit) && addLimit > 0) {
-      await userRef.transaction(userData => {
-        if (!userData) return userData;
-        userData.dailyLimit = (userData.dailyLimit || 20) + addLimit;
-        return userData;
-      });
-    }
-  } else if (result.type === 'premium') {
-    const days = Number(result.value);
-    const duration = (Number.isFinite(days) && days > 0 ? days : 0) * 24 * 60 * 60 * 1000; // days to ms
-    // Jangan turunkan role staff (admin/owner/moderator) menjadi premium
-    if (role === 'user' || role === 'premium') {
-      updates[`users/${uid}/role`] = 'premium';
-    }
-    updates[`users/${uid}/premiumExpiresAt`] = Date.now() + duration;
-  } else if (result.type === 'special') {
-    updates[`users/${uid}/specialAccess`] = result.value;
+  if (!result.success || !consumedUse) {
+    await releaseClaim();
+    return res.status(400).json(result.success ? { success: false, message: 'Kode tidak ditemukan' } : result);
   }
 
-  await db.ref('/').update(updates);
+  // 3) Beri hadiah. Kalau gagal: kembalikan pemakaian kode & klaim supaya user tidak rugi.
+  try {
+    const userRef = db.ref(`users/${uid}`);
+    const updates = {};
+
+    if (result.type === 'limit') {
+      const addLimit = Number(result.value);
+      if (Number.isFinite(addLimit) && addLimit > 0) {
+        const fallback = await getDefaultLimit();
+        await userRef.transaction(userData => {
+          if (!userData) return userData;
+          userData.dailyLimit = (userData.dailyLimit ?? fallback) + addLimit;
+          return userData;
+        });
+      }
+    } else if (result.type === 'premium') {
+      const days = Number(result.value);
+      if (Number.isFinite(days) && days > 0) {
+        const curExp = (await db.ref(`users/${uid}/premiumExpiresAt`).once('value')).val();
+        const curRole = (await db.ref(`users/${uid}/role`).once('value')).val() || role;
+        // Jangan turunkan role staff (admin/owner/moderator) menjadi premium
+        if (curRole === 'user' || curRole === 'premium') updates[`users/${uid}/role`] = 'premium';
+        // Perpanjang dari sisa masa aktif kalau masih premium
+        updates[`users/${uid}/premiumExpiresAt`] = extendPremium(curRole === 'premium' ? curExp : 0, days);
+      }
+    } else if (result.type === 'special') {
+      updates[`users/${uid}/specialAccess`] = result.value;
+    }
+
+    if (Object.keys(updates).length) await db.ref('/').update(updates);
+  } catch (err) {
+    await releaseClaim();
+    await codeRef.transaction((c) => {
+      if (!c) return c;
+      c.usedCount = Math.max(0, (c.usedCount || 0) - 1);
+      if (c.maxUses && c.usedCount < c.maxUses) c.active = true;
+      return c;
+    }).catch(() => {});
+    throw err;
+  }
   invalidateUser(uid);
 
   // Add to redeem history

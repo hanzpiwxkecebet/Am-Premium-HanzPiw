@@ -11,7 +11,8 @@ function sanitizeInput(value) {
   if (typeof value === 'object' && value !== null) {
     const sanitized = {};
     for (const key of Object.keys(value)) {
-      sanitized[key] = sanitizeInput(value[key]);
+      // Password apa adanya: trim/escape akan mengubah password yang berisi < > & atau spasi di ujung
+      sanitized[key] = key === 'password' ? value[key] : sanitizeInput(value[key]);
     }
     return sanitized;
   }
@@ -48,30 +49,4 @@ function secureHeaders() {
   });
 }
 
-// Duplicate request protection via requestId tracking (in-memory, per server instance)
-// For production with multiple instances, use Redis
-const processedRequests = new Map();
-const REQUEST_TTL = 10 * 60 * 1000; // 10 minutes
-
-function deduplicateRequest(req, res, next) {
-  const requestId = req.headers['x-request-id'];
-  if (!requestId) return next();
-
-  if (processedRequests.has(requestId)) {
-    return res.status(409).json({ success: false, message: 'Request duplikat terdeteksi', requestId });
-  }
-
-  processedRequests.set(requestId, Date.now());
-
-  // Cleanup old entries
-  if (processedRequests.size > 10000) {
-    const now = Date.now();
-    for (const [id, ts] of processedRequests.entries()) {
-      if (now - ts > REQUEST_TTL) processedRequests.delete(id);
-    }
-  }
-
-  next();
-}
-
-module.exports = { sanitizeBody, secureHeaders, deduplicateRequest };
+module.exports = { sanitizeBody, secureHeaders };

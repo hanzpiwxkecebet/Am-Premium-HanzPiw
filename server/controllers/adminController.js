@@ -4,6 +4,7 @@ const { logAction } = require('../services/auditService');
 const { getTodayJakarta, clearDefaultLimitCache } = require('../services/limitService');
 const { checkApiStatus } = require('../services/apiService');
 const { lookupProviders } = require('../services/providerService');
+const { getAllThumbs } = require('../services/photoService');
 const { v4: uuidv4 } = require('uuid');
 
 const ROLE_HIERARCHY = { user: 0, premium: 1, moderator: 2, admin: 3, owner: 4 };
@@ -38,7 +39,7 @@ async function backfillProviders(db, snap) {
 
 async function getUsers(req, res) {
   const db = getDb();
-  const snap = await db.ref('users').once('value');
+  const [snap, thumbs] = await Promise.all([db.ref('users').once('value'), getAllThumbs(db).catch(() => ({}))]);
   const filled = await backfillProviders(db, snap);
   const today = getTodayJakarta();
   const users = [];
@@ -57,7 +58,7 @@ async function getUsers(req, res) {
       provider: u.provider || filled[child.key] || 'unknown',
       lastLoginMethod: u.lastLoginMethod || null,
       // Hanya thumbnail kecil (64px) yang dikirim ke daftar user; foto penuh tidak ikut supaya respons tetap ringan
-      photoThumb: u.photoThumb || '',
+      photoThumb: thumbs[child.key] || u.photoThumb || '',
       // usedToday hanya berlaku kalau tanggal reset = hari ini
       usedToday: u.lastResetDate === today ? (u.usedToday || 0) : 0,
       totalUsage: u.totalUsage || 0,
@@ -74,6 +75,8 @@ async function getUserDetail(req, res) {
   const data = snap.val();
   delete data.usedToday;
   delete data.photoURL; // foto penuh tidak perlu di detail admin (cukup photoThumb)
+  const thumbSnap = await getDb().ref(`userThumbs/${uid}`).once('value');
+  if (thumbSnap.exists()) data.photoThumb = thumbSnap.val();
   return res.json({ success: true, data: { ...data, uid } });
 }
 
@@ -111,7 +114,8 @@ async function updateUserRole(req, res) {
     }
   }
 
-  await db.ref(`users/${uid}`).update({ role });
+  // Role diubah manual oleh admin: masa aktif premium dari redeem dihapus (admin yang menentukan; tanpa masa = permanen)
+  await db.ref(`users/${uid}`).update({ role, premiumExpiresAt: null });
   invalidateUser(uid);
   await logAction({ actorUID: actor.uid, actorRole: actor.role, action: 'update_role', targetUID: uid, targetUsername: target.username, summary: `${target.username} role changed to ${role}` });
   return res.json({ success: true, message: `Role ${target.username} diubah ke ${role}` });

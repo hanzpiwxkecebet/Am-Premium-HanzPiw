@@ -113,8 +113,8 @@ const Auth = {
     try {
       // Cek username dulu supaya tidak ada akun Firebase "yatim"
       try {
-        const { res: chk, data: chkData } = await AMApp.requestJson(`/api/auth/username?username=${encodeURIComponent(username)}`, {}, 10000);
-        if (chk.ok && chkData && chkData.success) throw new Error('Username sudah digunakan');
+        const { res: chk, data: chkData } = await AMApp.requestJson(`/api/auth/username-available?username=${encodeURIComponent(username)}`, {}, 10000);
+        if (chk.ok && chkData && chkData.success && chkData.available === false) throw new Error('Username sudah digunakan');
       } catch (e) {
         if (e.message === 'Username sudah digunakan') throw e;
         // error jaringan saat pre-check: lanjutkan, server tetap validasi lagi
@@ -152,12 +152,18 @@ const Auth = {
   },
 
   async loginUsername(username, password) {
-    // Resolve email from username
-    const { res, data } = await AMApp.requestJson(`/api/auth/username?username=${encodeURIComponent(username)}`, {}, 10000);
-    if (!data || !data.success) {
-      throw new Error((data && data.message) || (res.ok ? 'Username tidak ditemukan' : 'Server bermasalah, coba lagi'));
+    // Server memverifikasi username+password dan membalas custom token (email tidak pernah dikirim ke klien)
+    const { res, data } = await AMApp.requestJson('/api/auth/login-username', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    }, 15000);
+    if (!data || !data.success || !data.data || !data.data.customToken) {
+      throw new Error((data && data.message) || (res.ok ? 'Username atau password salah' : 'Server bermasalah, coba lagi'));
     }
-    return await this.loginEmail(data.data.email, password, 'username');
+    const cred = await firebase.auth().signInWithCustomToken(data.data.customToken);
+    this.markLogin('username');
+    return cred;
   },
 
   async loginGoogle() {

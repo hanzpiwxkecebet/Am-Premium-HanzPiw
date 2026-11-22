@@ -47,6 +47,8 @@ Di Vercel Dashboard → Project → **Settings** → **Environment Variables**:
 | `OWNER_UID` | Firebase UID akun owner |
 | `JWT_SECRET` | random string 32+ karakter |
 | `API_BASE_URL` | `https://ellreyxml.web.id/alight-motion` |
+| `CRON_SECRET` | string acak panjang (untuk Vercel Cron `/api/cron/cleanup`) |
+| `EMAIL_LOCK_TTL_MIN` | opsional, default `30` (menit sebelum kunci email yang tidak diselesaikan dilepas) |
 | `TZ` | `Asia/Jakarta` |
 
 > **Tip:** Untuk `FIREBASE_PRIVATE_KEY`, paste nilai persis seperti di file JSON (dengan `\n` yang masih `\n`, bukan newline).

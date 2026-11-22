@@ -1155,3 +1155,13 @@ html.bg-custom #particles-canvas { display: none !important; }
 #custom-bg .bg-dim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.38); }   /* peredam supaya teks tetap terbaca */
 [data-theme="light"] #custom-bg .bg-dim { background: rgba(255, 255, 255, 0.34); }
 @media (prefers-reduced-motion: reduce) { #custom-bg { transition: none; } }
+
+/* ---- Logo HanzPiw (PNG sebagai mask: warna mengikuti tema lewat currentColor) ---- */
+.brand-logo, .brand-mark {
+  display: block; margin-left: auto; margin-right: auto;
+  background-color: var(--text-primary, #fff); color: transparent;
+  -webkit-mask: var(--logo-src) center / contain no-repeat; mask: var(--logo-src) center / contain no-repeat;
+}
+.brand-logo { --logo-src: url('/assets/img/logo-full.png'); width: min(220px, 62vw); aspect-ratio: 971 / 694; }
+.brand-mark { --logo-src: url('/assets/img/logo-mark.png'); width: 40px; aspect-ratio: 762 / 472; display: inline-block; vertical-align: middle; }
+.sidebar-brand .brand-mark { width: 34px; margin: 0 8px 0 0; }

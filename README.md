@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-2.0.0--beta-ff2244?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-2.0.2-ff2244?style=for-the-badge)
 ![Node.js](https://img.shields.io/badge/node.js-18%2B-339933?style=for-the-badge&logo=node.js)
 ![Firebase](https://img.shields.io/badge/firebase-RTDB-FFCA28?style=for-the-badge&logo=firebase)
 ![Vercel](https://img.shields.io/badge/deploy-vercel-000?style=for-the-badge&logo=vercel)
