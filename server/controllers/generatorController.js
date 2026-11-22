@@ -2,6 +2,7 @@ const { getDb } = require('../config/firebase');
 const { sendVerification, verifyLink } = require('../services/apiService');
 const { consumeLimit, refundLimit, recordUsage, updateStats } = require('../services/limitService');
 const { v4: uuidv4 } = require('uuid');
+const { generateAddress, isAllowedAddress, checkInbox } = require('../services/mailService');
 
 // requestId dipakai sebagai key di Firebase: tidak boleh mengandung . # $ [ ] /
 const REQUEST_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
@@ -32,6 +33,11 @@ async function sendVerify(req, res) {
   const sysSnap = await db.ref('system/maintenance').once('value');
   if (sysSnap.val() === true) {
     return res.status(503).json({ success: false, message: 'Aplikasi sedang dalam maintenance' });
+  }
+
+  // Email otomatis (generator.email): hanya alamat dari domain yang diizinkan
+  if (method === 'temp' && !isAllowedAddress(email)) {
+    return res.status(400).json({ success: false, message: 'Email otomatis tidak valid. Buat ulang email-nya.' });
   }
 
   // If system email, check availability and lock it
@@ -88,6 +94,7 @@ async function sendVerify(req, res) {
       status: 'pending',
       method: method || 'custom',
       email_masked: maskEmail(email),
+      ...(method === 'temp' ? { tempAddress: String(email).toLowerCase() } : {}),
       requestId,
       createdAt: Date.now(),
       completedAt: null,
@@ -111,7 +118,9 @@ async function sendVerify(req, res) {
 
     return res.json({
       success: true,
-      message: 'Verifikasi dikirim. Cek email kamu dan masukkan link verifikasi.',
+      message: method === 'temp'
+        ? 'Verifikasi dikirim. Link dibaca otomatis dari inbox.'
+        : 'Verifikasi dikirim. Cek email kamu dan masukkan link verifikasi.',
       requestId,
       remaining: limitResult.remaining,
     });
@@ -148,6 +157,10 @@ async function submitVerify(req, res) {
   const usageData = snap.val();
   if (!['waiting_verification', 'pending'].includes(usageData.status)) {
     return res.status(409).json({ success: false, message: `Proses tidak valid (status: ${usageData.status})` });
+  }
+
+  if (usageData.method === 'temp' && usageData.tempAddress && String(email).toLowerCase() !== usageData.tempAddress) {
+    return res.status(400).json({ success: false, message: 'Email tidak cocok dengan request ini' });
   }
 
   const startVerify = Date.now();
@@ -216,4 +229,35 @@ function maskEmail(email) {
   return `${masked}@${domain}`;
 }
 
-module.exports = { sendVerify, submitVerify };
+/** Buat alamat email sementara baru (belum memotong limit). */
+async function createTempEmail(req, res) {
+  return res.json({ success: true, data: { email: generateAddress() } });
+}
+
+/**
+ * Cek inbox untuk request email otomatis milik user ini.
+ * Alamat dibaca dari catatan usage di server (bukan dari klien), jadi endpoint ini
+ * tidak bisa dipakai untuk membaca inbox sembarang alamat.
+ */
+async function pollTempInbox(req, res) {
+  const { uid } = req.user;
+  const { requestId } = req.params;
+  if (!REQUEST_ID_RE.test(String(requestId))) {
+    return res.status(400).json({ success: false, message: 'requestId tidak valid' });
+  }
+  const snap = await getDb().ref(`usage/${uid}/${requestId}`).once('value');
+  if (!snap.exists()) return res.status(404).json({ success: false, message: 'Request tidak ditemukan' });
+
+  const u = snap.val();
+  if (u.method !== 'temp' || !u.tempAddress) {
+    return res.status(400).json({ success: false, message: 'Request ini bukan email otomatis' });
+  }
+  if (u.status !== 'waiting_verification') {
+    return res.status(409).json({ success: false, message: `Proses tidak menunggu verifikasi (status: ${u.status})` });
+  }
+
+  const result = await checkInbox(u.tempAddress);
+  return res.json({ success: true, data: result });
+}
+
+module.exports = { sendVerify, submitVerify, createTempEmail, pollTempInbox };

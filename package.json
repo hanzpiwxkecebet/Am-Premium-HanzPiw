@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
+    "test:inbox": "node scripts/test-inbox.js",
     "build": "echo 'No build step required'"
   },
   "dependencies": {

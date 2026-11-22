@@ -48,6 +48,9 @@ Di Vercel Dashboard → Project → **Settings** → **Environment Variables**:
 | `JWT_SECRET` | random string 32+ karakter |
 | `API_BASE_URL` | `https://ellreyxml.web.id/alight-motion` |
 | `TZ` | `Asia/Jakarta` |
+| `TEMPMAIL_DOMAINS` | (opsional) domain generator.email, pisah koma. Default `mail-temp.com` |
+| `TEMPMAIL_LINK_HINT` | (opsional) regex pengenal link verifikasi. Default sudah mencakup `oobCode`, `verify`, `auth`, dll |
+| `TEMPMAIL_LINK_HOSTS` | (opsional) batasi link hanya ke host tertentu, mis. `alightmotion.com` |
 
 > **Tip:** Untuk `FIREBASE_PRIVATE_KEY`, paste nilai persis seperti di file JSON (dengan `\n` yang masih `\n`, bukan newline).
 > Di Vercel, kamu bisa paste dengan newline sebenarnya — Vercel akan handle otomatis.
@@ -173,3 +176,14 @@ pm2 restart am-premium
 - [ ] Test owner panel
 - [ ] Rate limiting berfungsi
 - [ ] Maintenance mode bisa diaktifkan/nonaktifkan
+
+
+## Email Otomatis (generator.email)
+
+Tab **Otomatis** di halaman Generator membuat alamat email sementara di generator.email, mengirim verifikasi ke sana,
+lalu server membaca inbox-nya sendiri dan memverifikasi link yang masuk. Owner tidak perlu membuat atau memantau akun email.
+
+- generator.email **tidak punya API resmi**. Server membaca halaman HTML publiknya (`server/services/mailService.js`).
+  Kalau tampilannya berubah atau IP server diblokir, user otomatis diberi pilihan buka inbox manual dan tempel link.
+- Uji dulu dari server/komputermu: `npm run test:inbox` lalu kirim email berisi link ke alamat yang tampil.
+- Domain yang dipakai harus ada di generator.email. Tambah lewat `TEMPMAIL_DOMAINS`.
