@@ -42,6 +42,31 @@
   var failed = false;       // audio gagal dimuat
   var gestureBound = false;
   var lastSave = 0;
+  var floatHidden = false;  // true = tombol melayang disembunyikan (halaman punya tombol musik sendiri di samping jam)
+  var subs = [];            // pendengar status (dipakai bar musik + equalizer di halaman menu)
+
+  function isPlaying() {
+    return !!(audio && !audio.paused && !audio.ended && isEnabled() && !failed);
+  }
+  function getState() {
+    return { enabled: isEnabled(), playing: isPlaying(), blocked: blocked, failed: failed };
+  }
+  function emit() {
+    var st = getState();
+    subs = subs.filter(function (fn) {
+      try { fn(st); return true; } catch (e) { return false; } // halaman pemilik fungsi sudah ditutup
+    });
+  }
+  function subscribe(fn) {
+    if (typeof fn !== 'function') return function () {};
+    subs.push(fn);
+    try { fn(getState()); } catch (e) { /* abaikan */ }
+    return function () { subs = subs.filter(function (f) { return f !== fn; }); };
+  }
+  function hideFloating(flag) {
+    floatHidden = !!flag;
+    if (btn) btn.style.display = floatHidden ? 'none' : '';
+  }
 
   function isEnabled() {
     var pref = lsGet(KEY_PREF);
@@ -73,7 +98,9 @@
   }
 
   function renderBtn() {
+    emit();
     if (!btn) return;
+    btn.style.display = floatHidden ? 'none' : '';
     var on = isEnabled();
     btn.innerHTML = on ? ICON_ON : ICON_OFF;
     btn.classList.toggle('off', !on);
@@ -127,6 +154,7 @@
       });
     }
     audio.addEventListener('timeupdate', function () { savePos(false); });
+    ['play', 'playing', 'pause', 'ended', 'waiting'].forEach(function (ev) { audio.addEventListener(ev, emit); });
     audio.addEventListener('error', function () { failed = true; blocked = false; renderBtn(); });
     audio.src = cfg.url;
     return audio;
@@ -280,6 +308,10 @@
     toggle: toggle,
     refresh: refresh,
     isEnabled: isEnabled,
+    isPlaying: isPlaying,
+    getState: getState,
+    subscribe: subscribe,
+    hideFloating: hideFloating,
     attachGestureTo: attachGestureTo,
     defaultUrl: DEFAULT_URL,
   };

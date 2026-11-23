@@ -42,6 +42,10 @@
     .danger-zone-title { color: var(--neon-red); font-weight: 800; font-size: 1rem; margin-bottom: 4px; }
     .danger-zone-desc { font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 16px; }
     .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+    .dash-preview { position: relative; height: 64px; border-radius: var(--radius-lg); background: var(--bg-glass); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 12px; }
+    .dash-preview.rgb { border-color: transparent; color: var(--text-primary); }
+    .dash-preview.rgb::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 2px; background: linear-gradient(90deg, #ff0040, #ff9a00, #f5ff00, #00ff6a, #00d9ff, #3b4bff, #c400ff, #ff0040); background-size: 200% 100%; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); pointer-events: none; animation: rgbFlow 4s linear infinite; }
+    @media (prefers-reduced-motion: reduce) { .dash-preview.rgb::after { animation: none; } }
     .stat-mini { padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); text-align: center; }
     .stat-mini-num { font-size: 1.5rem; font-weight: 800; }
     .stat-mini-lbl { font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
@@ -313,6 +317,20 @@
           </div>
         </div>
         <button class="btn btn-primary btn-full" id="owner-bg-save"><i class="ic ic-save"></i> Simpan Background</button>
+      </div>
+
+      <div class="glass-card" style="margin-top:12px" id="owner-dash-card">
+        <div class="section-title" style="margin-top:0">Tampilan Dashboard</div>
+        <div class="form-group">
+          <label class="form-label">Gaya Tampilan</label>
+          <select class="form-input" id="owner-dash-style">
+            <option value="gray">Abu-abu (bawaan)</option>
+            <option value="rgb">RGB bergerak</option>
+          </select>
+          <div class="text-muted text-xs" style="margin-top:4px">Berlaku untuk semua user di halaman Dashboard. Abu-abu = tampilan sekarang; RGB = tepi kartu, bar limit, dan angka berwarna pelangi yang bergerak.</div>
+        </div>
+        <div class="dash-preview" id="owner-dash-preview">Pratinjau</div>
+        <button class="btn btn-primary btn-full" id="owner-dash-save"><i class="ic ic-save"></i> Simpan Tampilan Dashboard</button>
       </div>
     </div>
 
@@ -824,6 +842,7 @@
         const bgmUrl = d.backsoundUrl || '';
         document.getElementById('owner-bgm-url').value = (window.Backsound && bgmUrl === window.Backsound.defaultUrl) ? '' : bgmUrl;
         loadBgSettings(d);
+        loadDashStyle(d);
       } catch (e) { Toast.error('Gagal muat pengaturan'); }
     }
 
@@ -954,6 +973,31 @@
         await loadOwnerSystem();
       } catch (err) {
         Toast.error(err.message || 'Gagal menyimpan background');
+      } finally {
+        Utils.setButtonLoading(btn, false);
+      }
+    });
+
+    // ========== TAMPILAN DASHBOARD ==========
+    function dashPreviewRefresh() {
+      document.getElementById('owner-dash-preview').classList.toggle('rgb', document.getElementById('owner-dash-style').value === 'rgb');
+    }
+    function loadDashStyle(d) {
+      document.getElementById('owner-dash-style').value = d.dashboardStyle === 'rgb' ? 'rgb' : 'gray';
+      dashPreviewRefresh();
+    }
+    document.getElementById('owner-dash-style').addEventListener('change', dashPreviewRefresh);
+    document.getElementById('owner-dash-save').addEventListener('click', async () => {
+      const btn = document.getElementById('owner-dash-save');
+      const style = document.getElementById('owner-dash-style').value === 'rgb' ? 'rgb' : 'gray';
+      Utils.setButtonLoading(btn);
+      try {
+        await AMApp.apiCall('PUT', '/api/admin/system', { dashboardStyle: style });
+        // Cache browser ini langsung diperbarui, jadi Dashboard yang dibuka berikutnya langsung berubah
+        try { localStorage.setItem('dash_style', style); localStorage.setItem('dash_style_ts', String(Date.now())); } catch (e) { /* abaikan */ }
+        Toast.success(style === 'rgb' ? 'Dashboard RGB diaktifkan' : 'Dashboard kembali ke abu-abu');
+      } catch (err) {
+        Toast.error(err.message || 'Gagal menyimpan tampilan dashboard');
       } finally {
         Utils.setButtonLoading(btn, false);
       }

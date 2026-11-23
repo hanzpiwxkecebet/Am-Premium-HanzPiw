@@ -466,13 +466,14 @@ async function getSystemSettings(req, res) {
       bgBlur: Number.isFinite(Number(d.bgBlur)) ? Number(d.bgBlur) : 6,
       bgHasUpload: d.bgHasUpload === true,
       bgVersion: d.bgVersion || 0,
+      dashboardStyle: d.dashboardStyle === 'rgb' ? 'rgb' : 'gray',
     },
   });
 }
 
 async function updateSystemSettings(req, res) {
   const actor = req.user;
-  const { maintenance, maintenanceMessage, defaultDailyLimit, dailyLimit, version, welcomeMessage, apiStatus, backsoundEnabled, backsoundUrl, bgEnabled, bgSource, bgUrl, bgBlur } = req.body;
+  const { maintenance, maintenanceMessage, defaultDailyLimit, dailyLimit, version, welcomeMessage, apiStatus, backsoundEnabled, backsoundUrl, bgEnabled, bgSource, bgUrl, bgBlur, dashboardStyle } = req.body;
   const db = getDb();
   const updates = {};
   if (maintenance !== undefined) updates['system/maintenance'] = maintenance === true || maintenance === 'true';
@@ -530,6 +531,13 @@ async function updateSystemSettings(req, res) {
       updates['system/bgUrl'] = u === '' ? null : u;
       updates['system/bgVersion'] = Date.now();
     }
+  }
+  // Tampilan dashboard (abu-abu / RGB bergerak): hanya owner
+  if (actor.role === 'owner' && dashboardStyle !== undefined) {
+    if (dashboardStyle !== 'gray' && dashboardStyle !== 'rgb') {
+      return res.status(400).json({ success: false, message: 'Tampilan dashboard tidak valid' });
+    }
+    updates['system/dashboardStyle'] = dashboardStyle;
   }
   if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, message: 'Tidak ada setting yang diubah' });
   await db.ref('/').update(updates);

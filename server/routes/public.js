@@ -75,6 +75,8 @@ router.get('/status', async (req, res) => {
       },
       // Background kustom (default nonaktif = tampilan bawaan)
       background: backgroundInfo(sys),
+      // Tampilan dashboard: 'gray' (bawaan) atau 'rgb' (RGB bergerak)
+      dashboardStyle: sys.dashboardStyle === 'rgb' ? 'rgb' : 'gray',
     }
   });
 });

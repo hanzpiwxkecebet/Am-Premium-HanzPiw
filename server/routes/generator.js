@@ -93,7 +93,9 @@ router.get('/global-stats', verifyToken, async (req, res) => {
     globalStatsCache = {
       t: Date.now(),
       v: {
-        total: Math.max(Number(s.totalProcess) || 0, finished),
+        // Total = berhasil + gagal (proses selesai). totalProcess ikut menghitung proses yang masih menggantung
+        // (mis. user menutup halaman sebelum verifikasi), jadi tidak dipakai di kartu ini.
+        total: finished,
         success,
         failed,
         rate: finished > 0 ? Math.round((success / finished) * 100) : 0,
