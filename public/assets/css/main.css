@@ -1165,3 +1165,33 @@ html.bg-custom #particles-canvas { display: none !important; }
 .brand-logo { --logo-src: url('/assets/img/logo-full.png'); width: min(220px, 62vw); aspect-ratio: 971 / 694; }
 .brand-mark { --logo-src: url('/assets/img/logo-mark.png'); width: 40px; aspect-ratio: 762 / 472; display: inline-block; vertical-align: middle; }
 .sidebar-brand .brand-mark { width: 34px; margin: 0 8px 0 0; }
+
+/* ─── Bar Jam WIB ────────────────────────────────────────── */
+.clock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.clock-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: clockPulse 1.5s ease-in-out infinite;
+}
+@keyframes clockPulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .clock-dot { animation: none; } }
