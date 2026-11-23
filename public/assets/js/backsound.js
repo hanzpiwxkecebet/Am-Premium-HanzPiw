@@ -11,7 +11,13 @@
   // Di dalam iframe (halaman menu di dalam shell): audio dipegang halaman induk supaya tidak putus
   // saat pindah menu. Halaman ini cukup memakai objek Backsound milik induk (mis. owner.html -> refresh()).
   if (window.top !== window) {
-    try { if (window.top.Backsound) window.Backsound = window.top.Backsound; } catch (e) { /* induk beda origin */ }
+    try {
+      if (window.top.Backsound) {
+        window.Backsound = window.top.Backsound;
+        // Menu punya equalizer di bar atas (tanpa tombol); halaman tanpa bar (login dll) memakai tombol bawaan
+        if (window.top.Backsound.hideFloating) window.top.Backsound.hideFloating(!!document.querySelector('[data-music-bar]'));
+      }
+    } catch (e) { /* induk beda origin */ }
     return;
   }
   if (window.Backsound) return;

@@ -1211,7 +1211,7 @@ html.bg-custom #particles-canvas { display: none !important; }
   align-items: center;
   gap: 8px;
   height: 36px;
-  padding: 0 12px 0 4px;
+  padding: 0 14px 0 4px;
   border-radius: var(--radius-full);
   background: var(--bg-glass);
   border: 1px solid var(--border-glass);
