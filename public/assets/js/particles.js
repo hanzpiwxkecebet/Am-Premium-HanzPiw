@@ -5,6 +5,8 @@ function initParticles() {
   const ctx = canvas.getContext('2d');
 
   let particles = [];
+  const RGB_COLORS = ['255, 0, 64', '255, 154, 0', '0, 255, 106', '0, 217, 255', '59, 75, 255', '196, 0, 255'];
+  const isRgb = () => document.documentElement.classList.contains('dash-rgb');
   let animId;
 
   function resize() {
@@ -21,6 +23,7 @@ function initParticles() {
       size: Math.random() * 1.5 + 0.5,
       opacity: Math.random() * 0.4 + 0.1,
       color: Math.random() > 0.5 ? '190, 200, 255' : '140, 160, 255',
+      rgb: RGB_COLORS[(Math.random() * RGB_COLORS.length) | 0],
       pulse: Math.random() * Math.PI * 2,
     };
   }
@@ -41,7 +44,7 @@ function initParticles() {
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 120) {
           const alpha = (1 - dist / 120) * 0.08;
-          ctx.strokeStyle = `rgba(203, 203, 203, ${alpha})`;
+          ctx.strokeStyle = isRgb() ? `rgba(${particles[i].rgb}, ${alpha * 3})` : `rgba(203, 203, 203, ${alpha})`;
           ctx.lineWidth = 0.5;
           ctx.beginPath();
           ctx.moveTo(particles[i].x, particles[i].y);
@@ -67,7 +70,7 @@ function initParticles() {
 
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${p.color}, ${pOpacity})`;
+      ctx.fillStyle = isRgb() ? `rgba(${p.rgb}, ${Math.min(1, pOpacity * 2.2)})` : `rgba(${p.color}, ${pOpacity})`;
       ctx.fill();
 
       p.x += p.vx;

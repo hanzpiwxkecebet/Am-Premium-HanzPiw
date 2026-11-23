@@ -1,9 +1,11 @@
-// Tampilan dashboard — dimuat di <head> (sinkron, supaya tidak ada kedipan).
+// Tampilan RGB seluruh website — dimuat di <head> SEMUA halaman (sinkron, supaya tidak ada kedipan).
 //
-// Owner mengatur (panel Owner -> Sistem -> Tampilan Dashboard):
+// Owner mengatur (panel Owner -> Sistem -> Tampilan Website):
 //  - 'gray' -> tampilan abu-abu bawaan (TIDAK berubah sama sekali)
-//  - 'rgb'  -> kartu dengan tepi RGB yang bergerak
+//  - 'rgb'  -> semua menu, background, kartu, tombol, form, nav, dll. berwarna RGB bergerak (tanpa abu-abu)
 // Setelan di-cache di browser, lalu disegarkan dari /api/public/status di belakang layar.
+// Class "dash-rgb" dipasang di <html> halaman ini DAN di halaman induk (shell), karena gambar
+// background digambar di halaman induk.
 (function () {
   'use strict';
 
@@ -15,9 +17,14 @@
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* abaikan */ } }
   function clean(v) { return v === 'rgb' ? 'rgb' : 'gray'; }
 
+  function mark(doc, on) {
+    try { if (doc && doc.documentElement) doc.documentElement.classList.toggle('dash-rgb', on); } catch (e) { /* abaikan */ }
+  }
+
   function apply(style) {
     var on = clean(style) === 'rgb';
-    document.documentElement.classList.toggle('dash-rgb', on);
+    mark(document, on);
+    if (window.top !== window) { try { mark(window.top.document, on); } catch (e) { /* beda origin */ } }
   }
 
   function refresh(force) {

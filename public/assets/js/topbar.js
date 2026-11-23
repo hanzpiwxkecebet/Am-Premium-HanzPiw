@@ -1,4 +1,4 @@
-// Bar atas untuk SEMUA menu: jam WIB + equalizer musik. Cukup pasang script ini setelah nav.js.
+// Bar atas untuk SEMUA menu: jam WIB + equalizer musik + baterai HP. Cukup pasang script ini setelah nav.js.
 // Menyisipkan <div class="top-bar"> di paling atas .page-content (kalau belum ada), lalu memuat
 // wib-clock.js dan music-bar.js yang mengisinya.
 (function () {
@@ -9,7 +9,7 @@
   if (!pc.querySelector('.top-bar')) {
     var bar = document.createElement('div');
     bar.className = 'top-bar';
-    bar.innerHTML = '<div class="clock-pill" data-wib-clock></div><div class="music-pill" data-music-bar></div>';
+    bar.innerHTML = '<div class="clock-pill" data-wib-clock></div><div class="music-pill" data-music-bar></div><div class="battery-pill" data-battery-bar hidden></div>';
     pc.insertBefore(bar, pc.firstChild);
   }
 
@@ -20,4 +20,5 @@
   }
   load('/assets/js/wib-clock.js?v=4');
   load('/assets/js/music-bar.js?v=5');
+  load('/assets/js/battery-bar.js?v=1');
 })();

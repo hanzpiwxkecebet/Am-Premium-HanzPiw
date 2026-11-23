@@ -63,13 +63,64 @@
     layer = null;
   }
 
+  // ─── Deteksi gambar background untuk mode RGB ───────────────────────────────
+  // Gambar dikecilkan ke 32x32 piksel lalu dihitung: kecerahan rata-rata dan kejenuhan warna.
+  //  - gambar pudar / hitam-putih  -> lapisan RGB penuh (mode 'color': seluruh gambar diwarnai RGB)
+  //  - gambar sudah berwarna       -> lapisan RGB lebih tipis (mode 'overlay': warna asli tetap terlihat)
+  //  - gambar terang               -> peredam lebih gelap supaya teks tetap terbaca
+  // Gambar dari domain lain tanpa izin CORS tidak bisa dibaca piksel-nya: pakai nilai tengah (tetap RGB).
+  function toneFrom(lum, sat) {
+    var mode, op;
+    if (sat < 0.22) { mode = 'color'; op = 0.72; }
+    else if (sat < 0.5) { mode = 'color'; op = 0.55; }
+    else { mode = 'overlay'; op = 0.6; }
+    var dim = lum > 0.6 ? 0.56 : lum > 0.35 ? 0.44 : 0.3;
+    return { lum: lum, sat: sat, mode: mode, op: op, dim: dim };
+  }
+  function analyze(url, cb) {
+    var ck = 'bg_tone:' + url;
+    try { var hit = JSON.parse(lsGet(ck) || 'null'); if (hit && hit.mode) { cb(hit); return; } } catch (e) { /* hitung ulang */ }
+    var im = new Image();
+    im.crossOrigin = 'anonymous';
+    im.onload = function () {
+      var tone = null;
+      try {
+        var cv = document.createElement('canvas');
+        cv.width = cv.height = 32;
+        var cx = cv.getContext('2d');
+        cx.drawImage(im, 0, 0, 32, 32);
+        var d = cx.getImageData(0, 0, 32, 32).data, n = 0, L = 0, S = 0;
+        for (var i = 0; i < d.length; i += 4) {
+          var r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255;
+          var mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+          L += 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          S += mx === 0 ? 0 : (mx - mn) / mx;
+          n++;
+        }
+        if (n) tone = toneFrom(L / n, S / n);
+      } catch (e) { tone = null; }   // canvas "tainted"
+      if (tone) lsSet(ck, JSON.stringify(tone));
+      cb(tone || toneFrom(0.45, 0.3));
+    };
+    im.onerror = function () { cb(toneFrom(0.45, 0.3)); };
+    im.src = url;
+  }
+  function applyTone(t) {
+    if (!layer || !t) return;
+    layer.style.setProperty('--rgb-blend', t.mode);
+    layer.style.setProperty('--rgb-op', String(t.op));
+    layer.style.setProperty('--rgb-dim', String(t.dim));
+    layer.setAttribute('data-tone', t.lum > 0.6 ? 'light' : t.lum > 0.35 ? 'mid' : 'dark');
+    layer.setAttribute('data-sat', t.sat < 0.22 ? 'low' : t.sat < 0.5 ? 'mid' : 'high');
+  }
+
   function ensureLayer(c) {
     if (!document.body) return false;
     if (!layer || !layer.parentNode) {
       layer = document.createElement('div');
       layer.id = 'custom-bg';
       layer.setAttribute('aria-hidden', 'true');
-      layer.innerHTML = '<i class="bg-img"></i><i class="bg-dim"></i>';
+      layer.innerHTML = '<i class="bg-img"></i><i class="bg-rgb"></i><i class="bg-dim"></i>';
       document.body.insertBefore(layer, document.body.firstChild);
     }
     var img = layer.firstChild;
@@ -84,6 +135,8 @@
         if (img.getAttribute('data-src') !== c.url) return;
         img.style.backgroundImage = 'url("' + c.url + '")';
         layer.classList.add('ready');
+        // Deteksi gambar (terang/gelap, pudar/berwarna) -> atur kekuatan lapisan RGB (aktif kalau mode RGB menyala)
+        analyze(c.url, function (tone) { if (img.getAttribute('data-src') === c.url) applyTone(tone); });
       };
       probe.onerror = function () {
         failedUrl = c.url;
