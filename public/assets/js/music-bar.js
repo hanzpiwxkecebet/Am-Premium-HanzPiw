@@ -49,17 +49,38 @@
       if (bs && bs.toggle) bs.toggle();
     });
 
-    var bs = getBacksound();
-    if (!bs) { render({ enabled: false, playing: false }); return; }
+    function getFloat() {
+      try { return window.top.document.getElementById('bgm-toggle'); } catch (e) { return null; }
+    }
 
-    // Sembunyikan tombol melayang bawaan (kembali muncul saat pindah ke halaman yang tidak punya bar ini)
-    try { bs.hideFloating(true); } catch (e) { /* abaikan */ }
-    var unsub = bs.subscribe ? bs.subscribe(render) : function () {};
-    if (!bs.subscribe) render({ enabled: bs.isEnabled ? bs.isEnabled() : true, playing: false });
+    // Sinkronkan tombol + equalizer dengan status lagu yang sebenarnya.
+    // Dipanggil lewat langganan (instan) DAN polling tiap 0,5 detik sebagai cadangan.
+    function sync() {
+      var bs = getBacksound();
+      var fl = getFloat();
+      if (fl) fl.style.display = 'none'; // tombol melayang bawaan disembunyikan: tombol musik cuma satu, di bar ini
+      if (!bs) { render({ enabled: false, playing: false }); return; }
+      try { if (bs.hideFloating) bs.hideFloating(true); } catch (e) { /* abaikan */ }
+      var st = null;
+      try {
+        st = bs.getState ? bs.getState() : { enabled: bs.isEnabled ? bs.isEnabled() : true, playing: false };
+      } catch (e) { /* abaikan */ }
+      if (st) render(st);
+    }
+
+    sync();
+    var unsub = function () {};
+    var bs0 = getBacksound();
+    try { if (bs0 && bs0.subscribe) unsub = bs0.subscribe(render); } catch (e) { /* polling tetap jalan */ }
+    var timer = setInterval(sync, 500);
 
     window.addEventListener('pagehide', function () {
+      clearInterval(timer);
       try { unsub(); } catch (e) { /* abaikan */ }
-      try { bs.hideFloating(false); } catch (e) { /* abaikan */ }
+      var bs = getBacksound();
+      try { if (bs && bs.hideFloating) bs.hideFloating(false); } catch (e) { /* abaikan */ }
+      var fl = getFloat();
+      if (fl) fl.style.display = '';
     });
   }
 
