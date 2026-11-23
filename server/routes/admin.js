@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken, requireMinRole } = require('../middleware/auth');
 const ctrl = require('../controllers/adminController');
+const songs = require('../controllers/songController');
 
 const isAdmin = [verifyToken, requireMinRole('admin')];
 const isModerator = [verifyToken, requireMinRole('moderator')];
@@ -50,6 +51,10 @@ update('/system', ...isAdmin, ctrl.updateSystemSettings);
 
 // Danger zone (owner)
 router.post('/background', ...isOwner, ctrl.uploadBackground);
+// Upload lagu backsound (file audio langsung): start -> chunk (berulang) -> finish
+router.post('/songs/start', ...isOwner, songs.startUpload);
+router.post('/songs/chunk', ...isOwner, songs.uploadChunk);
+router.post('/songs/finish', ...isOwner, songs.finishUpload);
 router.delete('/background', ...isOwner, ctrl.deleteBackground);
 router.post('/system/reset-stats', ...isOwner, ctrl.resetGlobalStats);
 router.post('/system/reset-limits', ...isOwner, ctrl.resetAllLimits);

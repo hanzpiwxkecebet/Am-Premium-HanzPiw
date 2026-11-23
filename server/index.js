@@ -55,6 +55,8 @@ app.use('/api/auth/profile', express.json({ limit: '300kb' }));
 app.use('/api/admin/emails', express.json({ limit: '40kb' }));
 //  - POST /api/admin/background : gambar background (data URL hasil kompres di browser, maks ~1,5MB)
 app.use('/api/admin/background', express.json({ limit: '2mb' }));
+//  - POST /api/admin/songs/chunk : potongan file lagu (512KB mentah ~ 683KB base64)
+app.use('/api/admin/songs/chunk', express.json({ limit: '1mb' }));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 

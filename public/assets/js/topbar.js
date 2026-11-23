@@ -19,6 +19,6 @@
     document.head.appendChild(s);
   }
   load('/assets/js/wib-clock.js?v=4');
-  load('/assets/js/music-bar.js?v=5');
+  load('/assets/js/music-bar.js?v=6');
   load('/assets/js/battery-bar.js?v=1');
 })();

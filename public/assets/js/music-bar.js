@@ -23,9 +23,16 @@
 
     var bars = '';
     for (var i = 0; i < BARS; i++) bars += '<i style="--i:' + i + '"></i>';
-    el.innerHTML = '<button type="button" class="music-btn" aria-pressed="false"></button><span class="eq" aria-hidden="true">' + bars + '</span>';
+    el.innerHTML = '<button type="button" class="music-btn" aria-pressed="false"></button>' +
+      '<button type="button" class="eq-btn" title="Playlist" aria-label="Buka playlist lagu"><span class="eq" aria-hidden="true">' + bars + '</span></button>';
     var btn = el.querySelector('.music-btn');
     var eq = el.querySelector('.eq');
+    // Menekan equalizer membuka playlist (pilih lagu / kategori ALL, OLD, SAD, ...)
+    el.querySelector('.eq-btn').addEventListener('click', function (e) {
+      e.stopPropagation();
+      var bs = getBacksound();
+      if (bs && bs.openPlaylist) bs.openPlaylist();
+    });
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
       var bs = getBacksound();
@@ -42,6 +49,7 @@
       el.classList.toggle('is-off', !on);
       el.classList.toggle('is-waiting', on && !!st.blocked && !st.failed);
       el.classList.toggle('is-failed', !!st.failed);
+      if (st.track && st.track.title) el.querySelector('.eq-btn').title = 'Playlist • ' + st.track.title + (st.cat ? ' (' + st.cat + ')' : '');
       eq.classList.toggle('playing', !!st.playing);
     }
 

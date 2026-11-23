@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { getDb } = require('../config/firebase');
 const { checkApiStatus } = require('../services/apiService');
+const { readPlaylist } = require('../services/playlistService');
+const { streamSong } = require('../controllers/songController');
 
 const DEFAULT_BACKSOUND_URL = 'https://u.pone.rs/lgqzjhof.mp3';
 
@@ -32,6 +34,9 @@ router.get('/background', async (req, res) => {
   });
   return res.send(buf);
 });
+
+// Lagu yang diupload owner (mendukung HTTP Range). Lihat controllers/songController.js
+router.get('/song/:id', streamSong);
 
 // Public announcements (active only) — di-cache di edge Vercel supaya tidak kena cold start
 router.get('/announcements', async (req, res) => {
@@ -72,6 +77,8 @@ router.get('/status', async (req, res) => {
       backsound: {
         enabled: sys.backsoundEnabled !== false,
         url: sys.backsoundUrl || DEFAULT_BACKSOUND_URL,
+        // Playlist (kosong = klien memakai 'url' di atas sebagai satu-satunya lagu)
+        playlist: readPlaylist(sys.backsoundPlaylist),
       },
       // Background kustom (default nonaktif = tampilan bawaan)
       background: backgroundInfo(sys),

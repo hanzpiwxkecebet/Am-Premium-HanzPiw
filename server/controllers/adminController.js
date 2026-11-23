@@ -3,6 +3,8 @@ const { invalidateUser } = require('../middleware/auth');
 const { logAction } = require('../services/auditService');
 const { getTodayJakarta, clearDefaultLimitCache } = require('../services/limitService');
 const { checkApiStatus } = require('../services/apiService');
+const { sanitizePlaylist, readPlaylist } = require('../services/playlistService');
+const { orphanCleanupUpdates } = require('./songController');
 const { lookupProviders } = require('../services/providerService');
 const { getAllThumbs } = require('../services/photoService');
 const { v4: uuidv4 } = require('uuid');
@@ -460,6 +462,7 @@ async function getSystemSettings(req, res) {
       apiStatus: d.apiStatus || 'unknown',
       backsoundEnabled: d.backsoundEnabled !== false,
       backsoundUrl: d.backsoundUrl || 'https://u.pone.rs/lgqzjhof.mp3',
+      backsoundPlaylist: readPlaylist(d.backsoundPlaylist),
       bgEnabled: d.bgEnabled === true,
       bgSource: d.bgSource === 'upload' ? 'upload' : 'url',
       bgUrl: d.bgUrl || '',
@@ -473,7 +476,7 @@ async function getSystemSettings(req, res) {
 
 async function updateSystemSettings(req, res) {
   const actor = req.user;
-  const { maintenance, maintenanceMessage, defaultDailyLimit, dailyLimit, version, welcomeMessage, apiStatus, backsoundEnabled, backsoundUrl, bgEnabled, bgSource, bgUrl, bgBlur, dashboardStyle } = req.body;
+  const { maintenance, maintenanceMessage, defaultDailyLimit, dailyLimit, version, welcomeMessage, apiStatus, backsoundEnabled, backsoundUrl, backsoundPlaylist, bgEnabled, bgSource, bgUrl, bgBlur, dashboardStyle } = req.body;
   const db = getDb();
   const updates = {};
   if (maintenance !== undefined) updates['system/maintenance'] = maintenance === true || maintenance === 'true';
@@ -502,6 +505,16 @@ async function updateSystemSettings(req, res) {
           return res.status(400).json({ success: false, message: 'URL backsound harus diawali http:// atau https:// dan tanpa spasi' });
         }
         updates['system/backsoundUrl'] = url;
+      }
+    }
+    if (backsoundPlaylist !== undefined) {
+      try {
+        const list = sanitizePlaylist(backsoundPlaylist);
+        updates['system/backsoundPlaylist'] = list.length ? list : null; // kosong = hapus playlist
+        // File lagu upload yang sudah tidak ada di playlist ikut dihapus (hemat penyimpanan database)
+        Object.assign(updates, await orphanCleanupUpdates(db, list));
+      } catch (e) {
+        return res.status(400).json({ success: false, message: e.message });
       }
     }
   }

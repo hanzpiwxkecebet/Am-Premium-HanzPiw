@@ -1603,3 +1603,18 @@ html.dash-rgb .google-btn { background: var(--lg-fill-soft); border: 1px solid #
   html.dash-rgb .battery-pill.is-charging .batt-fill { animation-duration: 3s !important; }
   .battery-pill.is-charging .batt-fill::after { animation-duration: 1.3s !important; animation-iteration-count: infinite !important; }
 }
+
+/* ═══════════════ Playlist lagu ═══════════════ */
+.music-pill .eq-btn { display: inline-flex; align-items: center; align-self: stretch; margin: 0; padding: 0 2px; background: none; border: 0; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.music-pill .eq-btn:active .eq { transform: scale(.9); }
+/* Panel playlist (digambar oleh backsound.js di halaman induk) — mode RGB */
+html.dash-rgb .bgm-panel {
+  background: linear-gradient(160deg, rgba(40, 0, 90, 0.92), rgba(6, 0, 30, 0.95) 55%, rgba(0, 40, 90, 0.92));
+  border: 1.5px solid #00d9ff; animation: rgbBorder 6s linear infinite;
+}
+html.dash-rgb .bgm-chip, html.dash-rgb .bgm-item, html.dash-rgb .bgm-x, html.dash-rgb .bgm-ctrl button { border-color: rgba(0, 217, 255, 0.65); background: rgba(80, 0, 170, 0.28); }
+html.dash-rgb .bgm-chip.active { background: var(--rgb-grad-btn); background-size: 200% 100%; animation: rgbFlow 4s linear infinite; color: #fff; border-color: transparent; text-shadow: 0 1px 3px rgba(0, 0, 0, .7); }
+html.dash-rgb .bgm-item.cur { background: linear-gradient(145deg, rgba(255, 0, 64, 0.4), rgba(0, 217, 255, 0.3), rgba(196, 0, 255, 0.4)); border-color: #00ff6a; }
+html.dash-rgb .bgm-item .c { color: #9af3ff; border-color: rgba(0, 217, 255, 0.6); }
+html.dash-rgb .bgm-now-sub, html.dash-rgb .bgm-item .n { color: #d0a8ff; }
+html.dash-rgb .bgm-ctrl .bgm-pp { background: var(--rgb-grad-btn); background-size: 200% 100%; animation: rgbFlow 4s linear infinite; border-color: transparent; }

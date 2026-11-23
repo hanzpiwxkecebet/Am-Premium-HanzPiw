@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
   <title>Owner Panel - AM Premium Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/main.css?v=8">
+  <link rel="stylesheet" href="/assets/css/main.css?v=9">
   <style>
     .owner-header { background: linear-gradient(135deg, rgba(156, 156, 156,0.15) 0%, rgba(89, 89, 89,0.15) 100%); border: 1px solid rgba(156, 156, 156,0.3); border-radius: var(--radius-xl); padding: 20px; margin-bottom: 16px; }
     .owner-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--gradient-primary); padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
@@ -267,9 +267,21 @@
           <div class="text-muted text-xs" style="margin-top:4px">Berlaku untuk user yang belum memilih sendiri lewat tombol speaker. Pilihan user selalu didahulukan.</div>
         </div>
         <div class="form-group">
-          <label class="form-label">URL Audio Backsound</label>
+          <label class="form-label">Playlist Lagu</label>
+          <div id="owner-pl-list" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <button type="button" class="btn btn-primary" id="owner-pl-upload" style="flex:1 1 180px">Upload Lagu (MP3 dll)</button>
+            <button type="button" class="btn btn-secondary" id="owner-pl-add" style="flex:1 1 140px">+ Tambah via Link</button>
+          </div>
+          <input type="file" id="owner-pl-file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav,.flac" multiple style="display:none">
+          <div class="text-muted text-xs" id="owner-pl-upload-info" style="margin-top:6px"></div>
+          <datalist id="owner-pl-cats"><option value="OLD"><option value="SAD"><option value="HAPPY"><option value="CHILL"><option value="PARTY"></datalist>
+          <div class="text-muted text-xs" style="margin-top:4px">Setiap lagu: judul, kategori (mis. OLD, SAD), dan sumber audio: file yang diupload (MP3, M4A, OGG, WAV, FLAC; maks 12MB per lagu) atau link langsung ke audio (https). Setelah upload, tekan Simpan Semua Pengaturan. Pilihan "ALL" otomatis berisi semua lagu. Lagu pertama yang diputar diacak untuk tiap user, lalu lanjut otomatis. User membuka playlist dengan menekan equalizer. Maksimal 60 lagu.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">URL Audio Cadangan</label>
           <input type="url" class="form-input" id="owner-bgm-url" placeholder="https://u.pone.rs/lgqzjhof.mp3">
-          <div class="text-muted text-xs" style="margin-top:4px">Link langsung ke file audio (mp3/ogg/wav, https). Kosongkan untuk kembali ke audio bawaan.</div>
+          <div class="text-muted text-xs" style="margin-top:4px">Dipakai kalau playlist kosong. Link langsung ke file audio. Kosongkan untuk audio bawaan.</div>
         </div>
         <button class="btn btn-primary btn-full" id="owner-save-sys"><i class="ic ic-save"></i> Simpan Semua Pengaturan</button>
       </div>
@@ -843,6 +855,7 @@
         document.getElementById('owner-bgm-enabled').value = d.backsoundEnabled === false ? 'false' : 'true';
         const bgmUrl = d.backsoundUrl || '';
         document.getElementById('owner-bgm-url').value = (window.Backsound && bgmUrl === window.Backsound.defaultUrl) ? '' : bgmUrl;
+        renderPlaylistEditor(d.backsoundPlaylist || []);
         loadBgSettings(d);
         loadDashStyle(d);
       } catch (e) { Toast.error('Gagal muat pengaturan'); }
@@ -1006,6 +1019,102 @@
       }
     });
 
+    // ── Editor playlist backsound ──
+    function addPlaylistRow(song) {
+      const box = document.getElementById('owner-pl-list');
+      const row = document.createElement('div');
+      row.className = 'owner-pl-row';
+      row.style.cssText = 'display:grid;grid-template-columns:1fr 92px 36px;gap:6px;padding:8px;border:1px solid var(--border-glass);border-radius:12px';
+      const title = document.createElement('input');
+      title.className = 'form-input pl-title'; title.placeholder = 'Judul lagu'; title.maxLength = 60; title.value = (song && song.title) || '';
+      const cat = document.createElement('input');
+      cat.className = 'form-input pl-cat'; cat.placeholder = 'OLD'; cat.maxLength = 20; cat.setAttribute('list', 'owner-pl-cats'); cat.value = (song && song.cat) || '';
+      const del = document.createElement('button');
+      del.type = 'button'; del.className = 'btn btn-danger'; del.setAttribute('aria-label', 'Hapus lagu'); del.textContent = '✕'; del.style.padding = '0';
+      del.addEventListener('click', () => row.remove());
+      const url = document.createElement('input');
+      url.className = 'form-input pl-url'; url.type = 'url'; url.placeholder = 'https://.../lagu.mp3'; url.style.gridColumn = '1 / -1'; url.value = (song && song.url) || '';
+      row.append(title, cat, del, url);
+      if (/^\/api\/public\/song\//.test(url.value)) {
+        // Lagu hasil upload: link internal, tidak perlu diedit
+        url.type = 'hidden';
+        const tag = document.createElement('div');
+        tag.className = 'text-muted text-xs'; tag.style.gridColumn = '1 / -1';
+        tag.textContent = 'File upload \u2022 tersimpan di website';
+        row.appendChild(tag);
+      }
+      box.appendChild(row);
+    }
+    function renderPlaylistEditor(list) {
+      document.getElementById('owner-pl-list').textContent = '';
+      (list || []).forEach(addPlaylistRow);
+    }
+    function readPlaylistEditor() {
+      return Array.from(document.querySelectorAll('#owner-pl-list .owner-pl-row')).map(r => ({
+        title: r.querySelector('.pl-title').value.trim(),
+        cat: r.querySelector('.pl-cat').value.trim(),
+        url: r.querySelector('.pl-url').value.trim()
+      })).filter(s => s.url);
+    }
+    // Upload file audio langsung (dipotong per 512KB supaya muat di batas request Vercel)
+    function fileToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result).split(',')[1] || '');
+        r.onerror = () => reject(new Error('Gagal membaca file'));
+        r.readAsDataURL(blob);
+      });
+    }
+    async function uploadSongFile(file, onProgress) {
+      const start = await AMApp.apiCall('POST', '/api/admin/songs/start', { name: file.name, size: file.size });
+      const { id, chunkSize, chunks } = start.data;
+      for (let i = 0; i < chunks; i++) {
+        const data = await fileToBase64(file.slice(i * chunkSize, (i + 1) * chunkSize));
+        let tries = 0;
+        for (;;) {
+          try { await AMApp.apiCall('POST', '/api/admin/songs/chunk', { id, index: i, data }, {}, 60000); break; }
+          catch (e) { if (++tries >= 3) throw e; await new Promise(r => setTimeout(r, 800 * tries)); }
+        }
+        onProgress(Math.round(((i + 1) / chunks) * 100));
+      }
+      const fin = await AMApp.apiCall('POST', '/api/admin/songs/finish', { id }, {}, 60000);
+      return fin.data;
+    }
+    document.getElementById('owner-pl-upload').addEventListener('click', () => document.getElementById('owner-pl-file').click());
+    document.getElementById('owner-pl-file').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      e.target.value = '';
+      if (!files.length) return;
+      const info = document.getElementById('owner-pl-upload-info');
+      const btn = document.getElementById('owner-pl-upload');
+      Utils.setButtonLoading(btn);
+      let ok = 0;
+      try {
+        for (const file of files) {
+          if (document.querySelectorAll('#owner-pl-list .owner-pl-row').length >= 60) { Toast.error('Maksimal 60 lagu'); break; }
+          if (file.size > 12 * 1024 * 1024) { Toast.error(file.name + ': terlalu besar (maks 12MB)'); continue; }
+          if (!/^audio\//i.test(file.type) && !/\.(mp3|m4a|aac|ogg|wav|flac|webm)$/i.test(file.name)) { Toast.error(file.name + ': bukan file audio'); continue; }
+          try {
+            info.textContent = 'Mengupload ' + file.name + ' (0%)...';
+            const song = await uploadSongFile(file, (p) => { info.textContent = 'Mengupload ' + file.name + ' (' + p + '%)...'; });
+            addPlaylistRow({ title: song.title, cat: '', url: song.url });
+            ok++;
+          } catch (err) {
+            Toast.error(file.name + ': ' + (err.message || 'gagal diupload'));
+          }
+        }
+      } finally {
+        Utils.setButtonLoading(btn, false);
+        info.textContent = ok ? ok + ' lagu terupload. Isi judul/kategori, lalu tekan "Simpan Semua Pengaturan" supaya masuk playlist.' : '';
+      }
+      if (ok) Toast.success(ok + ' lagu terupload. Jangan lupa tekan Simpan.');
+    });
+
+    document.getElementById('owner-pl-add').addEventListener('click', () => {
+      if (document.querySelectorAll('#owner-pl-list .owner-pl-row').length >= 60) return Toast.error('Maksimal 60 lagu');
+      addPlaylistRow({});
+    });
+
     document.getElementById('owner-save-sys').addEventListener('click', async () => {
       const btn = document.getElementById('owner-save-sys');
       Utils.setButtonLoading(btn);
@@ -1017,7 +1126,8 @@
           version: document.getElementById('owner-version').value.trim(),
           welcomeMessage: document.getElementById('owner-welcome-msg').value.trim(),
           backsoundEnabled: document.getElementById('owner-bgm-enabled').value === 'true',
-          backsoundUrl: document.getElementById('owner-bgm-url').value.trim()
+          backsoundUrl: document.getElementById('owner-bgm-url').value.trim(),
+          backsoundPlaylist: readPlaylistEditor()
         });
         Toast.success('Pengaturan disimpan');
         if (window.Backsound) window.Backsound.refresh(); // terapkan langsung di halaman ini
@@ -1134,6 +1244,6 @@
       loadTab('overview');
     });
   </script>
-  <script src="/assets/js/backsound.js?v=4"></script>
+  <script src="/assets/js/backsound.js?v=5"></script>
 </body>
 </html>

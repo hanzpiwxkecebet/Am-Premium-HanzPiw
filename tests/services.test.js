@@ -64,3 +64,29 @@ test('email: batas tepat 7 hari', () => {
   assert.equal(isUsedExpired({ status: 'used', usedAt: now - USED_RETENTION_MS + 1 }, now), false);
   assert.equal(isUsedExpired({ status: 'used' }, now), false, 'tanpa usedAt tidak dihapus');
 });
+
+// ─── Playlist backsound ────────────────────────────────────────
+const { sanitizePlaylist, readPlaylist } = require('../server/services/playlistService');
+
+test('playlist: kategori dirapikan, duplikat & baris kosong dibuang, "ALL" tidak disimpan', () => {
+  const out = sanitizePlaylist([
+    { title: '  Lagu A ', url: 'https://x.com/a.mp3', cat: ' sad ' },
+    { title: 'Dobel', url: 'https://x.com/a.mp3', cat: 'OLD' },
+    { title: '', url: '', cat: 'OLD' },
+    { title: '', url: 'http://x.com/b.mp3', cat: 'all' },
+  ]);
+  assert.deepEqual(out, [
+    { title: 'Lagu A', url: 'https://x.com/a.mp3', cat: 'SAD' },
+    { title: 'Lagu 2', url: 'http://x.com/b.mp3', cat: '' },
+  ]);
+});
+
+test('playlist: URL tidak valid / terlalu banyak lagu ditolak, data DB rusak jadi kosong', () => {
+  assert.throws(() => sanitizePlaylist([{ title: 'x', url: 'javascript:alert(1)' }]), /URL/);
+  assert.throws(() => sanitizePlaylist([{ title: 'x', url: 'https://a b.com/x.mp3' }]), /URL/);
+  assert.throws(() => sanitizePlaylist(Array.from({ length: 61 }, (_, i) => ({ url: `https://x.com/${i}.mp3` }))), /Maksimal/);
+  assert.throws(() => sanitizePlaylist('bukan array'), /daftar/);
+  assert.deepEqual(readPlaylist(null), []);
+  assert.deepEqual(readPlaylist([{ url: 'ftp://x' }]), []);
+  assert.equal(readPlaylist({ 0: { title: 'A', url: 'https://x.com/a.mp3', cat: 'old' } })[0].cat, 'OLD');
+});
