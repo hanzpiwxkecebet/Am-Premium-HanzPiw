@@ -241,30 +241,73 @@
   }
 
   // ─── Stiker ───────────────────────────────────────────────
+  // Favorit disimpan per akun di perangkat ini (localStorage)
+  function favKey() { return 'am_chat_fav_' + (S.uid || ''); }
+  function getFavs() { try { var a = JSON.parse(localStorage.getItem(favKey()) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function setFavs(a) { try { localStorage.setItem(favKey(), JSON.stringify(a.slice(0, 200))); } catch (e) {} }
+  function toggleFav(id) {
+    var a = getFavs(), i = a.indexOf(id);
+    if (i >= 0) a.splice(i, 1); else a.unshift(id);
+    setFavs(a);
+  }
   function renderStickers() {
     var box = $('chat-stk');
+    var keepScroll = box.querySelector('.stk-body') ? box.querySelector('.stk-body').scrollTop : 0;
     box.textContent = '';
     var ids = Object.keys(S.stickers);
     if (!ids.length) {
       box.appendChild(el('div', 'chat-empty', 'Belum ada stiker. Owner bisa menambahkannya lewat menu Owner → Stiker Chat.'));
       return;
     }
-    var packs = {};
+    var packs = {}, order = [];
     ids.sort(function (a, b) { return (S.stickers[a].ts || 0) - (S.stickers[b].ts || 0); }).forEach(function (id) {
       var p = S.stickers[id].pack || 'Stiker';
-      (packs[p] = packs[p] || []).push(id);
+      if (!packs[p]) { packs[p] = []; order.push(p); }
+      packs[p].push(id);
     });
-    Object.keys(packs).forEach(function (p) {
-      box.appendChild(el('h4', null, p));
-      var grid = el('div', 'stk-grid');
-      packs[p].forEach(function (id) {
-        var b = el('button'); b.type = 'button'; b.setAttribute('aria-label', 'Kirim stiker');
-        b.appendChild(stickerNode(id));
-        b.addEventListener('click', function () { sendSticker(id); });
-        grid.appendChild(b);
-      });
-      box.appendChild(grid);
+    var favs = getFavs().filter(function (id) { return S.stickers[id]; });
+    var tab = S.stkTab;
+    if (tab !== 'fav' && !packs[tab]) tab = favs.length ? 'fav' : order[0];
+    if (tab === 'fav' && !favs.length && S.stkTab === undefined) tab = order[0];
+    S.stkTab = tab;
+
+    // Baris tab: ★ Favorit + satu tab per pack (ikon = stiker pertama pack)
+    var tabs = el('div', 'stk-tabs');
+    var fb = el('button', 'stk-tab fav' + (tab === 'fav' ? ' on' : '')); fb.type = 'button'; fb.title = 'Favorit'; fb.setAttribute('aria-label', 'Favorit');
+    fb.appendChild(icon('star'));
+    fb.addEventListener('click', function () { S.stkTab = 'fav'; renderStickers(); });
+    tabs.appendChild(fb);
+    order.forEach(function (p) {
+      var b = el('button', 'stk-tab' + (tab === p ? ' on' : '')); b.type = 'button'; b.title = p; b.setAttribute('aria-label', 'Pack ' + p);
+      b.appendChild(stickerNode(packs[p][0]));
+      b.addEventListener('click', function () { S.stkTab = p; renderStickers(); });
+      tabs.appendChild(b);
     });
+    box.appendChild(tabs);
+
+    var body = el('div', 'stk-body');
+    var list = tab === 'fav' ? favs : packs[tab];
+    body.appendChild(el('h4', null, tab === 'fav' ? 'Favorit (' + favs.length + ')' : tab + ' (' + list.length + ')'));
+    if (!list.length) {
+      body.appendChild(el('div', 'chat-empty', 'Belum ada favorit. Buka sebuah pack lalu tekan bintang di pojok stiker.'));
+    }
+    var grid = el('div', 'stk-grid');
+    list.forEach(function (id) {
+      var cell = el('div', 'stk-cell');
+      var b = el('button', 'stk-send'); b.type = 'button'; b.setAttribute('aria-label', 'Kirim stiker');
+      b.appendChild(stickerNode(id));
+      b.addEventListener('click', function () { sendSticker(id); });
+      var isFav = favs.indexOf(id) >= 0;
+      var st = el('button', 'stk-fav' + (isFav ? ' on' : '')); st.type = 'button';
+      st.setAttribute('aria-label', isFav ? 'Hapus dari favorit' : 'Tambah ke favorit');
+      st.appendChild(icon('star'));
+      st.addEventListener('click', function (e) { e.stopPropagation(); toggleFav(id); renderStickers(); });
+      cell.appendChild(b); cell.appendChild(st);
+      grid.appendChild(cell);
+    });
+    body.appendChild(grid);
+    box.appendChild(body);
+    body.scrollTop = keepScroll;
   }
   function toggleStickers(force) {
     var box = $('chat-stk'), btn = $('chat-stk-btn');
