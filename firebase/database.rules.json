@@ -148,6 +148,46 @@
     },
 
     // ----------------------------------------------------------------
+    // chat/ — Global Chat
+    //  messages, pin, stickers : semua user login boleh BACA (realtime); tulis hanya server (Admin SDK)
+    //  presence/{uid}          : user hanya boleh menulis status online miliknya sendiri
+    // chatMedia/, chatSticker/ : data gambar/stiker, hanya server (disajikan lewat /api/chat/media|sticker/:id)
+    // ----------------------------------------------------------------
+    "chat": {
+      "messages": {
+        ".read": "auth !== null",
+        ".write": false,
+        ".indexOn": ["ts"]
+      },
+      "pin": {
+        ".read": "auth !== null",
+        ".write": false
+      },
+      "stickers": {
+        ".read": "auth !== null",
+        ".write": false
+      },
+      "presence": {
+        ".read": "auth !== null",
+        "$uid": {
+          ".write": "auth !== null && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['ts', 'name']) && newData.child('ts').isNumber() && newData.child('name').isString() && newData.child('name').val().length <= 40",
+          "ts": { ".validate": "newData.isNumber()" },
+          "name": { ".validate": "newData.isString()" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
+    "chatMedia": {
+      ".read": false,
+      ".write": false
+    },
+    "chatSticker": {
+      ".read": false,
+      ".write": false
+    },
+
+    // ----------------------------------------------------------------
     // rateLimits/
     // Penghitung rate limit lintas instance (server-managed)
     // ----------------------------------------------------------------

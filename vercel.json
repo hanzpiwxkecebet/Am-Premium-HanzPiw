@@ -17,7 +17,7 @@
       "destination": "/api/index.js"
     },
     {
-      "source": "/:page(login|register|dashboard|generator|history|redeem|updates|profile|admin|owner|maintenance)",
+      "source": "/:page(login|register|dashboard|generator|history|redeem|updates|chat|profile|admin|owner|maintenance)",
       "has": [
         {
           "type": "query",
@@ -27,7 +27,7 @@
       "destination": "/pages/:page.html"
     },
     {
-      "source": "/:page(login|register|dashboard|generator|history|redeem|updates|profile|admin|owner|maintenance)",
+      "source": "/:page(login|register|dashboard|generator|history|redeem|updates|chat|profile|admin|owner|maintenance)",
       "destination": "/shell.html"
     },
     {

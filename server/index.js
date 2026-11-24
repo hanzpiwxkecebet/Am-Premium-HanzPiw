@@ -57,11 +57,15 @@ app.use('/api/admin/emails', express.json({ limit: '40kb' }));
 app.use('/api/admin/background', express.json({ limit: '2mb' }));
 //  - POST /api/admin/songs/chunk : potongan file lagu (512KB mentah ~ 683KB base64)
 app.use('/api/admin/songs/chunk', express.json({ limit: '1mb' }));
+//  - POST /api/chat/upload : gambar chat (data URL hasil kompres, maks ~230kb) | /api/chat/stickers/import : daftar link
+app.use('/api/chat/upload', express.json({ limit: '400kb' }));
+app.use('/api/chat/stickers/import', express.json({ limit: '60kb' }));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // Sanitize all inputs
-app.use(sanitizeBody);
+// Chat: teks disimpan apa adanya (dibersihkan di chatService), ditampilkan klien dengan textContent
+app.use((req, res, next) => (req.path.startsWith('/api/chat/') ? next() : sanitizeBody(req, res, next)));
 
 // Batas waktu per request API: kalau database menggantung, balas JSON jelas
 // (bukan menunggu sampai Vercel memutus dengan halaman 504 kosong).
@@ -100,7 +104,7 @@ app.use('/api/', generalLimiter);
 
 // URL bersih: /dashboard (bukan /pages/dashboard.html). Di Vercel ini ditangani vercel.json;
 // blok ini untuk menjalankan lokal / hosting lain (mis. Pterodactyl).
-const CLEAN_PAGES = ['login', 'register', 'dashboard', 'generator', 'history', 'redeem', 'updates', 'profile', 'admin', 'owner', 'maintenance'];
+const CLEAN_PAGES = ['login', 'register', 'dashboard', 'generator', 'history', 'redeem', 'updates', 'chat', 'profile', 'admin', 'owner', 'maintenance'];
 const NOT_FOUND_PAGE = path.join(__dirname, '../public/404.html');
 const sendNotFound = (req, res) => res.status(404).sendFile(NOT_FOUND_PAGE);
 
@@ -133,6 +137,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/redeem', require('./routes/redeem'));
 app.use('/api/public', require('./routes/public'));
 app.use('/api/cron', require('./routes/cron'));
+app.use('/api/chat', require('./routes/chat'));
 
 // Health check. ?deep=1 = diagnosa koneksi database (hanya menampilkan true/false & waktu, TIDAK pernah nilai secret)
 app.get('/api/health', async (req, res) => {

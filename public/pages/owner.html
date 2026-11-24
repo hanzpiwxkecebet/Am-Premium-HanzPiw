@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
   <title>Owner Panel - AM Premium Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/main.css?v=9">
+  <link rel="stylesheet" href="/assets/css/main.css?v=10">
   <style>
     .owner-header { background: linear-gradient(135deg, rgba(156, 156, 156,0.15) 0%, rgba(89, 89, 89,0.15) 100%); border: 1px solid rgba(156, 156, 156,0.3); border-radius: var(--radius-xl); padding: 20px; margin-bottom: 16px; }
     .owner-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--gradient-primary); padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
@@ -87,6 +87,7 @@
       <button class="owner-tab" data-tab="redeem"><i class="ic ic-ticket"></i> Redeem</button>
       <button class="owner-tab" data-tab="emails"><i class="ic ic-mail"></i> Email Sistem</button>
       <button class="owner-tab" data-tab="announce"><i class="ic ic-bell"></i> Pengumuman</button>
+      <button class="owner-tab" data-tab="stickers"><i class="ic ic-sticker"></i> Stiker Chat</button>
       <button class="owner-tab" data-tab="system"><i class="ic ic-settings"></i> Sistem</button>
       <button class="owner-tab" data-tab="logs"><i class="ic ic-clipboard"></i> Log Lengkap</button>
       <button class="owner-tab" data-tab="danger"><i class="ic ic-alert"></i> Danger Zone</button>
@@ -232,6 +233,35 @@
     </div>
 
     <!-- SYSTEM -->
+    <div class="tab-panel" id="tab-stickers">
+      <div class="glass-card">
+        <div class="section-title" style="margin-top:0">Impor Stiker untuk Global Chat</div>
+        <div class="form-group">
+          <label class="form-label">Link pack stiker</label>
+          <input type="url" class="form-input" id="stk-link" placeholder="https://t.me/addstickers/NamaPack  atau  https://sticker.ly/s/KODE">
+          <div class="text-muted text-xs" style="margin-top:4px">Telegram butuh <code>TELEGRAM_BOT_TOKEN</code> di environment server. Stiker animasi Telegram (.tgs) diambil gambar pratinjau statisnya.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nama pack (opsional)</label>
+          <input type="text" class="form-input" id="stk-pack" maxlength="40" placeholder="Otomatis dari pack">
+        </div>
+        <button class="btn btn-primary btn-full" id="stk-import"><span class="btn-text">Impor dari Link</span></button>
+        <div class="text-muted text-xs" id="stk-status" style="margin-top:8px;min-height:1.2em"></div>
+      </div>
+
+      <div class="glass-card" style="margin-top:12px">
+        <div class="section-title" style="margin-top:0">Atau tempel link gambar langsung</div>
+        <div class="form-group">
+          <textarea class="form-input" id="stk-urls" rows="4" placeholder="Satu link gambar (png/webp/gif, https) per baris" style="font-family:var(--font-mono);font-size:.8rem"></textarea>
+          <div class="text-muted text-xs" style="margin-top:4px">Cara paling pasti kalau impor otomatis gagal: buka pack di browser, salin alamat tiap gambar stiker.</div>
+        </div>
+        <button class="btn btn-secondary btn-full" id="stk-import-urls">Impor Link Gambar</button>
+      </div>
+
+      <div class="section-title">Stiker Tersedia <span class="text-muted text-xs" id="stk-total"></span></div>
+      <div id="stk-list"><div class="skeleton" style="height:80px;border-radius:var(--radius-md)"></div></div>
+    </div>
+
     <div class="tab-panel" id="tab-system">
       <div class="glass-card">
         <div class="section-title" style="margin-top:0">Pengaturan Sistem (Owner)</div>
@@ -1206,6 +1236,82 @@
 
     // ========== TAB LOADER ==========
     const loaded = new Set();
+    // ========== STIKER CHAT ==========
+    const stkState = { map: {} };
+    async function loadStickerAdmin() {
+      const box = document.getElementById('stk-list');
+      try {
+        const res = await AMApp.apiCall('GET', '/api/chat/stickers');
+        stkState.map = res.data || {};
+        renderStickerAdmin();
+      } catch (e) { Utils.renderError(box, 'Gagal memuat stiker', () => loadStickerAdmin()); }
+    }
+    function renderStickerAdmin() {
+      const box = document.getElementById('stk-list');
+      const ids = Object.keys(stkState.map);
+      document.getElementById('stk-total').textContent = ids.length ? '(' + ids.length + ')' : '';
+      box.textContent = '';
+      if (!ids.length) { const d = document.createElement('div'); d.className = 'text-muted text-sm text-center'; d.style.padding = '20px'; d.textContent = 'Belum ada stiker'; box.appendChild(d); return; }
+      const packs = {};
+      ids.sort((a, b) => (stkState.map[a].ts || 0) - (stkState.map[b].ts || 0)).forEach(id => { (packs[stkState.map[id].pack || 'Stiker'] = packs[stkState.map[id].pack || 'Stiker'] || []).push(id); });
+      Object.keys(packs).forEach(name => {
+        const card = document.createElement('div'); card.className = 'glass-card'; card.style.marginBottom = '10px';
+        const head = document.createElement('div'); head.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px';
+        const t = document.createElement('div'); t.style.fontWeight = '700'; t.textContent = name + ' (' + packs[name].length + ')';
+        const del = document.createElement('button'); del.className = 'btn btn-danger'; del.style.cssText = 'padding:6px 12px;font-size:.75rem'; del.textContent = 'Hapus pack';
+        del.addEventListener('click', async () => {
+          if (!confirm('Hapus pack "' + name + '" beserta semua stikernya?')) return;
+          try { await AMApp.apiCall('DELETE', '/api/chat/stickers/pack/' + encodeURIComponent(name)); Toast.success('Pack dihapus'); loadStickerAdmin(); } catch (e) { Toast.error(e.message); }
+        });
+        head.append(t, del);
+        const grid = document.createElement('div'); grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px';
+        packs[name].forEach(id => {
+          const cell = document.createElement('div'); cell.style.cssText = 'position:relative;aspect-ratio:1';
+          const m = stkState.map[id];
+          const media = document.createElement(m.m === 'video/webm' ? 'video' : 'img');
+          media.src = '/api/chat/sticker/' + id; media.style.cssText = 'width:100%;height:100%;object-fit:contain';
+          if (m.m === 'video/webm') { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
+          const x = document.createElement('button'); x.type = 'button'; x.setAttribute('aria-label', 'Hapus stiker'); x.textContent = '✕';
+          x.style.cssText = 'position:absolute;top:-4px;right:-4px;width:22px;height:22px;border-radius:50%;border:1px solid var(--border-glass);background:var(--bg-secondary);color:var(--text-primary);font-size:.7rem;cursor:pointer;padding:0';
+          x.addEventListener('click', async () => {
+            try { await AMApp.apiCall('DELETE', '/api/chat/stickers/' + id); delete stkState.map[id]; renderStickerAdmin(); } catch (e) { Toast.error(e.message); }
+          });
+          cell.append(media, x); grid.appendChild(cell);
+        });
+        card.append(head, grid); box.appendChild(card);
+      });
+    }
+    // Impor bertahap: satu panggilan = maks 8 stiker (batas waktu server), diulang sampai selesai
+    async function runImport(body, btn) {
+      const status = document.getElementById('stk-status');
+      Utils.setButtonLoading(btn);
+      let offset = 0, added = 0, skipped = 0, total = 0;
+      try {
+        for (let guard = 0; guard < 60; guard++) {
+          const res = await AMApp.apiCall('POST', '/api/chat/stickers/import', Object.assign({}, body, { offset }), {}, 45000);
+          const d = res.data || {};
+          added += d.added || 0; skipped += d.skipped || 0; total = d.total || total;
+          status.textContent = 'Mengimpor "' + (d.pack || '') + '": ' + Math.min(d.next || total, total) + '/' + total + ' diproses, ' + added + ' ditambah';
+          if (d.done || d.next == null) break;
+          offset = d.next;
+        }
+        status.textContent = 'Selesai: ' + added + ' stiker ditambah' + (skipped ? ', ' + skipped + ' dilewati (duplikat / terlalu besar / gagal)' : '') + '.';
+        if (added) Toast.success(added + ' stiker ditambahkan'); else Toast.warning('Tidak ada stiker baru yang ditambahkan');
+        loadStickerAdmin();
+      } catch (e) { status.textContent = ''; Toast.error(e.message || 'Impor gagal'); if (added) loadStickerAdmin(); }
+      finally { Utils.setButtonLoading(btn, false); }
+    }
+    document.getElementById('stk-import').addEventListener('click', () => {
+      const link = document.getElementById('stk-link').value.trim();
+      if (!link) return Toast.warning('Tempel link pack dulu');
+      runImport({ link, pack: document.getElementById('stk-pack').value.trim() }, document.getElementById('stk-import'));
+    });
+    document.getElementById('stk-import-urls').addEventListener('click', () => {
+      const urls = document.getElementById('stk-urls').value.split(/\s+/).map(s => s.trim()).filter(Boolean);
+      if (!urls.length) return Toast.warning('Tempel minimal satu link gambar');
+      runImport({ urls, pack: document.getElementById('stk-pack').value.trim() || 'Custom' }, document.getElementById('stk-import-urls'));
+    });
+
     function loadTab(tab) {
       if (loaded.has(tab)) return;
       loaded.add(tab);
@@ -1215,6 +1321,7 @@
       else if (tab === 'redeem') loadCodes();
       else if (tab === 'emails') loadEmails();
       else if (tab === 'announce') loadAnnouncements();
+      else if (tab === 'stickers') loadStickerAdmin();
       else if (tab === 'system') loadOwnerSystem();
       else if (tab === 'logs') loadOwnerLogs();
     }

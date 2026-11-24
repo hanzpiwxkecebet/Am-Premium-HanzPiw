@@ -6,6 +6,7 @@ const Nav = {
     { id: 'history', label: 'History', icon: '<i class="ic ic-clock"></i>', href: '/history' },
     { id: 'redeem', label: 'Redeem', icon: '<i class="ic ic-ticket"></i>', href: '/redeem' },
     { id: 'updates', label: 'Updates', icon: '<i class="ic ic-bell"></i>', href: '/updates' },
+    { id: 'chat', label: 'Chat', icon: '<i class="ic ic-chat"></i>', href: '/chat' },
     { id: 'profile', label: 'Profile', icon: '<i class="ic ic-user"></i>', href: '/profile' },
   ],
 

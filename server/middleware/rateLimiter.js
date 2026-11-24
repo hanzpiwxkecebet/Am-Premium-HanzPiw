@@ -11,7 +11,8 @@ const generalLimiter = rateLimit({
   message: { success: false, message: 'Terlalu banyak request. Coba lagi nanti.' },
   skipSuccessfulRequests: false,
   // Endpoint ringan/publik tidak ikut dihitung
-  skip: (req) => req.path === '/health' || req.path === '/firebase-config' || req.path.startsWith('/public/'),
+  skip: (req) => req.path === '/health' || req.path === '/firebase-config' || req.path.startsWith('/public/') ||
+    req.path.startsWith('/chat/media/') || req.path.startsWith('/chat/sticker/') || req.path === '/chat/state' || req.path === '/chat/avatars',
 });
 
 const authLimiter = rateLimit({
@@ -39,4 +40,13 @@ const redeemLimiter = rateLimit({
   message: { success: false, message: 'Terlalu banyak percobaan redeem. Coba lagi nanti.' },
 });
 
-module.exports = { generalLimiter, authLimiter, generatorLimiter, redeemLimiter };
+const chatReadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 45,
+  keyGenerator: (req) => (req.user && req.user.uid) || 'anon',
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Terlalu sering memuat chat.' },
+});
+
+module.exports = { chatReadLimiter, generalLimiter, authLimiter, generatorLimiter, redeemLimiter };

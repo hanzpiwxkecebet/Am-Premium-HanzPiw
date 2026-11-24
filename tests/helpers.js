@@ -53,7 +53,24 @@ class FakeDb {
         db._set(p, res);
         return { committed: true, snapshot: new Snap(segs(p).pop(), res) };
       },
+      push: () => {
+        const key = Math.random().toString(16).slice(2, 12) + Date.now().toString(16).slice(-8);
+        const childPath = p ? `${p}/${key}` : key;
+        return { key, set: async (v) => db._set(childPath, v), once: async () => new Snap(key, db._get(childPath)) };
+      },
       orderByChild: (child) => ({
+        // Hanya cukup untuk test: urut naik berdasarkan field, ambil N terakhir
+        limitToLast: (n) => ({ once: async () => {
+          const base = db._get(p) || {};
+          const out = {};
+          Object.entries(base).sort((a, b) => (a[1][child] || 0) - (b[1][child] || 0)).slice(-n).forEach(([k, v]) => { out[k] = v; });
+          return new Snap(segs(p).pop(), out);
+        } }),
+        startAt: (val) => ({ limitToLast: (n) => ({ once: async () => {
+          const base = db._get(p) || {}; const out = {};
+          Object.entries(base).filter(([, v]) => (v[child] || 0) >= val).sort((x, y) => (x[1][child] || 0) - (y[1][child] || 0)).slice(-n).forEach(([k, v]) => { out[k] = v; });
+          return new Snap(segs(p).pop(), out);
+        } }) }),
         equalTo: (val) => ({ once: async () => {
           const base = db._get(p) || {}; const out = {};
           for (const [k, v] of Object.entries(base)) if (v && v[child] === val) out[k] = v;
@@ -99,6 +116,8 @@ function mockRes() {
   r.status = (c) => { r.statusCode = c; return r; };
   r.json = (b) => { r.body = b; return r; };
   r.set = (k, v) => { r.headers[k] = v; return r; };
+  r.send = (b) => { r.body = b; return r; };
+  r.end = () => r;
   return r;
 }
 

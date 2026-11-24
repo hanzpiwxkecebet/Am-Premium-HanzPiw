@@ -90,3 +90,49 @@ test('playlist: URL tidak valid / terlalu banyak lagu ditolak, data DB rusak jad
   assert.deepEqual(readPlaylist([{ url: 'ftp://x' }]), []);
   assert.equal(readPlaylist({ 0: { title: 'A', url: 'https://x.com/a.mp3', cat: 'old' } })[0].cat, 'OLD');
 });
+// ─── Global Chat ───────────────────────────────────────────────
+const chatSvc = require('../server/services/chatService');
+
+test('chat: teks dibersihkan (kontrol, bidi), tidak di-escape HTML, dipotong 500', () => {
+  assert.equal(chatSvc.cleanText('  halo ‮ dunia\u0000  '), 'halo  dunia');
+  assert.equal(chatSvc.cleanText('<3 & "oke"'), '<3 & "oke"', 'tampil pakai textContent, jadi tidak di-escape');
+  assert.equal(chatSvc.cleanText('a\n\n\n\n\nb'), 'a\n\nb');
+  assert.equal(chatSvc.cleanText('x'.repeat(900)).length, 500);
+  assert.equal(chatSvc.cleanText(null), '');
+});
+
+test('chat: data URL gambar divalidasi lewat byte pertama, bukan header', () => {
+  const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(40)]);
+  const ok = chatSvc.parseImageDataUrl('data:image/jpeg;base64,' + jpeg.toString('base64'));
+  assert.equal(ok.mime, 'image/jpeg');
+  const fake = Buffer.from('<svg onload=alert(1)></svg>' + ' '.repeat(20));
+  assert.equal(chatSvc.parseImageDataUrl('data:image/png;base64,' + fake.toString('base64')), null, 'isi bukan PNG');
+  assert.equal(chatSvc.parseImageDataUrl('data:image/svg+xml;base64,AAAA'), null);
+  assert.equal(chatSvc.parseImageDataUrl('data:image/jpeg;base64,' + Buffer.concat([jpeg, Buffer.alloc(300 * 1024)]).toString('base64')), null, 'terlalu besar');
+  assert.equal(chatSvc.validMediaId('0123456789abcdef'), true);
+  assert.equal(chatSvc.validMediaId('../../etc/passwd'), false);
+});
+
+test('chat: link stiker dikenali (Telegram, sticker.ly, gambar langsung) dan yang berbahaya ditolak', () => {
+  assert.deepEqual(chatSvc.parseStickerLink('https://t.me/addstickers/Cat_Pack'), { type: 'telegram', name: 'Cat_Pack' });
+  assert.deepEqual(chatSvc.parseStickerLink('tg://addstickers?set=Cat_Pack'), { type: 'telegram', name: 'Cat_Pack' });
+  assert.deepEqual(chatSvc.parseStickerLink('sticker.ly/s/ABC123'), { type: 'stickerly', code: 'ABC123', url: 'https://sticker.ly/s/ABC123' });
+  assert.equal(chatSvc.parseStickerLink('https://cdn.example.com/a/b.webp').type, 'direct');
+  assert.equal(chatSvc.parseStickerLink('http://127.0.0.1/x.png'), null);
+  assert.equal(chatSvc.parseStickerLink('https://10.0.0.5/x.png'), null);
+  assert.equal(chatSvc.parseStickerLink('https://evil.com/page'), null);
+  assert.equal(chatSvc.isSafePublicUrl('https://localhost/x.png'), false);
+  assert.equal(chatSvc.isSafePublicUrl('https://user:pw@example.com/x.png'), false);
+  assert.equal(chatSvc.isSafePublicUrl('https://[::1]/x.png'), false);
+});
+
+test('chat: gambar stiker sticker.ly diambil dari HTML, urut, pack yang cocok kodenya dipilih', () => {
+  const u = (code, n) => `https://stickerly.pstatic.net/sticker_pack/AAA/${code}/2/uuid-${String(n).padStart(3, '0')}.png`;
+  const html = `<title>Kucing Lucu - Sticker.ly</title>
+    <img src="${u('OTHER1', 0)}"><img src="${u('WTKUQD', 2)}"><img src="${u('WTKUQD', 0)}"><img src="${u('WTKUQD', 1)}"><img src="${u('WTKUQD', 1)}">
+    <script>{"x":"${u('WTKUQD', 3).replace(/\//g, '\\/')}"}</script>`;
+  const r = chatSvc.extractStickerly(html, 'WTKUQD');
+  assert.equal(r.name, 'Kucing Lucu');
+  assert.deepEqual(r.urls, [0, 1, 2, 3].map((n) => u('WTKUQD', n)));
+  assert.deepEqual(chatSvc.extractStickerly('<html></html>', 'X').urls, []);
+});
