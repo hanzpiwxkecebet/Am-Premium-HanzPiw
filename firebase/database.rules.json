@@ -163,6 +163,10 @@
         ".read": "auth !== null",
         ".write": false
       },
+      "allMention": {
+        ".read": "auth !== null",
+        ".write": false
+      },
       "stickers": {
         ".read": "auth !== null",
         ".write": false
@@ -176,6 +180,12 @@
           "name": { ".validate": "newData.isString()" },
           "$other": { ".validate": false }
         }
+      }
+    },
+    "chatMentions": {
+      "$uid": {
+        ".read": "auth !== null && auth.uid === $uid",
+        ".write": false
       }
     },
     "chatMedia": {

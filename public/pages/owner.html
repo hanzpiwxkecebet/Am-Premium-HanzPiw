@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
   <title>Owner Panel - AM Premium Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/main.css?v=10">
+  <link rel="stylesheet" href="/assets/css/main.css?v=11">
   <style>
     .owner-header { background: linear-gradient(135deg, rgba(156, 156, 156,0.15) 0%, rgba(89, 89, 89,0.15) 100%); border: 1px solid rgba(156, 156, 156,0.3); border-radius: var(--radius-xl); padding: 20px; margin-bottom: 16px; }
     .owner-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--gradient-primary); padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
@@ -880,6 +880,7 @@
         document.getElementById('owner-maint').value = d.maintenance ? 'true' : 'false';
         document.getElementById('owner-maint-msg').value = d.maintenanceMessage || '';
         document.getElementById('owner-default-limit').value = d.defaultDailyLimit ?? 20;
+        loadedDefaultLimit = Number(d.defaultDailyLimit ?? 20);
         document.getElementById('owner-version').value = d.version || '';
         document.getElementById('owner-welcome-msg').value = d.welcomeMessage || '';
         document.getElementById('owner-bgm-enabled').value = d.backsoundEnabled === false ? 'false' : 'true';
@@ -1145,6 +1146,7 @@
       addPlaylistRow({});
     });
 
+    var loadedDefaultLimit = null; // limit default saat form dimuat; dipakai untuk tahu apakah owner benar-benar mengubahnya
     document.getElementById('owner-save-sys').addEventListener('click', async () => {
       const btn = document.getElementById('owner-save-sys');
       Utils.setButtonLoading(btn);
@@ -1162,7 +1164,11 @@
         Toast.success('Pengaturan disimpan');
         if (window.Backsound) window.Backsound.refresh(); // terapkan langsung di halaman ini
         const newLim = parseInt(document.getElementById('owner-default-limit').value) || 10;
-        if (confirm(`Terapkan limit ${newLim}/hari ke SEMUA user yang sudah ada? (Owner tetap unlimited. Limit custom per user akan ditimpa.)\n\nOK = terapkan ke semua, Batal = hanya untuk user baru.`)) {
+        // Hanya tawarkan menimpa limit semua user kalau limit default memang DIUBAH di form ini.
+        // (Dulu dialog ini muncul di setiap penyimpanan, termasuk saat hanya menambah lagu, sehingga limit hasil redeem ikut tertimpa.)
+        const limitChanged = loadedDefaultLimit !== null && newLim !== loadedDefaultLimit;
+        loadedDefaultLimit = newLim;
+        if (limitChanged && confirm(`Limit default diubah menjadi ${newLim}/hari.\n\nTimpa limit SEMUA user yang sudah ada jadi ${newLim}? Limit tambahan dari redeem/edit manual akan HILANG.\n\nOK = timpa semua, Batal = hanya berlaku untuk user baru.`)) {
           const r = await AMApp.apiCall('POST', '/api/admin/system/apply-default-limit');
           Toast.success(r.message || 'Limit diterapkan');
           if (typeof loadAllUsers === 'function') loadAllUsers();

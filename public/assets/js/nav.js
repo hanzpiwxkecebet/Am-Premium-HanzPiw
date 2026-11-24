@@ -11,6 +11,25 @@ const Nav = {
   ],
 
   activeId: null,
+  badges: {},
+
+  /** Titik/angka merah di item menu (mis. jumlah tag baru di Chat) */
+  setBadge(id, n) {
+    n = Number(n) || 0;
+    if (this.badges[id] === n) return;
+    this.badges[id] = n;
+    document.querySelectorAll('[data-id="' + id + '"] .nav-icon, .sidebar-item[data-nav="' + id + '"] .nav-icon').forEach((icon) => {
+      let b = icon.querySelector('.nav-badge');
+      if (!n) { if (b) b.remove(); return; }
+      if (!b) { b = document.createElement('span'); b.className = 'nav-badge'; icon.appendChild(b); }
+      b.textContent = n > 9 ? '9+' : String(n);
+    });
+  },
+
+  _badgeHtml(item) {
+    const n = this.badges[item.id];
+    return n ? `<span class="nav-badge">${n > 9 ? '9+' : n}</span>` : '';
+  },
 
   /** Foto profil terakhir (disimpan Auth.syncAvatar) menggantikan ikon Profile */
   avatar() {
@@ -33,6 +52,14 @@ const Nav = {
   init(activeId) {
     this.activeId = activeId;
     this.render(activeId);
+    // Notifikasi tag Global Chat di semua menu selain Chat
+    if (activeId !== 'chat' && !window.ChatNotify && !this._cn) {
+      this._cn = true;
+      const sc = document.createElement('script');
+      sc.src = '/assets/js/chat-notify.js?v=1';
+      sc.onload = () => { try { window.ChatNotify.start(); } catch (e) { /* abaikan */ } };
+      document.head.appendChild(sc);
+    }
   },
 
   render(activeId) {
@@ -41,7 +68,7 @@ const Nav = {
     this._shown = this.avatar();
     nav.innerHTML = this.items.map(item => `
       <a href="${item.href}" class="nav-item ${item.id === activeId ? 'active' : ''}" data-id="${item.id}">
-        <span class="nav-icon">${this.iconFor(item)}</span>
+        <span class="nav-icon">${this.iconFor(item)}${this._badgeHtml(item)}</span>
         <span class="nav-label">${item.label}</span>
       </a>
     `).join('');
@@ -58,8 +85,8 @@ const Nav = {
       </div>
       <nav class="sidebar-nav">
         ${this.items.map(item => `
-          <a href="${item.href}" class="sidebar-item ${item.id === activeId ? 'active' : ''}">
-            <span class="nav-icon">${this.iconFor(item)}</span>
+          <a href="${item.href}" class="sidebar-item ${item.id === activeId ? 'active' : ''}" data-nav="${item.id}">
+            <span class="nav-icon">${this.iconFor(item)}${this._badgeHtml(item)}</span>
             <span>${item.label}</span>
           </a>
         `).join('')}

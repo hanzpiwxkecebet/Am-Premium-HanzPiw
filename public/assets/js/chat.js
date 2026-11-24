@@ -314,7 +314,7 @@
     var show = force === undefined ? !box.classList.contains('show') : force;
     box.classList.toggle('show', show);
     btn.classList.toggle('on', show);
-    if (show) renderStickers();
+    if (show) { closeMention(); renderStickers(); }
   }
 
   // ─── Reply / gambar ───────────────────────────────────────
@@ -382,6 +382,8 @@
     return AMApp.apiCall('POST', '/api/chat/send', payload);
   }
   async function sendText() {
+    // Izin notifikasi browser diminta sekali, saat user menekan kirim (harus dari gestur user)
+    try { if ('Notification' in window && Notification.permission === 'default' && !localStorage.getItem('am_notif_asked')) { localStorage.setItem('am_notif_asked', '1'); Notification.requestPermission(); } } catch (e) { /* abaikan */ }
     if (S.sending) return;
     var text = input.value.trim();
     if (!text && !S.img) return;
@@ -394,7 +396,7 @@
         payload.img = up.data.id;
       }
       await post(payload);
-      input.value = ''; grow(); clearReply(); setImage(null); toggleStickers(false);
+      input.value = ''; grow(); closeMention(); clearReply(); setImage(null); toggleStickers(false);
       S.stick = true;
       if (S.mode === 'poll') pollOnce();
     } catch (e) { Toast.error(e.message || 'Gagal mengirim'); }
@@ -532,6 +534,73 @@
   }
 
   // ─── Input ────────────────────────────────────────────────
+  // ─── Popup @ (saran user) ─────────────────────────────────
+  var MEN = { list: null, loading: false, items: [], idx: 0, start: -1 };
+  function loadMembers() {
+    if (MEN.list || MEN.loading) return;
+    MEN.loading = true;
+    AMApp.apiCall('GET', '/api/chat/members').then(function (r) { MEN.list = (r && r.data) || []; }).catch(function () { MEN.list = []; })
+      .then(function () { MEN.loading = false; updateMention(); });
+  }
+  function closeMention() { MEN.start = -1; $('chat-men').classList.remove('show'); }
+  function updateMention() {
+    var box = $('chat-men');
+    var pos = input.selectionStart == null ? input.value.length : input.selectionStart;
+    var mm = /(^|\s)@([A-Za-z0-9_.]{0,30})$/.exec(input.value.slice(0, pos));
+    if (!mm) { closeMention(); return; }
+    MEN.start = pos - mm[2].length - 1;
+    if (!MEN.list) { loadMembers(); return; }
+    var q = mm[2].toLowerCase();
+    var seen = {}; S.msgs.slice(-80).forEach(function (m) { seen[m.uid] = 1; });   // yang baru ngobrol didahulukan
+    var res = MEN.list.filter(function (u) {
+      if (u.uid === S.uid) return false;
+      return !q || u.username.toLowerCase().indexOf(q) === 0 || u.name.toLowerCase().indexOf(q) >= 0 || u.username.toLowerCase().indexOf(q) >= 0;
+    }).sort(function (a, b) {
+      var pa = a.username.toLowerCase().indexOf(q) === 0 ? 0 : 1, pb = b.username.toLowerCase().indexOf(q) === 0 ? 0 : 1;
+      return (pa - pb) || ((seen[b.uid] ? 1 : 0) - (seen[a.uid] ? 1 : 0)) || a.username.localeCompare(b.username);
+    }).slice(0, 30);
+    var items = [];
+    if (isOwner() && (!q || 'semua'.indexOf(q) === 0 || 'all'.indexOf(q) === 0)) items.push({ all: true, username: 'semua' });
+    items = items.concat(res);
+    if (!items.length) { closeMention(); return; }
+    MEN.items = items; MEN.idx = 0; renderMention();
+  }
+  function renderMention() {
+    var box = $('chat-men'); box.textContent = '';
+    MEN.items.forEach(function (u, i) {
+      var row = el('div', 'men-row' + (i === MEN.idx ? ' on' : ''));
+      if (u.all) {
+        var ic = el('div', 'cm-ava men-all'); ic.appendChild(icon('users')); row.appendChild(ic);
+        var tx = el('div', 'men-tx'); tx.appendChild(el('div', 'men-n', 'semua')); tx.appendChild(el('div', 'men-s', 'Sebut semua anggota di obrolan ini'));
+        row.appendChild(tx);
+      } else {
+        row.appendChild(avatarEl(u.uid, u.name || u.username));
+        var t2 = el('div', 'men-tx');
+        var l1 = el('div', 'men-n', u.name || u.username);
+        var bd = badgeEl(u.role); if (bd && u.role !== 'user') l1.appendChild(bd);
+        t2.appendChild(l1); t2.appendChild(el('div', 'men-s', '@' + u.username));
+        row.appendChild(t2);
+      }
+      row.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      row.addEventListener('click', function () { pickMention(u); });
+      box.appendChild(row);
+    });
+    box.classList.add('show');
+    var on = box.querySelector('.on'); if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest' });
+  }
+  function pickMention(u) {
+    var pos = input.selectionStart == null ? input.value.length : input.selectionStart;
+    var ins = '@' + u.username + ' ';
+    input.value = input.value.slice(0, MEN.start) + ins + input.value.slice(pos);
+    var np = MEN.start + ins.length;
+    closeMention(); input.focus(); try { input.setSelectionRange(np, np); } catch (e) { /* abaikan */ } grow();
+  }
+  // Tandai notifikasi tag sebagai sudah dibaca (halaman chat = tempat membacanya)
+  function clearMyMentions() {
+    AMApp.apiCall('POST', '/api/chat/mentions/clear', {}).catch(function () { /* abaikan */ });
+    try { var now = String(Date.now()); localStorage.setItem('am_cn_read_' + S.uid, now); localStorage.setItem('am_cn_toast_' + S.uid, now); } catch (e) { /* abaikan */ }
+  }
+
   function grow() {
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 110) + 'px';
@@ -540,8 +609,16 @@
   }
 
   function bind() {
-    input.addEventListener('input', grow);
+    input.addEventListener('input', function () { grow(); updateMention(); });
+    input.addEventListener('click', updateMention);
+    input.addEventListener('keyup', function (e) { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') updateMention(); });
     input.addEventListener('keydown', function (e) {
+      if (MEN.start >= 0 && MEN.items.length) {
+        if (e.key === 'ArrowDown') { e.preventDefault(); MEN.idx = (MEN.idx + 1) % MEN.items.length; renderMention(); return; }
+        if (e.key === 'ArrowUp') { e.preventDefault(); MEN.idx = (MEN.idx - 1 + MEN.items.length) % MEN.items.length; renderMention(); return; }
+        if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); pickMention(MEN.items[MEN.idx]); return; }
+        if (e.key === 'Escape') { e.preventDefault(); closeMention(); return; }
+      }
       // Desktop: Enter kirim, Shift+Enter baris baru. HP: Enter = baris baru (kirim lewat tombol).
       if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(pointer:fine)').matches) { e.preventDefault(); sendText(); }
     });
@@ -588,6 +665,7 @@
     if (prof.photoURL && /^data:image\//.test(prof.photoURL)) avaCache[S.uid] = prof.photoURL;
 
     bind();
+    clearMyMentions();
     try {
       await startRealtime();
     } catch (err) {
@@ -598,7 +676,7 @@
       try { await startPolling(); }
       catch (e2) { list.textContent = ''; list.appendChild(el('div', 'chat-empty', 'Gagal memuat chat: ' + (e2.message || 'coba lagi'))); }
     }
-    document.addEventListener('visibilitychange', function () { if (!document.hidden && S.mode === 'poll') pollOnce(); });
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) { clearMyMentions(); if (S.mode === 'poll') pollOnce(); } });
   });
 
   window.GlobalChat = { state: S };

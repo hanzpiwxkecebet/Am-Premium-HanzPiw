@@ -114,7 +114,21 @@ function snippet(msg, max = 80) {
   return '';
 }
 
+// @username di dalam teks. Mengembalikan { handles: [maks 5, huruf kecil], all: bool } (@semua / @all)
+function extractMentions(text) {
+  const out = { handles: [], all: false };
+  const re = /(^|[^A-Za-z0-9_.])@([A-Za-z0-9_.]{2,30})(?![A-Za-z0-9_])/g;
+  let m;
+  while ((m = re.exec(String(text || '')))) {
+    const h = m[2].toLowerCase().replace(/\.+$/, '');
+    if (h === 'semua' || h === 'all' || h === 'everyone') out.all = true;
+    else if (h && !out.handles.includes(h) && out.handles.length < 5) out.handles.push(h);
+  }
+  return out;
+}
+
 module.exports = {
+  extractMentions,
   MAX_TEXT, MAX_IMAGE_BYTES, MAX_STICKER_BYTES, MAX_STICKERS, KEEP_MESSAGES,
   cleanText, sniffMime, parseImageDataUrl, validMediaId, parseStickerLink, isSafePublicUrl,
   extractStickerly, cleanPackName, snippet,

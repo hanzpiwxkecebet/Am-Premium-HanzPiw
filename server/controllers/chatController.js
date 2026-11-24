@@ -58,8 +58,63 @@ async function sendMessage(req, res) {
 
   const ref = db.ref('chat/messages').push();
   await ref.set(msg);
+  // Notifikasi HANYA untuk yang di-tag (@username) atau @semua (khusus owner). Pesan biasa tidak membuat notifikasi.
+  // Ditunggu (bukan fire-and-forget) karena di Vercel proses dihentikan begitu balasan terkirim.
+  if (text) { try { await notifyMentions(db, req.user, ident, msg, ref.key); } catch (e) { console.warn('[chat] notif gagal:', e.message); } }
   trimOld(db).catch(() => {});
   return res.json({ success: true, data: { id: ref.key, ts: msg.ts } });
+}
+
+async function notifyMentions(db, user, ident, msg, msgId) {
+  const men = chat.extractMentions(msg.text);
+  const note = { from: ident.name, role: msg.role, text: chat.snippet(msg, 90), ts: msg.ts };
+  const updates = {};
+  if (men.all && user.role === 'owner') {
+    // satu catatan untuk semua orang (tanpa menulis ke tiap user)
+    updates['chat/allMention'] = { id: msgId, uid: user.uid, ...note };
+  }
+  if (men.handles.length) {
+    const uids = await Promise.all(men.handles.map((h) => db.ref(`usernames/${h}/uid`).once('value').then((s) => s.val()).catch(() => null)));
+    uids.forEach((uid) => {
+      if (typeof uid === 'string' && /^[A-Za-z0-9_-]{2,128}$/.test(uid) && uid !== user.uid) updates[`chatMentions/${uid}/${msgId}`] = note;
+    });
+  }
+  if (Object.keys(updates).length) await db.ref('/').update(updates);
+}
+
+// ─── Daftar anggota (untuk popup @) + notifikasi tag ─────────
+let membersCache = { t: 0, v: [] };
+async function getMembers(req, res) {
+  if (Date.now() - membersCache.t > 60 * 1000) {
+    const all = (await getDb().ref('users').once('value')).val() || {};
+    membersCache = {
+      t: Date.now(),
+      v: Object.keys(all).map((uid) => {
+        const u = all[uid] || {};
+        return { uid, name: String(u.name || '').substring(0, 40), username: String(u.username || ''), role: u.role || 'user', banned: u.status === 'banned' };
+      }).filter((u) => u.username && !u.banned).map(({ banned, ...u }) => u).slice(0, 1500),
+    };
+  }
+  res.set('Cache-Control', 'private, max-age=30');
+  return res.json({ success: true, data: membersCache.v });
+}
+
+async function getMentions(req, res) {
+  const db = getDb();
+  const [mine, all] = await Promise.all([
+    db.ref(`chatMentions/${req.user.uid}`).once('value'),
+    db.ref('chat/allMention').once('value'),
+  ]);
+  const items = [];
+  mine.forEach((c) => { items.push({ id: c.key, ...c.val() }); });
+  items.sort((a, b) => a.ts - b.ts);
+  const a = all.val();
+  return res.json({ success: true, data: { items: items.slice(-30), all: a && a.uid !== req.user.uid ? a : null } });
+}
+
+async function clearMentions(req, res) {
+  await getDb().ref(`chatMentions/${req.user.uid}`).remove();
+  return res.json({ success: true });
 }
 
 // Buang pesan lama (+ media-nya) supaya database tidak membengkak. Dijalankan acak, tidak menahan balasan.
@@ -307,4 +362,4 @@ async function deletePack(req, res) {
   return res.json({ success: true, data: { removed: Object.keys(updates).length / 2 } });
 }
 
-module.exports = { sendMessage, deleteMessage, setPin, clearPin, uploadImage, serveMedia, serveSticker, getAvatars, getState, importStickers, listStickers, deleteSticker, deletePack };
+module.exports = { getMembers, getMentions, clearMentions, sendMessage, deleteMessage, setPin, clearPin, uploadImage, serveMedia, serveSticker, getAvatars, getState, importStickers, listStickers, deleteSticker, deletePack };

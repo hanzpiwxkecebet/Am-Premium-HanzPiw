@@ -12,7 +12,7 @@ const generalLimiter = rateLimit({
   skipSuccessfulRequests: false,
   // Endpoint ringan/publik tidak ikut dihitung
   skip: (req) => req.path === '/health' || req.path === '/firebase-config' || req.path.startsWith('/public/') ||
-    req.path.startsWith('/chat/media/') || req.path.startsWith('/chat/sticker/') || req.path === '/chat/state' || req.path === '/chat/avatars',
+    req.path.startsWith('/chat/media/') || req.path.startsWith('/chat/sticker/') || req.path === '/chat/state' || req.path === '/chat/members' || req.path.startsWith('/chat/mentions') || req.path === '/chat/avatars',
 });
 
 const authLimiter = rateLimit({

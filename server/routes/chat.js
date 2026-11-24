@@ -17,6 +17,9 @@ router.get('/sticker/:id', ctrl.serveSticker);
 
 router.get('/state', verifyToken, chatReadLimiter, ctrl.getState);
 router.get('/avatars', verifyToken, chatReadLimiter, ctrl.getAvatars);
+router.get('/members', verifyToken, chatReadLimiter, ctrl.getMembers);
+router.get('/mentions', verifyToken, chatReadLimiter, ctrl.getMentions);
+router.post('/mentions/clear', verifyToken, chatReadLimiter, ctrl.clearMentions);
 router.post('/send', verifyToken, sendLimit, ctrl.sendMessage);
 router.post('/upload', verifyToken, uploadLimit, ctrl.uploadImage);
 router.delete('/message/:id', verifyToken, ctrl.deleteMessage);

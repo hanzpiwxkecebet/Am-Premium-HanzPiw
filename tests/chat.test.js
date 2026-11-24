@@ -25,6 +25,7 @@ const call = async (fn, req) => { const res = mockRes(); await fn(req, res); ret
 function seed(extra = {}) {
   state.db = new FakeDb(Object.assign({
     users: { u1: { name: 'Hanz', username: 'hanz' }, u2: { name: 'Budi', username: 'budi' }, adm: { name: 'Admin', username: 'adm' } },
+    usernames: { hanz: { uid: 'u1' }, budi: { uid: 'u2' }, adm: { uid: 'adm' } },
   }, extra));
 }
 
@@ -172,4 +173,40 @@ test('chat: state (cadangan polling) memberi pesan baru, pin, stiker, dan hitung
   assert.equal(res.body.data.pin.text, 'p');
   assert.ok(res.body.data.stickers.aaaaaaaaaaaaaaaa);
   assert.equal(res.body.data.online, 2, 'u1 baru ping + u2 aktif; u3 sudah lama');
+});
+
+test('chat: notifikasi hanya untuk yang di-tag; pesan biasa tidak membuat notifikasi', async () => {
+  seed();
+  await call(ctrl.sendMessage, { user: user('u1'), body: { text: 'halo semuanya tanpa tag' } });
+  assert.equal(state.db.root.chatMentions, undefined, 'pesan biasa: tidak ada notifikasi');
+  await call(ctrl.sendMessage, { user: user('u1'), body: { text: 'woi @budi dan @hanz cek ini' } });
+  const m = state.db.root.chatMentions;
+  assert.deepEqual(Object.keys(m), ['u2'], 'hanya budi; tag diri sendiri diabaikan');
+  const rec = Object.values(m.u2)[0];
+  assert.equal(rec.from, 'Hanz');
+  assert.match(rec.text, /woi @budi/);
+  const got = await call(ctrl.getMentions, { user: user('u2') });
+  assert.equal(got.body.data.items.length, 1);
+  assert.equal((await call(ctrl.getMentions, { user: user('adm') })).body.data.items.length, 0);
+  await call(ctrl.clearMentions, { user: user('u2') });
+  assert.equal((await call(ctrl.getMentions, { user: user('u2') })).body.data.items.length, 0, 'dibersihkan setelah chat dibuka');
+});
+
+test('chat: @semua hanya berlaku untuk owner', async () => {
+  seed();
+  await call(ctrl.sendMessage, { user: user('u2', 'admin'), body: { text: '@semua rapat' } });
+  assert.equal(state.db.root.chat.allMention, undefined, 'admin biasa tidak bisa tag semua');
+  await call(ctrl.sendMessage, { user: user('u1', 'owner'), body: { text: '@semua maintenance jam 9' } });
+  assert.equal(state.db.root.chat.allMention.from, 'Hanz');
+  const forBudi = await call(ctrl.getMentions, { user: user('u2') });
+  assert.equal(forBudi.body.data.all.text, '@semua maintenance jam 9');
+  const forOwner = await call(ctrl.getMentions, { user: user('u1', 'owner') });
+  assert.equal(forOwner.body.data.all, null, 'pengirim tidak dinotifikasi');
+});
+
+test('chat: daftar anggota untuk popup @', async () => {
+  seed();
+  const r = await call(ctrl.getMembers, { user: user('u1') });
+  assert.deepEqual(r.body.data.map((u) => u.username).sort(), ['adm', 'budi', 'hanz']);
+  assert.ok(!('email' in r.body.data[0]));
 });
