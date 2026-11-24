@@ -5,7 +5,7 @@
   'use strict';
 
   var $ = function (id) { return document.getElementById(id); };
-  var LABELS = { owner: 'OWNER', admin: 'ADMIN', moderator: 'MOD', premium: 'PREMIUM' };
+  var LABELS = { owner: 'OWNER', admin: 'ADMIN', moderator: 'MOD', premium: 'PREMIUM', user: 'USER' };
   var INITIAL = 60, OLDER = 40, POLL_MS = 3000, MAX_IMG_BYTES = 215 * 1024;
 
   var S = {
@@ -132,6 +132,12 @@
       head.appendChild(nm);
       var bd = badgeEl(m.role); if (bd) head.appendChild(bd);
       bub.appendChild(head);
+    } else {
+      // Pesan sendiri: tampilkan role-mu juga
+      var mh = el('div', 'cm-head'); mh.style.justifyContent = 'flex-end';
+      mh.appendChild(el('span', 'cm-name', 'Kamu'));
+      var mb = badgeEl(m.role || 'user'); if (mb) mh.appendChild(mb);
+      bub.appendChild(mh);
     }
     if (m.reply) {
       var q = el('div', 'cm-quote');
