@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   if (window.ChatNotify) return;
-  var POLL_MS = 20000, timer = null, uid = null, started = false, busy = false;
+  var POLL_MS = 60000, timer = null, uid = null, started = false, busy = false;
 
   function key(n) { return 'am_cn_' + n + '_' + uid; }
   function get(n) { try { return Number(localStorage.getItem(key(n))) || 0; } catch (e) { return 0; } }

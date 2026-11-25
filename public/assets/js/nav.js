@@ -56,7 +56,7 @@ const Nav = {
     if (activeId !== 'chat' && !window.ChatNotify && !this._cn) {
       this._cn = true;
       const sc = document.createElement('script');
-      sc.src = '/assets/js/chat-notify.js?v=1';
+      sc.src = '/assets/js/chat-notify.js?v=2';
       sc.onload = () => { try { window.ChatNotify.start(); } catch (e) { /* abaikan */ } };
       document.head.appendChild(sc);
     }
