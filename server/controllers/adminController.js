@@ -4,6 +4,7 @@ const { logAction } = require('../services/auditService');
 const { getTodayJakarta, clearDefaultLimitCache } = require('../services/limitService');
 const { checkApiStatus } = require('../services/apiService');
 const { sanitizePlaylist, readPlaylist } = require('../services/playlistService');
+const { sanitizeTicker, readTicker } = require('../services/tickerService');
 const { orphanCleanupUpdates } = require('./songController');
 const { lookupProviders } = require('../services/providerService');
 const { getAllThumbs } = require('../services/photoService');
@@ -470,13 +471,14 @@ async function getSystemSettings(req, res) {
       bgHasUpload: d.bgHasUpload === true,
       bgVersion: d.bgVersion || 0,
       dashboardStyle: d.dashboardStyle === 'rgb' ? 'rgb' : 'gray',
+      ticker: readTicker(d.ticker),
     },
   });
 }
 
 async function updateSystemSettings(req, res) {
   const actor = req.user;
-  const { maintenance, maintenanceMessage, defaultDailyLimit, dailyLimit, version, welcomeMessage, apiStatus, backsoundEnabled, backsoundUrl, backsoundPlaylist, bgEnabled, bgSource, bgUrl, bgBlur, dashboardStyle } = req.body;
+  const { maintenance, maintenanceMessage, defaultDailyLimit, dailyLimit, version, welcomeMessage, apiStatus, backsoundEnabled, backsoundUrl, backsoundPlaylist, bgEnabled, bgSource, bgUrl, bgBlur, dashboardStyle, ticker } = req.body;
   const db = getDb();
   const updates = {};
   if (maintenance !== undefined) updates['system/maintenance'] = maintenance === true || maintenance === 'true';
@@ -551,6 +553,11 @@ async function updateSystemSettings(req, res) {
       return res.status(400).json({ success: false, message: 'Tampilan dashboard tidak valid' });
     }
     updates['system/dashboardStyle'] = dashboardStyle;
+  }
+  // Running text dashboard: hanya owner
+  if (actor.role === 'owner' && ticker !== undefined) {
+    try { updates['system/ticker'] = sanitizeTicker(ticker); }
+    catch (e) { return res.status(400).json({ success: false, message: e.message }); }
   }
   if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, message: 'Tidak ada setting yang diubah' });
   await db.ref('/').update(updates);

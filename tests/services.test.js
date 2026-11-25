@@ -136,3 +136,14 @@ test('chat: gambar stiker sticker.ly diambil dari HTML, urut, pack yang cocok ko
   assert.deepEqual(r.urls, [0, 1, 2, 3].map((n) => u('WTKUQD', n)));
   assert.deepEqual(chatSvc.extractStickerly('<html></html>', 'X').urls, []);
 });
+
+test('ticker: label + maks 5 teks, teks kosong diabaikan, data rusak aman', () => {
+  const { sanitizeTicker, readTicker } = require('../server/services/tickerService');
+  const t = sanitizeTicker({ enabled: true, label: '  Welcome  ', items: ['a', '', '  b  ', 'c'] });
+  assert.deepEqual(t, { enabled: true, label: 'Welcome', items: ['a', 'b', 'c'] });
+  assert.equal(sanitizeTicker({ items: [] }).label, 'PENGUMUMAN');
+  assert.equal(sanitizeTicker({ label: 'x'.repeat(40), items: ['y'.repeat(500)] }).items[0].length, 240);
+  assert.throws(() => sanitizeTicker({ items: ['1', '2', '3', '4', '5', '6'] }), /Maksimal 5/);
+  assert.deepEqual(readTicker('rusak'), { enabled: true, label: 'PENGUMUMAN', items: [] });
+  assert.equal(sanitizeTicker({ enabled: false, items: ['a'] }).enabled, false);
+});

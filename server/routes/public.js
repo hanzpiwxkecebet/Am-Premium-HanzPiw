@@ -3,6 +3,7 @@ const router = express.Router();
 const { getDb } = require('../config/firebase');
 const { checkApiStatus } = require('../services/apiService');
 const { readPlaylist } = require('../services/playlistService');
+const { readTicker } = require('../services/tickerService');
 const { streamSong } = require('../controllers/songController');
 
 const DEFAULT_BACKSOUND_URL = 'https://u.pone.rs/lgqzjhof.mp3';
@@ -84,6 +85,8 @@ router.get('/status', async (req, res) => {
       background: backgroundInfo(sys),
       // Tampilan dashboard: 'gray' (bawaan) atau 'rgb' (RGB bergerak)
       dashboardStyle: sys.dashboardStyle === 'rgb' ? 'rgb' : 'gray',
+      // Running text di Dashboard
+      ticker: readTicker(sys.ticker),
     }
   });
 });
