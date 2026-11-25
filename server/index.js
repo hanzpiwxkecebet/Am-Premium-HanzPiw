@@ -72,7 +72,7 @@ app.use((req, res, next) => (req.path.startsWith('/api/chat/') ? next() : saniti
 // Pengecualian:
 //  - /api/health punya timeout sendiri per tahap diagnosa
 //  - /api/generator/send & /verify memanggil API pihak ketiga yang memang bisa makan puluhan detik
-const LONG_ROUTES = ['/api/generator/send', '/api/generator/verify'];
+const LONG_ROUTES = ['/api/generator/send', '/api/generator/verify', '/api/chat/stickers/import'];   // impor stiker mengunduh banyak file dari Telegram/sticker.ly
 app.use('/api/', (req, res, next) => {
   const path = req.originalUrl.split('?')[0].replace(/\/+$/, '');
   if (path === '/api/health') return next();
@@ -88,7 +88,7 @@ app.use('/api/', (req, res, next) => {
       const noop = function () { return this; };
       res.json = noop; res.send = noop; res.sendFile = noop; res.status = noop;
     };
-    if (isLong) return reply(504, 'API pihak ketiga terlalu lama merespons. Coba lagi.');
+    if (isLong) return reply(504, 'Server pihak ketiga terlalu lama merespons. Coba lagi.');
     // Koneksi database kemungkinan mati: buat ulang supaya request berikutnya tidak ikut menggantung
     resetConnection();
     const mutating = req.method !== 'GET';

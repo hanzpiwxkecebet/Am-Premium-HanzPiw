@@ -335,13 +335,21 @@ async function importStickers(req, res) {
   const updates = {};
   const srcHash = (k) => crypto.createHash('sha1').update(k).digest('hex').slice(0, 20);
 
-  for (const it of items) {
+  // Unduh semua file dalam satu batch SECARA PARALEL (sebelumnya berurutan: 8 stiker x ~1 detik bisa melewati batas waktu)
+  const fetched = await Promise.all(items.map((it) => {
+    if (it.skip || have.has(srcHash(it.key))) return Promise.resolve(null);
+    return it.fetch().then((buf) => ({ buf }), (error) => ({ error }));
+  }));
+
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i], got = fetched[i];
     const h = srcHash(it.key);
     if (it.skip) { skipped++; why.fail++; continue; }
     if (have.has(h)) { skipped++; why.dup++; continue; }
     if (count >= chat.MAX_STICKERS) { skipped++; why.full++; continue; }
     try {
-      const buf = await it.fetch();
+      if (!got || got.error) throw (got && got.error) || new Error('gagal');
+      const buf = got.buf;
       const mime = chat.sniffMime(buf);
       if (!mime || buf.length > chat.MAX_STICKER_BYTES) { skipped++; why.big++; continue; }
       const id = newId();
