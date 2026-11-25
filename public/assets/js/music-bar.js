@@ -24,7 +24,7 @@
     var bars = '';
     for (var i = 0; i < BARS; i++) bars += '<i style="--i:' + i + '"></i>';
     el.innerHTML = '<button type="button" class="music-btn" aria-pressed="false"></button>' +
-      '<button type="button" class="eq-btn" title="Playlist" aria-label="Buka playlist lagu"><span class="eq" aria-hidden="true">' + bars + '</span></button>';
+      '<button type="button" class="eq-btn" title="Playlist" aria-label="Buka playlist lagu"><span class="eq" aria-hidden="true">' + bars + '</span><span class="eq-spin" aria-hidden="true"></span></button>';
     var btn = el.querySelector('.music-btn');
     var eq = el.querySelector('.eq');
     // Menekan equalizer membuka playlist (pilih lagu / kategori ALL, OLD, SAD, ...)
@@ -50,7 +50,10 @@
       el.classList.toggle('is-waiting', on && !!st.blocked && !st.failed);
       el.classList.toggle('is-failed', !!st.failed);
       if (st.track && st.track.title) el.querySelector('.eq-btn').title = 'Playlist • ' + st.track.title + (st.cat ? ' (' + st.cat + ')' : '');
-      eq.classList.toggle('playing', !!st.playing);
+      // Lagu belum bunyi (memuat/buffering): equalizer diam, diganti animasi berputar
+      var loading = !!st.loading && !st.failed;
+      eq.classList.toggle('playing', !!st.playing && !loading);
+      el.querySelector('.eq-btn').classList.toggle('loading', loading);
     }
 
     // Sinkronkan dengan status lagu yang sebenarnya: lewat langganan (instan) + polling 0,5 dtk (cadangan)

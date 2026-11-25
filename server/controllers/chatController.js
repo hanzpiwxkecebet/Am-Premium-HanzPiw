@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const axios = require('axios');
 const { getDb } = require('../config/firebase');
+const { readPlaylist } = require('../services/playlistService');
 const chat = require('../services/chatService');
 
 const ONLINE_WINDOW_MS = 45 * 1000;
@@ -29,10 +30,10 @@ async function getIdentity(db, user) {
 // ─── Pesan ───────────────────────────────────────────────────
 async function sendMessage(req, res) {
   const db = getDb();
-  const { reply, img, st } = req.body || {};
+  const { reply, img, st, song } = req.body || {};
   const text = chat.cleanText(req.body && req.body.text);
-  if (!text && !img && !st) return fail(res, 400, 'Pesan kosong');
-  if ((img && st) || ((img || st) && text.length > 200)) return fail(res, 400, 'Kirim gambar/stiker dengan teks singkat saja');
+  if (!text && !img && !st && !song) return fail(res, 400, 'Pesan kosong');
+  if ((img && st) || (song && (img || st)) || ((img || st || song) && text.length > 200)) return fail(res, 400, 'Kirim gambar/stiker dengan teks singkat saja');
 
   const ident = await getIdentity(db, req.user);
   const msg = { uid: req.user.uid, name: ident.name, username: ident.username, role: req.user.role || 'user', ts: Date.now() };
@@ -49,6 +50,16 @@ async function sendMessage(req, res) {
     const m = await db.ref(`chat/stickers/${st}/m`).once('value');
     if (!m.exists()) return fail(res, 400, 'Stiker tidak ditemukan');
     msg.st = st;
+  }
+  if (song) {
+    // Lagu harus benar-benar ada di playlist owner; judul/kategori diambil dari server, bukan dari klien
+    const url = String(song.url || '');
+    const sysSnap = await db.ref('system').once('value');
+    const sys = sysSnap.val() || {};
+    const list = readPlaylist(sys.backsoundPlaylist);
+    const found = list.find((s) => s.url === url) || (!list.length && sys.backsoundUrl === url ? { title: 'Backsound', url, cat: '' } : null);
+    if (!found) return fail(res, 400, 'Lagu tidak ada di playlist');
+    msg.song = { url: found.url, title: String(found.title).substring(0, 60), cat: String(found.cat || '').substring(0, 20) };
   }
   if (reply) {
     const rs = await db.ref(`chat/messages/${String(reply).replace(/[.#$\[\]\/]/g, '')}`).once('value');
@@ -320,25 +331,28 @@ async function importStickers(req, res) {
   const have = new Set(Object.values(existing).map((s) => s.src));
   let count = Object.keys(existing).length;
   let added = 0, skipped = 0;
+  const why = { dup: 0, big: 0, fail: 0, full: 0 };   // alasan dilewati, supaya owner tahu kenapa impor tidak lengkap
   const updates = {};
   const srcHash = (k) => crypto.createHash('sha1').update(k).digest('hex').slice(0, 20);
 
   for (const it of items) {
     const h = srcHash(it.key);
-    if (it.skip || have.has(h) || count >= chat.MAX_STICKERS) { skipped++; continue; }
+    if (it.skip) { skipped++; why.fail++; continue; }
+    if (have.has(h)) { skipped++; why.dup++; continue; }
+    if (count >= chat.MAX_STICKERS) { skipped++; why.full++; continue; }
     try {
       const buf = await it.fetch();
       const mime = chat.sniffMime(buf);
-      if (!mime || buf.length > chat.MAX_STICKER_BYTES) { skipped++; continue; }
+      if (!mime || buf.length > chat.MAX_STICKER_BYTES) { skipped++; why.big++; continue; }
       const id = newId();
       updates[`chatSticker/${id}`] = { d: buf.toString('base64'), m: mime };
       updates[`chat/stickers/${id}`] = { pack, m: mime, ts: Date.now(), src: h };
       have.add(h); count++; added++;
-    } catch (e) { skipped++; }
+    } catch (e) { skipped++; why.fail++; }
   }
   if (added) await db.ref('/').update(updates);
   const next = offset + BATCH;
-  return res.json({ success: true, data: { pack, added, skipped, total, next: next < total ? next : null, done: next >= total } });
+  return res.json({ success: true, data: { pack, added, skipped, why, max: chat.MAX_STICKERS, total, next: next < total ? next : null, done: next >= total } });
 }
 
 async function listStickers(req, res) {

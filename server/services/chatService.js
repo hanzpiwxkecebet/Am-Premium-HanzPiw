@@ -2,7 +2,7 @@
 const MAX_TEXT = 500;
 const MAX_IMAGE_BYTES = 230 * 1024;     // gambar chat (sudah dikecilkan di browser)
 const MAX_STICKER_BYTES = 300 * 1024;   // satu stiker
-const MAX_STICKERS = 400;               // total stiker di semua pack
+const MAX_STICKERS = 2000;              // total stiker di semua pack
 const KEEP_MESSAGES = 400;              // pesan lama dibuang otomatis
 
 // Hapus karakter kontrol & pengatur arah teks (bidi) yang bisa dipakai menipu tampilan; teks disimpan apa adanya
@@ -109,6 +109,7 @@ function cleanPackName(s, fallback) {
 function snippet(msg, max = 80) {
   if (!msg) return '';
   if (msg.text) return String(msg.text).replace(/\s+/g, ' ').substring(0, max);
+  if (msg.song) return '[lagu] ' + String(msg.song.title || '').substring(0, max - 7);
   if (msg.st) return '[stiker]';
   if (msg.img) return '[gambar]';
   return '';

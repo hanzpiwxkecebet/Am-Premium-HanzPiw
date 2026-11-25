@@ -152,6 +152,7 @@
       im.addEventListener('load', function () { if (S.stick) scrollBottom(); });
       bub.appendChild(im);
     }
+    if (m.song) bub.appendChild(songCard(m.song));
     if (m.st) bub.appendChild(stickerNode(m.st));
     if (m.text) bub.appendChild(richText(m.text));
 
@@ -370,6 +371,50 @@
       $('chat-prev-size').textContent = Math.round(dataUrl.length * 0.75 / 1024) + ' KB';
     }
   }
+  // ─── Lagu yang diteruskan ke chat ────────────────────────
+  function bs() { return window.Backsound || null; }
+  function songCard(sg) {
+    var card = el('div', 'cm-song'); card.setAttribute('data-url', sg.url);
+    var eq = el('span', 'cm-song-eq'); for (var i = 0; i < 4; i++) { var b = el('i'); b.style.setProperty('--i', i); eq.appendChild(b); }
+    var play = el('button', 'cm-song-play'); play.type = 'button'; play.setAttribute('aria-label', 'Putar ' + sg.title);
+    play.appendChild(el('span', 'cm-song-ic'));
+    var tx = el('div', 'cm-song-tx'); tx.appendChild(el('div', 'cm-song-t', sg.title));
+    tx.appendChild(el('div', 'cm-song-s', 'Lagu' + (sg.cat ? ' • ' + sg.cat : '')));
+    card.appendChild(play); card.appendChild(tx); card.appendChild(eq);
+    play.addEventListener('click', function () {
+      var B = bs();
+      if (B && B.getState && B.getState().track.url === sg.url && B.getState().enabled && (B.getState().playing || B.getState().loading)) { B.toggle(); return; }  // sedang diputar: jeda
+      if (!B || !B.playUrl || !B.playUrl(sg.url)) Toast.error('Lagu ini sudah tidak ada di playlist');
+    });
+    paintSongCard(card, B0());
+    return card;
+  }
+  function B0() { try { return bs() && bs().getState ? bs().getState() : null; } catch (e) { return null; } }
+  function paintSongCard(card, st) {
+    var cur = !!(st && st.track && st.track.url === card.getAttribute('data-url') && st.enabled);
+    card.classList.toggle('playing', cur && !!st.playing);
+    card.classList.toggle('loading', cur && !!st.loading);
+    card.classList.toggle('current', cur);
+  }
+  function paintAllSongCards(st) { document.querySelectorAll('.cm-song').forEach(function (c) { paintSongCard(c, st); }); }
+  function watchBacksound() {
+    try { if (bs() && bs().subscribe) bs().subscribe(paintAllSongCards); } catch (e) { /* abaikan */ }
+  }
+
+  // ─── Teruskan lagu: pratinjau sebelum dikirim ─────────────
+  function readShare() {
+    try { var o = JSON.parse(localStorage.getItem('am_share_song') || 'null'); return o && o.url && Date.now() - (o.ts || 0) < 10 * 60 * 1000 ? o : null; } catch (e) { return null; }
+  }
+  function checkShare() {
+    var o = readShare();
+    S.song = o;
+    var bar = $('chat-song');
+    bar.classList.toggle('show', !!o);
+    if (o) { $('chat-song-t').textContent = o.title; input.focus(); }
+  }
+  function clearShare() { S.song = null; try { localStorage.removeItem('am_share_song'); } catch (e) { /* abaikan */ } $('chat-song').classList.remove('show'); }
+  window.AMChat = { checkShare: checkShare };
+
   function lightbox(src) {
     var box = el('div', 'chat-lightbox'); var im = el('img'); im.src = src; im.alt = '';
     box.appendChild(im); box.addEventListener('click', function () { box.remove(); });
@@ -386,17 +431,18 @@
     try { if ('Notification' in window && Notification.permission === 'default' && !localStorage.getItem('am_notif_asked')) { localStorage.setItem('am_notif_asked', '1'); Notification.requestPermission(); } } catch (e) { /* abaikan */ }
     if (S.sending) return;
     var text = input.value.trim();
-    if (!text && !S.img) return;
+    if (!text && !S.img && !S.song) return;
     setSending(true);
     try {
       var payload = { text: text };
       if (S.reply) payload.reply = S.reply.id;
+      if (S.song) payload.song = { url: S.song.url };
       if (S.img) {
         var up = await AMApp.apiCall('POST', '/api/chat/upload', { data: S.img }, {}, 30000);
         payload.img = up.data.id;
       }
       await post(payload);
-      input.value = ''; grow(); closeMention(); clearReply(); setImage(null); toggleStickers(false);
+      input.value = ''; grow(); closeMention(); clearReply(); setImage(null); toggleStickers(false); clearShare();
       S.stick = true;
       if (S.mode === 'poll') pollOnce();
     } catch (e) { Toast.error(e.message || 'Gagal mengirim'); }
@@ -665,6 +711,8 @@
     if (prof.photoURL && /^data:image\//.test(prof.photoURL)) avaCache[S.uid] = prof.photoURL;
 
     bind();
+    $('chat-song-x').addEventListener('click', clearShare);
+    checkShare(); watchBacksound();
     clearMyMentions();
     try {
       await startRealtime();

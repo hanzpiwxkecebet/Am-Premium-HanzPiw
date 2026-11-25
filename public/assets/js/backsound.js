@@ -102,12 +102,16 @@
   }
   curUrl = pickInitial();
 
+  // Sedang memuat/buffering: sudah diminta putar tapi data belum cukup untuk bunyi (koneksi lambat / ganti lagu)
+  function isLoading() {
+    return !!(audio && !audio.paused && !audio.ended && isEnabled() && !failed && !blocked && audio.readyState < 3);
+  }
   function isPlaying() {
-    return !!(audio && !audio.paused && !audio.ended && isEnabled() && !failed);
+    return !!(audio && !audio.paused && !audio.ended && isEnabled() && !failed && audio.readyState >= 3);
   }
   function getState() {
     var cur = findSong(curUrl) || {};
-    return { enabled: isEnabled(), playing: isPlaying(), blocked: blocked, failed: failed,
+    return { enabled: isEnabled(), playing: isPlaying(), loading: isLoading(), blocked: blocked, failed: failed,
              track: { title: cur.title || '', cat: cur.cat || '', url: curUrl }, cat: currentCat(), cats: categories(), count: queue().length };
   }
   function emit() {
@@ -213,7 +217,7 @@
       });
     }
     audio.addEventListener('timeupdate', function () { savePos(false); });
-    ['play', 'playing', 'pause', 'ended', 'waiting'].forEach(function (ev) { audio.addEventListener(ev, emit); });
+    ['play', 'playing', 'pause', 'ended', 'waiting', 'stalled', 'loadstart', 'loadeddata', 'canplay', 'seeking', 'seeked'].forEach(function (ev) { audio.addEventListener(ev, emit); });
     audio.addEventListener('playing', function () { if (audio && !audio.paused) failCount = 0; });
     var me = audio;   // abaikan kejadian dari audio lama yang sudah diganti (mis. error terlambat)
     audio.addEventListener('ended', function () { if (me === audio && queue().length > 1) next(); });
@@ -347,6 +351,24 @@
     });
   }
 
+  // Sinkron setelan/playlist owner tanpa refresh halaman (lagu baru langsung muncul untuk user yang sedang membuka web).
+  // Halaman induk (shell) tidak pernah dimuat ulang saat pindah menu, jadi harus disegarkan berkala.
+  var syncing = false, lastSync = 0;
+  function syncCfg(force) {
+    if (syncing || (!force && Date.now() - lastSync < 20000)) return Promise.resolve();
+    syncing = true; lastSync = Date.now();
+    return fetchCfg(6000, true).then(function (nb) {
+      syncing = false;
+      if (!nb) return;
+      var before = JSON.stringify(cfg), wasCur = curUrl, wasEnabled = cfg.enabled;
+      setCfg(nb);
+      if (JSON.stringify(cfg) === before) return;
+      if (curUrl !== wasCur || nb.enabled !== wasEnabled) apply(); else { renderBtn(); }
+    }).catch(function () { syncing = false; });
+  }
+  setInterval(function () { if (!document.hidden) syncCfg(false); }, 45000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) syncCfg(false); });
+
   // ─── Start ───────────────────────────────────────────────────
   function start() {
     mountBtn();
@@ -436,6 +458,8 @@
     '.bgm-chip.active{background:var(--text-primary,#fff);color:var(--bg-primary,#000)}' +
     '.bgm-list{overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:0;-webkit-overflow-scrolling:touch}' +
     '.bgm-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:14px;border:1px solid var(--border-glass,rgba(255,255,255,.2));background:transparent;color:inherit;cursor:pointer;font-size:.85rem}' +
+    '.bgm-row{display:flex;align-items:center;gap:6px}.bgm-row .bgm-item{flex:1;min-width:0;width:auto}' +
+    '.bgm-share{flex:0 0 40px;width:40px;height:40px;border-radius:50%;border:1px solid var(--border-glass,rgba(255,255,255,.2));background:var(--bg-glass,rgba(255,255,255,.08));color:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center}.bgm-share:active{transform:scale(.9)}' +
     '.bgm-item.cur{background:var(--bg-glass-hover,rgba(255,255,255,.14))}' +
     '.bgm-item .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
     '.bgm-item .c{font-size:.65rem;font-weight:700;letter-spacing:.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--border-glass,rgba(255,255,255,.2));color:var(--text-muted,#aaa)}' +
@@ -444,6 +468,7 @@
     '@keyframes bgmFade{from{opacity:0}to{opacity:1}}';
   var I_PREV = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9.5 12z"/></svg>';
   var I_NEXT = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l10.5-7z"/></svg>';
+  var I_SHARE = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/></svg>';
   var I_PLAY = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>';
   var I_PAUSE = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
 
@@ -458,7 +483,7 @@
     var st = getState();
     sheet.querySelector('.bgm-now-title').textContent = st.track.title || '—';
     sheet.querySelector('.bgm-now-sub').textContent =
-      (st.failed ? 'Gagal dimuat' : st.playing ? 'Sedang diputar' : st.blocked ? 'Ketuk untuk memutar' : 'Dijeda') + ' • ' + st.cat + ' • ' + st.count + ' lagu';
+      (st.failed ? 'Gagal dimuat' : st.loading ? 'Memuat lagu…' : st.playing ? 'Sedang diputar' : st.blocked ? 'Ketuk untuk memutar' : 'Dijeda') + ' • ' + st.cat + ' • ' + st.count + ' lagu';
     sheet.querySelector('.bgm-pp').innerHTML = st.playing ? I_PAUSE : I_PLAY;
     var chips = sheet.querySelector('.bgm-cats');
     chips.textContent = '';
@@ -477,7 +502,11 @@
       b.appendChild(el('span', 't', s.title));
       if (s.cat) b.appendChild(el('span', 'c', s.cat));
       b.addEventListener('click', function () { setTrack(s.url, true); });
-      list.appendChild(b);
+      var row = el('div', 'bgm-row');
+      var sh = el('button', 'bgm-share'); sh.type = 'button'; sh.innerHTML = I_SHARE; sh.title = 'Teruskan ke Chat Global'; sh.setAttribute('aria-label', 'Teruskan ' + s.title + ' ke Chat Global');
+      sh.addEventListener('click', function (e) { e.stopPropagation(); shareToChat(s.url); });
+      row.appendChild(b); row.appendChild(sh);
+      list.appendChild(row);
     });
   }
   function buildSheet() {
@@ -522,11 +551,37 @@
   }
   function openPlaylist() {
     if (!document.body) return;
+    syncCfg(true);   // buka playlist = ambil daftar lagu terbaru
     buildSheet();
     sheet.hidden = false;
     renderSheet();
   }
   function closePlaylist() { if (sheet) sheet.hidden = true; }
+
+  // ─── Teruskan lagu ke Global Chat ───────────────────────────
+  // Lagu disimpan sementara; halaman Chat menampilkan pratinjau + tombol Kirim (bisa ditambah teks).
+  function shareToChat(url) {
+    var song = findSong(url || curUrl);
+    if (!song) return false;
+    lsSet('am_share_song', JSON.stringify({ url: song.url, title: song.title, cat: song.cat, ts: Date.now() }));
+    closePlaylist();
+    try {
+      var fr = document.querySelector('iframe');
+      var w = fr && fr.contentWindow;
+      var onChat = w && /^\/(chat|pages\/chat\.html)\/?$/.test(w.location.pathname);
+      if (onChat && w.AMChat && w.AMChat.checkShare) w.AMChat.checkShare();
+      else if (w) w.location.assign('/chat');
+      else window.location.assign('/chat');
+    } catch (e) { window.location.assign('/chat'); }
+    return true;
+  }
+  // Putar lagu kiriman dari chat. false = lagu sudah tidak ada di playlist.
+  function playUrl(url) {
+    if (!findSong(url)) return false;
+    if (!queue().some(function (q) { return q.url === url; })) lsSet(KEY_CAT, 'ALL');
+    setTrack(url, true);
+    return true;
+  }
 
   window.Backsound = {
     toggle: toggle,
@@ -541,6 +596,9 @@
     prev: prev,
     setCategory: setCategory,
     openPlaylist: openPlaylist,
+    shareToChat: shareToChat,
+    playUrl: playUrl,
+    hasSong: function (u) { return !!findSong(u); },
     closePlaylist: closePlaylist,
     defaultUrl: DEFAULT_URL,
   };

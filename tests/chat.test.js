@@ -210,3 +210,18 @@ test('chat: daftar anggota untuk popup @', async () => {
   assert.deepEqual(r.body.data.map((u) => u.username).sort(), ['adm', 'budi', 'hanz']);
   assert.ok(!('email' in r.body.data[0]));
 });
+
+test('chat: teruskan lagu - hanya lagu yang ada di playlist, judul dari server', async () => {
+  seed({ system: { backsoundPlaylist: [{ title: 'Lagu Sedih', url: '/api/public/song/0123456789abcdef', cat: 'SAD' }] } });
+  const bad = await call(ctrl.sendMessage, { user: user('u2'), body: { song: { url: 'https://evil.example/x.mp3' } } });
+  assert.equal(bad.statusCode, 400);
+  const bad2 = await call(ctrl.sendMessage, { user: user('u2'), body: { song: { url: '/api/public/song/0123456789abcdef' }, img: 'a'.repeat(16) } });
+  assert.equal(bad2.statusCode, 400);
+  const ok = await call(ctrl.sendMessage, { user: user('u2'), body: { text: 'dengerin ini', song: { url: '/api/public/song/0123456789abcdef', title: 'PALSU', cat: 'X' } } });
+  assert.equal(ok.statusCode || 200, 200);
+  const msgs = Object.values(state.db.root.chat.messages);
+  const m = msgs[msgs.length - 1];
+  assert.deepEqual(m.song, { url: '/api/public/song/0123456789abcdef', title: 'Lagu Sedih', cat: 'SAD' });
+  const only = await call(ctrl.sendMessage, { user: user('u2'), body: { song: { url: '/api/public/song/0123456789abcdef' } } });
+  assert.ok(only.body.success, 'lagu tanpa teks boleh');
+});

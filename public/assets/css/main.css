@@ -1654,3 +1654,14 @@ html.dash-rgb .cm-text a, html.dash-rgb .cm-mention { color: #00d9ff; }
 /* Lencana notifikasi di ikon menu (tag Global Chat) */
 .nav-icon { position: relative; }
 .nav-badge { position: absolute; top: -5px; right: -8px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: #ff3b5c; color: #fff; font-size: .62rem; font-weight: 800; line-height: 16px; text-align: center; box-shadow: 0 0 0 2px var(--bg-primary, #0b0b0f); pointer-events: none; }
+
+/* Lagu memuat/buffering: equalizer diganti spinner berputar */
+.music-pill .eq-btn { position: relative; }
+.music-pill .eq-spin { display: none; position: absolute; top: 50%; left: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); border-top-color: var(--eq-color, #fff); }
+.music-pill .eq-btn.loading .eq { visibility: hidden; }
+.music-pill .eq-btn.loading .eq-spin { display: block; animation: eqSpin .8s linear infinite; }
+html.dash-rgb .music-pill .eq-spin { border-top-color: #00e5ff; border-right-color: #ff2bd6; border-bottom-color: #7CFF3a; border-left-color: #ffd400; }
+@keyframes eqSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .music-pill .eq-btn.loading .eq-spin { animation-duration: .8s !important; animation-iteration-count: infinite !important; }
+}
