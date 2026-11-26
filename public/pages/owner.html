@@ -88,6 +88,7 @@
       <button class="owner-tab" data-tab="emails"><i class="ic ic-mail"></i> Email Sistem</button>
       <button class="owner-tab" data-tab="announce"><i class="ic ic-bell"></i> Pengumuman</button>
       <button class="owner-tab" data-tab="stickers"><i class="ic ic-sticker"></i> Stiker Chat</button>
+      <button class="owner-tab" data-tab="audio"><i class="ic ic-radio"></i> Audio</button>
       <button class="owner-tab" data-tab="system"><i class="ic ic-settings"></i> Sistem</button>
       <button class="owner-tab" data-tab="logs"><i class="ic ic-clipboard"></i> Log Lengkap</button>
       <button class="owner-tab" data-tab="danger"><i class="ic ic-alert"></i> Danger Zone</button>
@@ -262,6 +263,39 @@
       <div id="stk-list"><div class="skeleton" style="height:80px;border-radius:var(--radius-md)"></div></div>
     </div>
 
+    <!-- ===== AUDIO (backsound & playlist) ===== -->
+    <div class="tab-panel" id="tab-audio">
+      <div class="glass-card">
+        <div class="section-title" style="margin-top:0">Pengaturan Audio</div>
+        <div class="form-group">
+          <label class="form-label">Backsound Default</label>
+          <select class="form-input" id="owner-bgm-enabled">
+            <option value="true">Aktif (otomatis diputar)</option>
+            <option value="false">Nonaktif</option>
+          </select>
+          <div class="text-muted text-xs" style="margin-top:4px">Berlaku untuk user yang belum memilih sendiri lewat tombol speaker. Pilihan user selalu didahulukan.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Playlist Lagu</label>
+          <div id="owner-pl-list" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <button type="button" class="btn btn-primary" id="owner-pl-upload" style="flex:1 1 180px">Upload Lagu (MP3 dll)</button>
+            <button type="button" class="btn btn-secondary" id="owner-pl-add" style="flex:1 1 140px">+ Tambah via Link</button>
+          </div>
+          <input type="file" id="owner-pl-file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav,.flac" multiple style="display:none">
+          <div class="text-muted text-xs" id="owner-pl-upload-info" style="margin-top:6px"></div>
+          <datalist id="owner-pl-cats"><option value="OLD"><option value="SAD"><option value="HAPPY"><option value="CHILL"><option value="PARTY"></datalist>
+          <div class="text-muted text-xs" style="margin-top:4px">Setiap lagu: judul, kategori (mis. OLD, SAD), dan sumber audio: file yang diupload (MP3, M4A, OGG, WAV, FLAC; maks 12MB per lagu) atau link langsung ke audio (https). Setelah upload, tekan Simpan Pengaturan Audio. Pilihan "ALL" otomatis berisi semua lagu. Lagu pertama yang diputar diacak untuk tiap user, lalu lanjut otomatis. User membuka playlist dengan menekan equalizer. Maksimal 60 lagu.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">URL Audio Cadangan</label>
+          <input type="url" class="form-input" id="owner-bgm-url" placeholder="https://u.pone.rs/lgqzjhof.mp3">
+          <div class="text-muted text-xs" style="margin-top:4px">Dipakai kalau playlist kosong. Link langsung ke file audio. Kosongkan untuk audio bawaan.</div>
+        </div>
+        <button class="btn btn-primary btn-full" id="owner-save-audio"><i class="ic ic-save"></i> Simpan Pengaturan Audio</button>
+      </div>
+    </div>
+
     <div class="tab-panel" id="tab-system">
       <div class="glass-card">
         <div class="section-title" style="margin-top:0">Pengaturan Sistem (Owner)</div>
@@ -288,32 +322,7 @@
           <label class="form-label">Pesan Selamat Datang (optional)</label>
           <input type="text" class="form-input" id="owner-welcome-msg" placeholder="Selamat datang di AM Premium Generator!">
         </div>
-        <div class="form-group">
-          <label class="form-label">Backsound Default</label>
-          <select class="form-input" id="owner-bgm-enabled">
-            <option value="true">Aktif (otomatis diputar)</option>
-            <option value="false">Nonaktif</option>
-          </select>
-          <div class="text-muted text-xs" style="margin-top:4px">Berlaku untuk user yang belum memilih sendiri lewat tombol speaker. Pilihan user selalu didahulukan.</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Playlist Lagu</label>
-          <div id="owner-pl-list" style="display:flex;flex-direction:column;gap:8px"></div>
-          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-            <button type="button" class="btn btn-primary" id="owner-pl-upload" style="flex:1 1 180px">Upload Lagu (MP3 dll)</button>
-            <button type="button" class="btn btn-secondary" id="owner-pl-add" style="flex:1 1 140px">+ Tambah via Link</button>
-          </div>
-          <input type="file" id="owner-pl-file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav,.flac" multiple style="display:none">
-          <div class="text-muted text-xs" id="owner-pl-upload-info" style="margin-top:6px"></div>
-          <datalist id="owner-pl-cats"><option value="OLD"><option value="SAD"><option value="HAPPY"><option value="CHILL"><option value="PARTY"></datalist>
-          <div class="text-muted text-xs" style="margin-top:4px">Setiap lagu: judul, kategori (mis. OLD, SAD), dan sumber audio: file yang diupload (MP3, M4A, OGG, WAV, FLAC; maks 12MB per lagu) atau link langsung ke audio (https). Setelah upload, tekan Simpan Semua Pengaturan. Pilihan "ALL" otomatis berisi semua lagu. Lagu pertama yang diputar diacak untuk tiap user, lalu lanjut otomatis. User membuka playlist dengan menekan equalizer. Maksimal 60 lagu.</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">URL Audio Cadangan</label>
-          <input type="url" class="form-input" id="owner-bgm-url" placeholder="https://u.pone.rs/lgqzjhof.mp3">
-          <div class="text-muted text-xs" style="margin-top:4px">Dipakai kalau playlist kosong. Link langsung ke file audio. Kosongkan untuk audio bawaan.</div>
-        </div>
-        <button class="btn btn-primary btn-full" id="owner-save-sys"><i class="ic ic-save"></i> Simpan Semua Pengaturan</button>
+        <button class="btn btn-primary btn-full" id="owner-save-sys"><i class="ic ic-save"></i> Simpan Pengaturan Sistem</button>
       </div>
 
       <div class="glass-card" style="margin-top:12px" id="owner-bg-card">
@@ -1204,7 +1213,7 @@
         }
       } finally {
         Utils.setButtonLoading(btn, false);
-        info.textContent = ok ? ok + ' lagu terupload. Isi judul/kategori, lalu tekan "Simpan Semua Pengaturan" supaya masuk playlist.' : '';
+        info.textContent = ok ? ok + ' lagu terupload. Isi judul/kategori, lalu tekan "Simpan Pengaturan Audio" supaya masuk playlist.' : '';
       }
       if (ok) Toast.success(ok + ' lagu terupload. Jangan lupa tekan Simpan.');
     });
@@ -1224,13 +1233,9 @@
           maintenanceMessage: document.getElementById('owner-maint-msg').value.trim(),
           defaultDailyLimit: Number.isFinite(parseInt(document.getElementById('owner-default-limit').value)) ? parseInt(document.getElementById('owner-default-limit').value) : 10,
           version: document.getElementById('owner-version').value.trim(),
-          welcomeMessage: document.getElementById('owner-welcome-msg').value.trim(),
-          backsoundEnabled: document.getElementById('owner-bgm-enabled').value === 'true',
-          backsoundUrl: document.getElementById('owner-bgm-url').value.trim(),
-          backsoundPlaylist: readPlaylistEditor()
+          welcomeMessage: document.getElementById('owner-welcome-msg').value.trim()
         });
         Toast.success('Pengaturan disimpan');
-        if (window.Backsound) window.Backsound.refresh(); // terapkan langsung di halaman ini
         const newLim = parseInt(document.getElementById('owner-default-limit').value) || 10;
         // Hanya tawarkan menimpa limit semua user kalau limit default memang DIUBAH di form ini.
         // (Dulu dialog ini muncul di setiap penyimpanan, termasuk saat hanya menambah lagu, sehingga limit hasil redeem ikut tertimpa.)
@@ -1241,6 +1246,21 @@
           Toast.success(r.message || 'Limit diterapkan');
           if (typeof loadAllUsers === 'function') loadAllUsers();
         }
+      } catch (e) { Toast.error(e.message); } finally { Utils.setButtonLoading(btn, false); }
+    });
+
+    // ========== AUDIO (tab sendiri, terpisah dari Sistem) ==========
+    document.getElementById('owner-save-audio').addEventListener('click', async () => {
+      const btn = document.getElementById('owner-save-audio');
+      Utils.setButtonLoading(btn);
+      try {
+        await AMApp.apiCall('PUT', '/api/admin/system', {
+          backsoundEnabled: document.getElementById('owner-bgm-enabled').value === 'true',
+          backsoundUrl: document.getElementById('owner-bgm-url').value.trim(),
+          backsoundPlaylist: readPlaylistEditor()
+        });
+        Toast.success('Pengaturan audio disimpan');
+        if (window.Backsound) window.Backsound.refresh(); // terapkan langsung di halaman ini
       } catch (e) { Toast.error(e.message); } finally { Utils.setButtonLoading(btn, false); }
     });
 
@@ -1396,7 +1416,7 @@
       else if (tab === 'emails') loadEmails();
       else if (tab === 'announce') loadAnnouncements();
       else if (tab === 'stickers') loadStickerAdmin();
-      else if (tab === 'system') loadOwnerSystem();
+      else if (tab === 'system' || tab === 'audio') loadOwnerSystem();
       else if (tab === 'logs') loadOwnerLogs();
     }
 
