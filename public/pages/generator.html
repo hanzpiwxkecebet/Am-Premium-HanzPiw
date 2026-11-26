@@ -50,6 +50,11 @@
     .result-card.failed { background: rgba(255,34,68,0.05); border: 1px solid rgba(255,34,68,0.2); }
     .result-icon { font-size: 3rem; margin-bottom: 12px; }
     .email-select-item { padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); background: var(--bg-glass); cursor: pointer; transition: var(--transition); font-size: 0.88rem; display: flex; align-items: center; justify-content: space-between; }
+    /* Daftar email sistem: item tidak boleh gepeng/miring; email panjang dipotong (…), badge tidak turun baris */
+    #system-email-list { overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-right: 2px; }
+    .email-select-item { flex: 0 0 auto; gap: 10px; min-height: 46px; width: 100%; box-sizing: border-box; transform: none !important; }
+    .email-select-item > span:first-child { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .email-select-item .badge { flex: 0 0 auto; white-space: nowrap; }
     .email-select-item:hover { border-color: var(--border-neon-red); background: rgba(156, 156, 156,0.05); }
     .email-select-item.selected { border-color: var(--neon-red-dim); background: rgba(156, 156, 156,0.1); }
     .email-select-item.in-use, .email-select-item.in-use:hover { opacity: 0.6; cursor: not-allowed; border-color: var(--border-glass); background: var(--bg-glass); }
@@ -369,11 +374,11 @@
         if (sel && !list.some(e => e.email === sel && !e.inUse)) hidden.value = '';
         container.innerHTML = list.map(e => e.inUse ? `
             <div class="email-select-item in-use" data-email="${Utils.escapeHtml(e.email)}" aria-disabled="true">
-              <span style="font-family:var(--font-mono);font-size:0.8rem">${Utils.escapeHtml(e.email)}</span>
+              <span title="${Utils.escapeHtml(e.email)}" style="font-family:var(--font-mono);font-size:0.8rem">${Utils.escapeHtml(e.email)}</span>
               <span class="badge badge-suspended">Telah Digunakan</span>
             </div>` : `
             <div class="email-select-item${hidden.value === e.email ? ' selected' : ''}" data-email="${Utils.escapeHtml(e.email)}" onclick="selectSystemEmail(this)">
-              <span style="font-family:var(--font-mono);font-size:0.8rem">${Utils.escapeHtml(e.email)}</span>
+              <span title="${Utils.escapeHtml(e.email)}" style="font-family:var(--font-mono);font-size:0.8rem">${Utils.escapeHtml(e.email)}</span>
               <span class="badge badge-active">Tersedia</span>
             </div>`).join('');
       }
@@ -535,6 +540,6 @@
       });
     });
   </script>
-  <script src="/assets/js/backsound.js?v=7"></script>
+  <script src="/assets/js/backsound.js?v=8"></script>
 </body>
 </html>

@@ -456,6 +456,10 @@
     '.bgm-cats::-webkit-scrollbar{display:none}' +
     '.bgm-chip{flex:0 0 auto;padding:7px 14px;border-radius:999px;border:1px solid var(--border-glass,rgba(255,255,255,.2));background:var(--bg-glass,rgba(255,255,255,.08));color:inherit;font-size:.78rem;font-weight:700;letter-spacing:.5px;cursor:pointer}' +
     '.bgm-chip.active{background:var(--text-primary,#fff);color:var(--bg-primary,#000)}' +
+    // Saat lagu banyak, hanya daftar yang boleh menyusut/scroll; judul, tombol, dan chip kategori tidak boleh gepeng
+    '.bgm-panel>*{flex-shrink:0}.bgm-panel>.bgm-list{flex:1 1 auto;min-height:0}' +
+    '.bgm-cats{min-height:44px;align-items:center}.bgm-chip{height:36px;display:inline-flex;align-items:center}' +
+    '.bgm-row{flex:0 0 auto}.bgm-item,.bgm-share{flex-shrink:0}.bgm-row .bgm-item{flex-shrink:1;min-height:44px}' +
     '.bgm-list{overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:0;-webkit-overflow-scrolling:touch}' +
     '.bgm-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:14px;border:1px solid var(--border-glass,rgba(255,255,255,.2));background:transparent;color:inherit;cursor:pointer;font-size:.85rem}' +
     '.bgm-row{display:flex;align-items:center;gap:6px}.bgm-row .bgm-item{flex:1;min-width:0;width:auto}' +
