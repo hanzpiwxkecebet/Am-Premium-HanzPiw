@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
   <title>Owner Panel - AM Premium Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/main.css?v=13">
+  <link rel="stylesheet" href="/assets/css/main.css?v=14">
   <style>
     .owner-header { background: linear-gradient(135deg, rgba(156, 156, 156,0.15) 0%, rgba(89, 89, 89,0.15) 100%); border: 1px solid rgba(156, 156, 156,0.3); border-radius: var(--radius-xl); padding: 20px; margin-bottom: 16px; }
     .owner-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--gradient-primary); padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
@@ -372,18 +372,33 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Tulisan Label (maks 14 huruf)</label>
-          <input type="text" class="form-input" id="owner-tk-label" maxlength="14" placeholder="PENGUMUMAN">
-          <div class="text-muted text-xs" style="margin-top:4px">Tulisan di kotak kecil sebelah kiri, contoh: PENGUMUMAN atau Welcome.</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Teks berjalan (maks 5, yang kosong diabaikan)</label>
-          <input type="text" class="form-input owner-tk-item" maxlength="240" placeholder="Teks 1" style="margin-bottom:6px">
-          <input type="text" class="form-input owner-tk-item" maxlength="240" placeholder="Teks 2" style="margin-bottom:6px">
-          <input type="text" class="form-input owner-tk-item" maxlength="240" placeholder="Teks 3" style="margin-bottom:6px">
-          <input type="text" class="form-input owner-tk-item" maxlength="240" placeholder="Teks 4" style="margin-bottom:6px">
-          <input type="text" class="form-input owner-tk-item" maxlength="240" placeholder="Teks 5">
-          <div class="text-muted text-xs" style="margin-top:4px">Teks berjalan bergantian dari kanan ke kiri di halaman Dashboard.</div>
+          <label class="form-label">Bar running text (maks 5)</label>
+          <div class="tk-row" style="margin-bottom:10px">
+            <div class="text-muted text-xs" style="margin-bottom:4px">Bar 1</div>
+            <input type="text" class="form-input owner-tk-label" maxlength="14" placeholder="Label (PENGUMUMAN)" style="margin-bottom:6px">
+            <input type="text" class="form-input owner-tk-item" maxlength="240" placeholder="Teks 1">
+          </div>
+          <div class="tk-row" style="margin-bottom:10px">
+            <div class="text-muted text-xs" style="margin-bottom:4px">Bar 2</div>
+            <input type="text" class="form-input owner-tk-label" maxlength="14" placeholder="Label (PENGUMUMAN)" style="margin-bottom:6px">
+            <input type="text" class="form-input owner-tk-item" maxlength="240" placeholder="Teks 2">
+          </div>
+          <div class="tk-row" style="margin-bottom:10px">
+            <div class="text-muted text-xs" style="margin-bottom:4px">Bar 3</div>
+            <input type="text" class="form-input owner-tk-label" maxlength="14" placeholder="Label (PENGUMUMAN)" style="margin-bottom:6px">
+            <input type="text" class="form-input owner-tk-item" maxlength="240" placeholder="Teks 3">
+          </div>
+          <div class="tk-row" style="margin-bottom:10px">
+            <div class="text-muted text-xs" style="margin-bottom:4px">Bar 4</div>
+            <input type="text" class="form-input owner-tk-label" maxlength="14" placeholder="Label (PENGUMUMAN)" style="margin-bottom:6px">
+            <input type="text" class="form-input owner-tk-item" maxlength="240" placeholder="Teks 4">
+          </div>
+          <div class="tk-row" style="margin-bottom:10px">
+            <div class="text-muted text-xs" style="margin-bottom:4px">Bar 5</div>
+            <input type="text" class="form-input owner-tk-label" maxlength="14" placeholder="Label (PENGUMUMAN)" style="margin-bottom:6px">
+            <input type="text" class="form-input owner-tk-item" maxlength="240" placeholder="Teks 5">
+          </div>
+          <div class="text-muted text-xs">Tiap bar yang terisi teksnya tampil sebagai bar sendiri (bertumpuk ke bawah) di Dashboard, dengan label masing-masing (maks 14 huruf, contoh: PENGUMUMAN atau Welcome). Bar yang teksnya kosong tidak ditampilkan.</div>
         </div>
         <button class="btn btn-primary btn-full" id="owner-tk-save"><i class="ic ic-save"></i> Simpan Running Text</button>
       </div>
@@ -1055,18 +1070,18 @@
     function loadTicker(d) {
       const t = d.ticker || {};
       document.getElementById('owner-tk-enabled').value = t.enabled === false ? 'false' : 'true';
-      document.getElementById('owner-tk-label').value = t.label || 'PENGUMUMAN';
       const items = Array.isArray(t.items) ? t.items : [];
-      document.querySelectorAll('.owner-tk-item').forEach((inp, i) => { inp.value = items[i] || ''; });
+      const labs = document.querySelectorAll('.owner-tk-label'), txts = document.querySelectorAll('.owner-tk-item');
+      txts.forEach((inp, i) => { inp.value = (items[i] && items[i].text) || ''; labs[i].value = (items[i] && items[i].label) || ''; });
     }
     document.getElementById('owner-tk-save').addEventListener('click', async () => {
       const btn = document.getElementById('owner-tk-save');
-      const items = Array.from(document.querySelectorAll('.owner-tk-item')).map((i) => i.value.trim()).filter(Boolean);
+      const labs = document.querySelectorAll('.owner-tk-label');
+      const items = Array.from(document.querySelectorAll('.owner-tk-item')).map((inp, i) => ({ label: labs[i].value.trim(), text: inp.value.trim() })).filter((x) => x.text);
       Utils.setButtonLoading(btn);
       try {
         await AMApp.apiCall('PUT', '/api/admin/system', { ticker: {
           enabled: document.getElementById('owner-tk-enabled').value === 'true',
-          label: document.getElementById('owner-tk-label').value.trim(),
           items,
         } });
         Toast.success(items.length ? 'Running text disimpan (tampil dalam ± 10 detik)' : 'Disimpan: belum ada teks, strip tidak tampil');
